@@ -1,0 +1,219 @@
+
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { ChevronLeft, Package, CreditCard, User, Lock, LogOut, ChevronRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Separator } from '@/components/ui/separator';
+import Header from '@/components/Header';
+import BottomNavigation from '@/components/BottomNavigation';
+import { useToast } from '@/hooks/use-toast';
+
+const ProfilePage = () => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [profileData, setProfileData] = useState({
+    name: 'John Doe',
+    email: 'johndoe@example.com',
+    phone: '9012345678'
+  });
+  const [formData, setFormData] = useState({ ...profileData });
+  const { toast } = useToast();
+  
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+  
+  const handleSaveChanges = () => {
+    setProfileData({ ...formData });
+    setIsEditing(false);
+    toast({
+      title: "Profile updated",
+      description: "Your profile information has been updated successfully",
+    });
+  };
+  
+  const handleCancelEdit = () => {
+    setFormData({ ...profileData });
+    setIsEditing(false);
+  };
+  
+  const handleLogout = () => {
+    // In a real implementation, this would clear auth tokens/state
+    toast({
+      title: "Logged out",
+      description: "You have been successfully logged out",
+    });
+  };
+  
+  return (
+    <div className="pb-20">
+      <Header />
+      
+      <main className="container px-4 py-4 mx-auto">
+        <div className="py-3 flex items-center">
+          <Link to="/" className="flex items-center text-gray-500">
+            <ChevronLeft className="w-5 h-5 mr-1" />
+            <span>Back</span>
+          </Link>
+        </div>
+        
+        <h1 className="text-2xl font-bold mb-6">Profile</h1>
+        
+        <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+          {isEditing ? (
+            <div className="p-4">
+              <h2 className="font-semibold text-lg mb-4">Edit Profile</h2>
+              
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                  <Input 
+                    id="name" 
+                    name="name" 
+                    value={formData.name} 
+                    onChange={handleInputChange} 
+                  />
+                </div>
+                
+                <div>
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                  <Input 
+                    id="email" 
+                    name="email" 
+                    type="email" 
+                    value={formData.email} 
+                    onChange={handleInputChange} 
+                  />
+                </div>
+                
+                <div>
+                  <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                  <Input 
+                    id="phone" 
+                    name="phone" 
+                    value={formData.phone} 
+                    onChange={handleInputChange} 
+                  />
+                </div>
+                
+                <div className="flex gap-3 pt-2">
+                  <Button 
+                    onClick={handleCancelEdit}
+                    variant="outline" 
+                    className="flex-1"
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    onClick={handleSaveChanges}
+                    className="flex-1 bg-brand-blue hover:bg-brand-darkBlue"
+                  >
+                    Save Changes
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="p-4">
+              <div className="flex justify-between items-center mb-4">
+                <div className="flex items-center">
+                  <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
+                    <User className="w-7 h-7 text-gray-500" />
+                  </div>
+                  <div className="ml-3">
+                    <h2 className="font-semibold">{profileData.name}</h2>
+                    <p className="text-sm text-gray-500">{profileData.email}</p>
+                  </div>
+                </div>
+                <Button 
+                  onClick={() => setIsEditing(true)}
+                  variant="outline" 
+                  size="sm"
+                >
+                  Edit
+                </Button>
+              </div>
+              
+              <Separator className="my-4" />
+              
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">My Account</h3>
+                  <div className="mt-2 space-y-2">
+                    <Link to="/orders" className="flex items-center justify-between p-2 rounded-md hover:bg-gray-50">
+                      <div className="flex items-center">
+                        <Package className="w-5 h-5 text-gray-400 mr-3" />
+                        <span>Order History</span>
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-gray-400" />
+                    </Link>
+                    
+                    <Link to="/addresses" className="flex items-center justify-between p-2 rounded-md hover:bg-gray-50">
+                      <div className="flex items-center">
+                        <CreditCard className="w-5 h-5 text-gray-400 mr-3" />
+                        <span>Payment Methods</span>
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-gray-400" />
+                    </Link>
+                    
+                    <Link to="/password" className="flex items-center justify-between p-2 rounded-md hover:bg-gray-50">
+                      <div className="flex items-center">
+                        <Lock className="w-5 h-5 text-gray-400 mr-3" />
+                        <span>Change Password</span>
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-gray-400" />
+                    </Link>
+                  </div>
+                </div>
+                
+                <Separator />
+                
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">App Settings</h3>
+                  <div className="mt-2 space-y-2">
+                    <Link to="/notifications" className="flex items-center justify-between p-2 rounded-md hover:bg-gray-50">
+                      <div className="flex items-center">
+                        <span>Notifications</span>
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-gray-400" />
+                    </Link>
+                    
+                    <Link to="/privacy" className="flex items-center justify-between p-2 rounded-md hover:bg-gray-50">
+                      <div className="flex items-center">
+                        <span>Privacy Settings</span>
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-gray-400" />
+                    </Link>
+                    
+                    <Link to="/about" className="flex items-center justify-between p-2 rounded-md hover:bg-gray-50">
+                      <div className="flex items-center">
+                        <span>About Us</span>
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-gray-400" />
+                    </Link>
+                  </div>
+                </div>
+                
+                <Separator />
+                
+                <Button 
+                  onClick={handleLogout}
+                  variant="outline" 
+                  className="w-full text-red-500 hover:text-red-600 hover:bg-red-50"
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Logout
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      </main>
+      
+      <BottomNavigation />
+    </div>
+  );
+};
+
+export default ProfilePage;
