@@ -21,7 +21,7 @@ import { useToast } from '@/hooks/use-toast';
 const PRODUCT = {
   id: '2',
   name: 'Smart Watch Pro',
-  description: 'The Smart Watch Pro is a premium wearable device designed for fitness enthusiasts and tech-savvy individuals. With its sleek design and advanced features, it's the perfect companion for your daily activities.',
+  description: "The Smart Watch Pro is a premium wearable device designed for fitness enthusiasts and tech-savvy individuals. With its sleek design and advanced features, it's the perfect companion for your daily activities.",
   price: 299.99,
   salePrice: 249.99,
   images: ['/placeholder.svg', '/placeholder.svg', '/placeholder.svg'],
@@ -41,7 +41,7 @@ const PRODUCT = {
   reviews: [
     { id: '1', user: 'John D.', rating: 5, comment: 'Excellent watch! Battery life is amazing.', date: '2023-10-15' },
     { id: '2', user: 'Sarah M.', rating: 4, comment: 'Great features but the app could be better.', date: '2023-09-28' },
-    { id: '3', user: 'Robert K.', rating: 5, comment: 'Best smartwatch I\'ve owned so far.', date: '2023-11-02' }
+    { id: '3', user: 'Robert K.', rating: 5, comment: "Best smartwatch I've owned so far.", date: '2023-11-02' }
   ]
 };
 
