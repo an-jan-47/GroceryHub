@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ChevronLeft, Package, CreditCard, User, Lock, LogOut, ChevronRight } from 'lucide-react';
@@ -35,7 +36,7 @@ const ProfilePage = () => {
           .from('profiles')
           .select('*')
           .eq('id', user.id)
-          .single();
+          .maybeSingle(); // Use maybeSingle instead of single to handle no rows gracefully
         
         if (error) throw error;
         
@@ -45,11 +46,36 @@ const ProfilePage = () => {
             name: data.name || '',
             phone: data.phone || ''
           });
+        } else {
+          // Handle case where profile doesn't exist yet
+          console.log('No profile found, creating default profile');
+          const defaultProfile = {
+            id: user.id,
+            name: user.user_metadata?.name || '',
+            phone: user.user_metadata?.phone || '',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          };
+          
+          setProfile(defaultProfile as Profile);
+          setFormData({
+            name: defaultProfile.name,
+            phone: defaultProfile.phone || ''
+          });
+          
+          // Try to create the profile if it doesn't exist
+          const { error: insertError } = await supabase
+            .from('profiles')
+            .insert([defaultProfile]);
+            
+          if (insertError) {
+            console.error('Error creating profile:', insertError);
+          }
         }
       } catch (error) {
         console.error('Error fetching profile:', error);
         toast('Error fetching profile', {
-          description: 'Could not load your profile information'
+          description: 'Could not load your profile information. Please try again.'
         });
       } finally {
         setIsLoading(false);
