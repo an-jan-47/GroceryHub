@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ChevronLeft, Package, CreditCard, User, Lock, LogOut, ChevronRight } from 'lucide-react';
@@ -50,8 +49,7 @@ const ProfilePage = () => {
       } catch (error) {
         console.error('Error fetching profile:', error);
         toast('Error fetching profile', {
-          description: 'Could not load your profile information',
-          variant: 'destructive'
+          description: 'Could not load your profile information'
         });
       } finally {
         setIsLoading(false);
@@ -91,13 +89,12 @@ const ProfilePage = () => {
       
       setIsEditing(false);
       toast('Profile updated', {
-        description: 'Your profile information has been updated successfully',
+        description: 'Your profile information has been updated successfully'
       });
     } catch (error) {
       console.error('Error updating profile:', error);
       toast('Error updating profile', {
-        description: 'Could not update your profile information',
-        variant: 'destructive'
+        description: 'Could not update your profile information'
       });
     }
   };

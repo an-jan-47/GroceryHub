@@ -64,8 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
     } catch (error: any) {
       toast('Error creating account', {
-        description: error.message || 'Something went wrong',
-        variant: 'destructive'
+        description: error.message || 'Something went wrong'
       });
       throw error;
     } finally {
@@ -86,8 +85,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       toast('Welcome back!');
     } catch (error: any) {
       toast('Login failed', {
-        description: error.message || 'Invalid email or password',
-        variant: 'destructive'
+        description: error.message || 'Invalid email or password'
       });
       throw error;
     } finally {
@@ -105,8 +103,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (error) throw error;
     } catch (error: any) {
       toast('Google sign-in failed', {
-        description: error.message || 'Something went wrong',
-        variant: 'destructive'
+        description: error.message || 'Something went wrong'
       });
       throw error;
     } finally {
@@ -121,8 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       toast('Signed out successfully');
     } catch (error: any) {
       toast('Sign out failed', {
-        description: error.message || 'Something went wrong',
-        variant: 'destructive'
+        description: error.message || 'Something went wrong'
       });
     } finally {
       setLoading(false);

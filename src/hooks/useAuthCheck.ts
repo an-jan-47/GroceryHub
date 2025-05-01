@@ -10,7 +10,7 @@ export const useAuthCheck = () => {
   const checkAuthForCheckout = () => {
     if (!user) {
       toast('Sign in required', {
-        description: 'Please sign in to complete your purchase',
+        description: 'Please sign in to complete your purchase'
       });
       navigate('/login');
       return false;
