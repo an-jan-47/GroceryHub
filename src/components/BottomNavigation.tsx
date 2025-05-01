@@ -18,9 +18,9 @@ const BottomNavigation = () => {
           <Home className="w-6 h-6 mb-1" />
           <span>Home</span>
         </Link>
-        <Link to="/search" className={`bottom-nav-item ${isActive('/search') ? 'bottom-nav-active' : 'text-gray-500'}`}>
+        <Link to="/explore" className={`bottom-nav-item ${isActive('/explore') ? 'bottom-nav-active' : 'text-gray-500'}`}>
           <Search className="w-6 h-6 mb-1" />
-          <span>Search</span>
+          <span>Explore</span>
         </Link>
         <Link to="/cart" className={`bottom-nav-item ${isActive('/cart') ? 'bottom-nav-active' : 'text-gray-500'}`}>
           <div className="relative">

@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Carousel, CarouselContent, CarouselItem } from '@/components/ui/carousel';
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { ShoppingCart, Star, Plus, Minus } from 'lucide-react';
@@ -57,18 +57,34 @@ const BANNERS = [
   { id: '1', image: '/placeholder.svg', title: 'New Arrivals', subtitle: 'Check out our latest products' },
   { id: '2', image: '/placeholder.svg', title: 'Summer Sale', subtitle: 'Up to 50% off' },
   { id: '3', image: '/placeholder.svg', title: 'Exclusive Deals', subtitle: 'Limited time offers' },
+  { id: '4', image: '/placeholder.svg', title: 'Flash Sale', subtitle: 'Today only - premium products' },
+  { id: '5', image: '/placeholder.svg', title: 'Trending Items', subtitle: 'Most popular this month' },
 ];
 
 const HomePage = () => {
-  const { addToCart } = useCart();
+  const { addToCart, cartItems, updateQuantity } = useCart();
   const { toast } = useToast();
   
   const handleAddToCart = (product: any) => {
-    addToCart(product);
-    toast({
-      title: "Added to cart",
-      description: `${product.name} has been added to your cart`,
-    });
+    const existingItem = cartItems.find(item => item.id === product.id);
+    if (existingItem) {
+      updateQuantity(product.id, existingItem.quantity + 1);
+      toast({
+        title: "Updated cart quantity",
+        description: `${product.name} quantity updated to ${existingItem.quantity + 1}`,
+      });
+    } else {
+      addToCart(product);
+      toast({
+        title: "Added to cart",
+        description: `${product.name} has been added to your cart`,
+      });
+    }
+  };
+  
+  const getProductQuantityInCart = (productId: string) => {
+    const item = cartItems.find(item => item.id === productId);
+    return item ? item.quantity : 0;
   };
   
   return (
@@ -91,6 +107,18 @@ const HomePage = () => {
               </CarouselItem>
             ))}
           </CarouselContent>
+          <div className="hidden md:block">
+            <CarouselPrevious />
+            <CarouselNext />
+          </div>
+          <div className="mt-2 flex justify-center gap-1">
+            {BANNERS.map((_, index) => (
+              <div 
+                key={index} 
+                className={`h-1.5 rounded-full transition-all ${index === 0 ? 'w-6 bg-brand-blue' : 'w-2 bg-gray-300'}`} 
+              />
+            ))}
+          </div>
         </Carousel>
         
         {/* Google Ads Section */}
@@ -102,12 +130,12 @@ const HomePage = () => {
         <section>
           <div className="flex justify-between items-center mb-3">
             <h2 className="text-lg font-semibold">Categories</h2>
-            <Link to="/categories" className="text-brand-blue text-sm">See all</Link>
+            <Link to="/explore" className="text-brand-blue text-sm">See all</Link>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {CATEGORIES.map((category) => (
               <Link 
-                to={`/category/${category.id}`} 
+                to={`/explore?category=${category.name}`} 
                 key={category.id}
                 className="relative rounded-lg overflow-hidden group"
               >
@@ -131,7 +159,7 @@ const HomePage = () => {
         <section>
           <div className="flex justify-between items-center mb-3">
             <h2 className="text-lg font-semibold">Most Popular</h2>
-            <Link to="/products" className="text-brand-blue text-sm">See all</Link>
+            <Link to="/explore" className="text-brand-blue text-sm">See all</Link>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {FEATURED_PRODUCTS.map((product) => (
@@ -170,15 +198,33 @@ const HomePage = () => {
                   </div>
                 </CardContent>
                 <CardFooter className="p-3 pt-0">
-                  <Button
-                    onClick={() => handleAddToCart(product)}
-                    variant="outline"
-                    size="sm"
-                    className="w-full border-brand-blue text-brand-blue hover:bg-brand-blue hover:text-white"
-                  >
-                    <ShoppingCart className="mr-2 h-4 w-4" />
-                    Add to Cart
-                  </Button>
+                  {getProductQuantityInCart(product.id) > 0 ? (
+                    <div className="w-full flex items-center border rounded-md">
+                      <button
+                        onClick={() => updateQuantity(product.id, getProductQuantityInCart(product.id) - 1)}
+                        className="p-2 text-gray-600 hover:text-brand-blue"
+                      >
+                        <Minus className="w-4 h-4" />
+                      </button>
+                      <span className="flex-1 text-center">{getProductQuantityInCart(product.id)}</span>
+                      <button
+                        onClick={() => updateQuantity(product.id, getProductQuantityInCart(product.id) + 1)}
+                        className="p-2 text-gray-600 hover:text-brand-blue"
+                      >
+                        <Plus className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <Button
+                      onClick={() => handleAddToCart(product)}
+                      variant="outline"
+                      size="sm"
+                      className="w-full border-brand-blue text-brand-blue hover:bg-brand-blue hover:text-white"
+                    >
+                      <ShoppingCart className="mr-2 h-4 w-4" />
+                      Add to Cart
+                    </Button>
+                  )}
                 </CardFooter>
               </Card>
             ))}

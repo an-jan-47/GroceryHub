@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Search, ShoppingCart, User } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useCart } from '@/hooks/useCart';
@@ -9,11 +9,18 @@ const Header = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const { cartItems } = useCart();
   const cartItemsCount = cartItems.length;
+  const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Hide search on these pages
+  const hideSearchOnPaths = ['/cart', '/profile', '/login', '/signup'];
+  const shouldShowSearch = !hideSearchOnPaths.includes(location.pathname);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    // Implement search functionality
-    console.log('Searching for:', searchQuery);
+    if (searchQuery.trim()) {
+      navigate(`/explore?query=${encodeURIComponent(searchQuery.trim())}`);
+    }
   };
 
   return (
@@ -23,18 +30,20 @@ const Header = () => {
           <span className="text-xl font-bold">ShopNexus</span>
         </Link>
         
-        <form onSubmit={handleSearch} className="hidden md:flex relative w-full max-w-sm mx-4">
-          <input
-            type="search"
-            placeholder="Search products..."
-            className="w-full py-2 pl-4 pr-10 border rounded-full bg-gray-50 focus:outline-none focus:ring-1 focus:ring-brand-blue"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-          <button type="submit" className="absolute right-3 top-1/2 transform -translate-y-1/2">
-            <Search className="w-5 h-5 text-gray-500" />
-          </button>
-        </form>
+        {shouldShowSearch && (
+          <form onSubmit={handleSearch} className="hidden md:flex relative w-full max-w-sm mx-4">
+            <input
+              type="search"
+              placeholder="Search products..."
+              className="w-full py-2 pl-4 pr-10 border rounded-full bg-gray-50 focus:outline-none focus:ring-1 focus:ring-brand-blue"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            <button type="submit" className="absolute right-3 top-1/2 transform -translate-y-1/2">
+              <Search className="w-5 h-5 text-gray-500" />
+            </button>
+          </form>
+        )}
         
         <div className="flex items-center space-x-4">
           <Link to="/cart" className="relative">
@@ -51,21 +60,23 @@ const Header = () => {
         </div>
       </div>
       
-      {/* Mobile search bar */}
-      <div className="md:hidden px-4 pb-2">
-        <form onSubmit={handleSearch} className="relative w-full">
-          <input
-            type="search"
-            placeholder="Search products..."
-            className="w-full py-2 pl-4 pr-10 border rounded-full bg-gray-50 focus:outline-none focus:ring-1 focus:ring-brand-blue"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-          <button type="submit" className="absolute right-3 top-1/2 transform -translate-y-1/2">
-            <Search className="w-5 h-5 text-gray-500" />
-          </button>
-        </form>
-      </div>
+      {/* Mobile search bar - only show on relevant pages */}
+      {shouldShowSearch && (
+        <div className="md:hidden px-4 pb-2">
+          <form onSubmit={handleSearch} className="relative w-full">
+            <input
+              type="search"
+              placeholder="Search products..."
+              className="w-full py-2 pl-4 pr-10 border rounded-full bg-gray-50 focus:outline-none focus:ring-1 focus:ring-brand-blue"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            <button type="submit" className="absolute right-3 top-1/2 transform -translate-y-1/2">
+              <Search className="w-5 h-5 text-gray-500" />
+            </button>
+          </form>
+        </div>
+      )}
     </header>
   );
 };
