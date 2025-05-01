@@ -1,50 +1,133 @@
 
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { ChevronLeft, Package, CreditCard, User, Lock, LogOut, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from '@/components/ui/sonner';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { Database } from '@/integrations/supabase/types';
+
+type Profile = Database['public']['Tables']['profiles']['Row'];
 
 const ProfilePage = () => {
   const [isEditing, setIsEditing] = useState(false);
-  const [profileData, setProfileData] = useState({
-    name: 'John Doe',
-    email: 'johndoe@example.com',
-    phone: '9012345678'
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [formData, setFormData] = useState({
+    name: '',
+    phone: ''
   });
-  const [formData, setFormData] = useState({ ...profileData });
-  const { toast } = useToast();
+  
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+  
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!user) return;
+      
+      try {
+        setIsLoading(true);
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+        
+        if (error) throw error;
+        
+        if (data) {
+          setProfile(data);
+          setFormData({
+            name: data.name || '',
+            phone: data.phone || ''
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+        toast('Error fetching profile', {
+          description: 'Could not load your profile information',
+          variant: 'destructive'
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchProfile();
+  }, [user]);
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
   
-  const handleSaveChanges = () => {
-    setProfileData({ ...formData });
-    setIsEditing(false);
-    toast({
-      title: "Profile updated",
-      description: "Your profile information has been updated successfully",
-    });
+  const handleSaveChanges = async () => {
+    if (!user) return;
+    
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          name: formData.name,
+          phone: formData.phone,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id);
+      
+      if (error) throw error;
+      
+      // Update local state
+      setProfile(prev => prev ? {
+        ...prev,
+        name: formData.name,
+        phone: formData.phone,
+        updated_at: new Date().toISOString()
+      } : null);
+      
+      setIsEditing(false);
+      toast('Profile updated', {
+        description: 'Your profile information has been updated successfully',
+      });
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast('Error updating profile', {
+        description: 'Could not update your profile information',
+        variant: 'destructive'
+      });
+    }
   };
   
   const handleCancelEdit = () => {
-    setFormData({ ...profileData });
+    if (profile) {
+      setFormData({
+        name: profile.name || '',
+        phone: profile.phone || ''
+      });
+    }
     setIsEditing(false);
   };
   
-  const handleLogout = () => {
-    // In a real implementation, this would clear auth tokens/state
-    toast({
-      title: "Logged out",
-      description: "You have been successfully logged out",
-    });
+  const handleLogout = async () => {
+    await signOut();
+    navigate('/login');
   };
+  
+  if (isLoading) {
+    return (
+      <div className="pb-20">
+        <Header />
+        <div className="container px-4 py-8 mx-auto flex items-center justify-center min-h-[60vh]">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-brand-blue"></div>
+        </div>
+        <BottomNavigation />
+      </div>
+    );
+  }
   
   return (
     <div className="pb-20">
@@ -80,11 +163,11 @@ const ProfilePage = () => {
                   <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email</label>
                   <Input 
                     id="email" 
-                    name="email" 
-                    type="email" 
-                    value={formData.email} 
-                    onChange={handleInputChange} 
+                    value={user?.email || ''} 
+                    disabled 
+                    className="bg-gray-50"
                   />
+                  <p className="text-xs text-gray-500 mt-1">Email cannot be changed</p>
                 </div>
                 
                 <div>
@@ -92,7 +175,7 @@ const ProfilePage = () => {
                   <Input 
                     id="phone" 
                     name="phone" 
-                    value={formData.phone} 
+                    value={formData.phone || ''} 
                     onChange={handleInputChange} 
                   />
                 </div>
@@ -122,8 +205,8 @@ const ProfilePage = () => {
                     <User className="w-7 h-7 text-gray-500" />
                   </div>
                   <div className="ml-3">
-                    <h2 className="font-semibold">{profileData.name}</h2>
-                    <p className="text-sm text-gray-500">{profileData.email}</p>
+                    <h2 className="font-semibold">{profile?.name || 'User'}</h2>
+                    <p className="text-sm text-gray-500">{user?.email}</p>
                   </div>
                 </div>
                 <Button 

@@ -1,10 +1,10 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 const SignUpPage = () => {
   const [formData, setFormData] = useState({
@@ -16,49 +16,53 @@ const SignUpPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const { signUp, signInWithGoogle, user } = useAuth();
+  
+  useEffect(() => {
+    // Redirect if user is already logged in
+    if (user) {
+      navigate('/');
+    }
+  }, [user, navigate]);
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Basic validation
-    if (!formData.name || !formData.email || !formData.phone || !formData.password) {
-      toast({
-        title: "Error",
-        description: "Please fill in all fields",
-        variant: "destructive",
-      });
-      return;
-    }
+    if (!formData.name || !formData.email || !formData.password) return;
     
-    if (formData.password.length < 6) {
-      toast({
-        title: "Error",
-        description: "Password must be at least 6 characters long",
-        variant: "destructive",
-      });
-      return;
-    }
+    if (formData.password.length < 6) return;
     
     setIsSubmitting(true);
     
-    // Simulate API call for registration
-    setTimeout(() => {
+    try {
+      await signUp(
+        formData.email,
+        formData.password,
+        { 
+          name: formData.name,
+          phone: formData.phone 
+        }
+      );
+      // Don't navigate - user needs to confirm their email first
+    } catch (error) {
+      console.error('Signup error:', error);
+    } finally {
       setIsSubmitting(false);
-      
-      // For demo purposes, any signup works
-      toast({
-        title: "Account created",
-        description: "Your account has been successfully created!",
-      });
-      
-      navigate('/login');
-    }, 1000);
+    }
+  };
+  
+  const handleGoogleSignUp = async () => {
+    try {
+      await signInWithGoogle();
+    } catch (error) {
+      console.error('Google sign-in error:', error);
+    }
   };
   
   return (
@@ -80,6 +84,7 @@ const SignUpPage = () => {
                 value={formData.name}
                 onChange={handleInputChange}
                 className="input-field"
+                required
               />
             </div>
             
@@ -93,6 +98,7 @@ const SignUpPage = () => {
                 value={formData.email}
                 onChange={handleInputChange}
                 className="input-field"
+                required
               />
             </div>
             
@@ -119,6 +125,8 @@ const SignUpPage = () => {
                   value={formData.password}
                   onChange={handleInputChange}
                   className="input-field"
+                  required
+                  minLength={6}
                 />
                 <button
                   type="button"
@@ -150,6 +158,7 @@ const SignUpPage = () => {
             
             <button 
               type="button"
+              onClick={handleGoogleSignUp}
               className="w-full flex items-center justify-center gap-2 py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50"
             >
               <svg className="h-5 w-5 text-red-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512">

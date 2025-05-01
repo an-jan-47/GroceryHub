@@ -9,7 +9,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import ProductDetail from "./pages/ProductDetail";
 import Cart from "./pages/Cart";
-import Explore from "./pages/Explore"; // Changed from Search to Explore
+import Explore from "./pages/Explore";
 import Profile from "./pages/Profile";
 import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
@@ -17,29 +17,33 @@ import NotFound from "./pages/NotFound";
 
 // Providers
 import { CartProvider } from "./hooks/useCart";
+import { AuthProvider } from "./contexts/AuthContext";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <CartProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/product/:productId" element={<ProductDetail />} />
-            <Route path="/cart" element={<Cart />} />
-            <Route path="/explore" element={<Explore />} /> {/* Changed from /search to /explore */}
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<SignUp />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </CartProvider>
+    <AuthProvider>
+      <CartProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/product/:productId" element={<ProductDetail />} />
+              <Route path="/cart" element={<Cart />} />
+              <Route path="/explore" element={<Explore />} />
+              <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<SignUp />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </CartProvider>
+    </AuthProvider>
   </QueryClientProvider>
 );
 

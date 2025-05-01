@@ -3,10 +3,12 @@ import { Home, Search, ShoppingCart, User } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { useCart } from '@/hooks/useCart';
+import { useAuth } from '@/contexts/AuthContext';
 
 const BottomNavigation = () => {
   const location = useLocation();
   const { cartItems } = useCart();
+  const { user } = useAuth();
   const cartItemsCount = cartItems.length;
   
   const isActive = (path: string) => location.pathname === path;
@@ -33,9 +35,12 @@ const BottomNavigation = () => {
           </div>
           <span>Cart</span>
         </Link>
-        <Link to="/profile" className={`bottom-nav-item ${isActive('/profile') ? 'bottom-nav-active' : 'text-gray-500'}`}>
+        <Link 
+          to={user ? "/profile" : "/login"} 
+          className={`bottom-nav-item ${isActive('/profile') || isActive('/login') ? 'bottom-nav-active' : 'text-gray-500'}`}
+        >
           <User className="w-6 h-6 mb-1" />
-          <span>Profile</span>
+          <span>{user ? "Profile" : "Login"}</span>
         </Link>
       </div>
     </div>

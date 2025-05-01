@@ -1,10 +1,10 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 const LoginPage = () => {
   const [formData, setFormData] = useState({
@@ -14,42 +14,45 @@ const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const { signIn, signInWithGoogle, user } = useAuth();
+  
+  useEffect(() => {
+    // Redirect if user is already logged in
+    if (user) {
+      navigate('/');
+    }
+  }, [user, navigate]);
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Basic validation
-    if (!formData.email || !formData.password) {
-      toast({
-        title: "Error",
-        description: "Please fill in all fields",
-        variant: "destructive",
-      });
-      return;
-    }
+    if (!formData.email || !formData.password) return;
     
     setIsSubmitting(true);
     
-    // Simulate API call for authentication
-    setTimeout(() => {
-      setIsSubmitting(false);
-      
-      // For demo purposes, any login works
-      localStorage.setItem('isAuthenticated', 'true');
-      
-      toast({
-        title: "Login successful",
-        description: "Welcome back!",
-      });
-      
+    try {
+      await signIn(formData.email, formData.password);
       navigate('/');
-    }, 1000);
+    } catch (error) {
+      // Error is handled in the context
+      console.error('Login error:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+  
+  const handleGoogleLogin = async () => {
+    try {
+      await signInWithGoogle();
+    } catch (error) {
+      console.error('Google sign-in error:', error);
+    }
   };
   
   const handleForgotPassword = () => {
@@ -129,6 +132,7 @@ const LoginPage = () => {
             
             <button 
               type="button"
+              onClick={handleGoogleLogin}
               className="w-full flex items-center justify-center gap-2 py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50"
             >
               <svg className="h-5 w-5 text-red-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512">

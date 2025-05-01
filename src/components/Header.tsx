@@ -4,10 +4,12 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Search, ShoppingCart, User } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useCart } from '@/hooks/useCart';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Header = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const { cartItems } = useCart();
+  const { user } = useAuth();
   const cartItemsCount = cartItems.length;
   const navigate = useNavigate();
   const location = useLocation();
@@ -54,7 +56,7 @@ const Header = () => {
               </Badge>
             )}
           </Link>
-          <Link to="/profile" className="hidden md:block">
+          <Link to={user ? "/profile" : "/login"} className="hidden md:block">
             <User className="w-6 h-6" />
           </Link>
         </div>
