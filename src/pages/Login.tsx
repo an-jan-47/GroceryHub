@@ -13,6 +13,7 @@ const LoginPage = () => {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
   const navigate = useNavigate();
   const { signIn, signInWithGoogle, user } = useAuth();
   
@@ -26,22 +27,28 @@ const LoginPage = () => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+    // Clear error when user types
+    if (formError) setFormError(null);
   };
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Basic validation
-    if (!formData.email || !formData.password) return;
+    if (!formData.email || !formData.password) {
+      setFormError("Please enter both email and password");
+      return;
+    }
     
     setIsSubmitting(true);
+    setFormError(null);
     
     try {
       await signIn(formData.email, formData.password);
       navigate('/');
-    } catch (error) {
-      // Error is handled in the context
+    } catch (error: any) {
       console.error('Login error:', error);
+      setFormError(error.message || "Invalid email or password");
     } finally {
       setIsSubmitting(false);
     }
@@ -49,9 +56,11 @@ const LoginPage = () => {
   
   const handleGoogleLogin = async () => {
     try {
+      setFormError(null);
       await signInWithGoogle();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Google sign-in error:', error);
+      setFormError(error.message || "Failed to sign in with Google");
     }
   };
   
@@ -67,6 +76,12 @@ const LoginPage = () => {
             <h1 className="text-3xl font-bold">Login</h1>
             <p className="mt-2 text-gray-600">Welcome back! Please log in to continue.</p>
           </div>
+          
+          {formError && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-sm">
+              {formError}
+            </div>
+          )}
           
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>

@@ -15,6 +15,7 @@ const SignUpPage = () => {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
   const navigate = useNavigate();
   const { signUp, signInWithGoogle, user } = useAuth();
   
@@ -28,17 +29,26 @@ const SignUpPage = () => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+    // Clear error when user types
+    if (formError) setFormError(null);
   };
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Basic validation
-    if (!formData.name || !formData.email || !formData.password) return;
+    if (!formData.name || !formData.email || !formData.password) {
+      setFormError("Please fill in all required fields");
+      return;
+    }
     
-    if (formData.password.length < 6) return;
+    if (formData.password.length < 6) {
+      setFormError("Password must be at least 6 characters");
+      return;
+    }
     
     setIsSubmitting(true);
+    setFormError(null);
     
     try {
       await signUp(
@@ -50,8 +60,15 @@ const SignUpPage = () => {
         }
       );
       // Don't navigate - user needs to confirm their email first
-    } catch (error) {
+    } catch (error: any) {
       console.error('Signup error:', error);
+      
+      // Handle specific Supabase email validation error
+      if (error.message?.includes('invalid') && error.message?.includes('Email')) {
+        setFormError(`Email validation error: Please use a valid email address. For development, try using a reliable email service like Gmail, Outlook, or Yahoo.`);
+      } else {
+        setFormError(error.message || "An unexpected error occurred");
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -59,9 +76,11 @@ const SignUpPage = () => {
   
   const handleGoogleSignUp = async () => {
     try {
+      setFormError(null);
       await signInWithGoogle();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Google sign-in error:', error);
+      setFormError(error.message || "Failed to sign in with Google");
     }
   };
   
@@ -73,6 +92,12 @@ const SignUpPage = () => {
             <h1 className="text-3xl font-bold">Create Account</h1>
             <p className="mt-2 text-gray-600">Sign up to get started shopping</p>
           </div>
+          
+          {formError && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-sm">
+              {formError}
+            </div>
+          )}
           
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
