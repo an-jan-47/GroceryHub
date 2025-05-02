@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ChevronLeft, CreditCard, Wallet } from 'lucide-react';
+import { ChevronLeft, CreditCard, Wallet, CashIcon, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
@@ -13,7 +13,7 @@ import BottomNavigation from '@/components/BottomNavigation';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
 const PaymentMethodsPage = () => {
-  const [selectedMethod, setSelectedMethod] = useState('razorpay');
+  const [selectedMethod, setSelectedMethod] = useState('cod');  // Default to COD
   const [isProcessing, setIsProcessing] = useState(false);
   const [showRazorpaySheet, setShowRazorpaySheet] = useState(false);
   const navigate = useNavigate();
@@ -25,10 +25,18 @@ const PaymentMethodsPage = () => {
   const handlePayment = () => {
     if (selectedMethod === 'razorpay') {
       setShowRazorpaySheet(true);
+    } else if (selectedMethod === 'cod') {
+      setIsProcessing(true);
+      
+      // Simulate processing for COD
+      setTimeout(() => {
+        setIsProcessing(false);
+        navigate('/order-confirmation');
+      }, 1500);
     } else {
       toast({
         title: 'Payment Method Not Available',
-        description: 'Only Razorpay is currently supported.',
+        description: 'Please select a valid payment method.',
       });
     }
   };
@@ -65,6 +73,19 @@ const PaymentMethodsPage = () => {
             
             <RadioGroup value={selectedMethod} onValueChange={setSelectedMethod} className="space-y-3">
               <div className="flex items-center space-x-2 border rounded-lg p-4">
+                <RadioGroupItem value="cod" id="cod" />
+                <Label htmlFor="cod" className="flex flex-1 cursor-pointer">
+                  <div className="flex justify-between items-center w-full">
+                    <div className="flex items-center">
+                      <MapPin className="w-5 h-5 mr-3 text-green-600" />
+                      <span>Cash On Delivery</span>
+                    </div>
+                    <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">Recommended</span>
+                  </div>
+                </Label>
+              </div>
+              
+              <div className="flex items-center space-x-2 border rounded-lg p-4">
                 <RadioGroupItem value="razorpay" id="razorpay" />
                 <Label htmlFor="razorpay" className="flex flex-1 cursor-pointer">
                   <div className="flex justify-between items-center w-full">
@@ -84,19 +105,6 @@ const PaymentMethodsPage = () => {
                     <div className="flex items-center">
                       <Wallet className="w-5 h-5 mr-3 text-gray-400" />
                       <span>UPI</span>
-                    </div>
-                    <span className="text-xs bg-gray-100 px-2 py-1 rounded">Coming soon</span>
-                  </div>
-                </Label>
-              </div>
-              
-              <div className="flex items-center space-x-2 border rounded-lg p-4 opacity-50">
-                <RadioGroupItem value="cod" id="cod" disabled />
-                <Label htmlFor="cod" className="flex flex-1 cursor-not-allowed">
-                  <div className="flex justify-between items-center w-full">
-                    <div className="flex items-center">
-                      <CreditCard className="w-5 h-5 mr-3 text-gray-400" />
-                      <span>Cash On Delivery</span>
                     </div>
                     <span className="text-xs bg-gray-100 px-2 py-1 rounded">Coming soon</span>
                   </div>
@@ -139,9 +147,10 @@ const PaymentMethodsPage = () => {
         <div className="mt-6 sticky bottom-20 bg-white pt-4 pb-4">
           <Button 
             onClick={handlePayment}
+            disabled={isProcessing}
             className="w-full bg-brand-blue hover:bg-brand-darkBlue"
           >
-            Pay Now
+            {isProcessing ? 'Processing...' : selectedMethod === 'cod' ? 'Place Order' : 'Pay Now'}
           </Button>
         </div>
         

@@ -19,6 +19,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
+import { useToast } from '@/hooks/use-toast';
 
 const addressSchema = z.object({
   addressType: z.enum(['home', 'work', 'other']),
@@ -33,7 +34,7 @@ const addressSchema = z.object({
 type AddressFormValues = z.infer<typeof addressSchema>;
 
 // Sample saved addresses
-const SAVED_ADDRESSES = [
+const INITIAL_ADDRESSES = [
   {
     id: '1',
     addressType: 'home',
@@ -59,9 +60,11 @@ const SAVED_ADDRESSES = [
 ];
 
 const AddressPage = () => {
-  const [selectedAddress, setSelectedAddress] = useState<string>(SAVED_ADDRESSES[0].id);
+  const [savedAddresses, setSavedAddresses] = useState(INITIAL_ADDRESSES);
+  const [selectedAddress, setSelectedAddress] = useState<string>(savedAddresses[0]?.id || '');
   const [showNewAddressForm, setShowNewAddressForm] = useState(false);
   const navigate = useNavigate();
+  const { toast } = useToast();
   
   const form = useForm<AddressFormValues>({
     resolver: zodResolver(addressSchema),
@@ -78,16 +81,43 @@ const AddressPage = () => {
 
   const onSubmit = (data: AddressFormValues) => {
     console.log('New address:', data);
-    // In a real app, would save to database here
-    navigate('/payment');
+    
+    // Create new address and add it to the start of the list
+    const newAddress = {
+      id: `new-${Date.now()}`, // Generate a unique ID
+      ...data,
+      isDefault: false,
+    };
+    
+    // Update addresses list with new address first
+    const updatedAddresses = [newAddress, ...savedAddresses];
+    setSavedAddresses(updatedAddresses);
+    
+    // Select the new address
+    setSelectedAddress(newAddress.id);
+    
+    // Show toast notification
+    toast({
+      title: "Address Added",
+      description: "Your new address has been added successfully."
+    });
+    
+    // Hide the form
+    setShowNewAddressForm(false);
   };
   
   const handleContinue = () => {
     if (showNewAddressForm) {
       form.handleSubmit(onSubmit)();
-    } else {
+    } else if (selectedAddress) {
       console.log('Selected address ID:', selectedAddress);
       navigate('/payment');
+    } else {
+      toast({
+        title: "No Address Selected",
+        description: "Please select an address or add a new one to continue.",
+        variant: "destructive"
+      });
     }
   };
 
@@ -105,10 +135,10 @@ const AddressPage = () => {
         
         <h1 className="text-2xl font-bold mb-6">Shipping Address</h1>
         
-        {!showNewAddressForm && (
+        {!showNewAddressForm && savedAddresses.length > 0 && (
           <div>
             <RadioGroup value={selectedAddress} onValueChange={setSelectedAddress} className="space-y-3">
-              {SAVED_ADDRESSES.map((address) => (
+              {savedAddresses.map((address) => (
                 <div key={address.id} className="flex items-center space-x-2 border rounded-lg p-4">
                   <RadioGroupItem value={address.id} id={`address-${address.id}`} />
                   <Label htmlFor={`address-${address.id}`} className="flex-1 cursor-pointer">
@@ -130,6 +160,19 @@ const AddressPage = () => {
               onClick={() => setShowNewAddressForm(true)}
               variant="outline" 
               className="w-full mt-4 border-dashed"
+            >
+              + Add New Address
+            </Button>
+          </div>
+        )}
+        
+        {!showNewAddressForm && savedAddresses.length === 0 && (
+          <div className="text-center py-8">
+            <p className="text-gray-500 mb-4">You don't have any saved addresses yet.</p>
+            <Button 
+              onClick={() => setShowNewAddressForm(true)}
+              variant="outline" 
+              className="border-dashed"
             >
               + Add New Address
             </Button>
