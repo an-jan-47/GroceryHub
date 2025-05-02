@@ -1,10 +1,11 @@
 
-import { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
-import { ShoppingCart, Star, Plus, Minus } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { ShoppingCart, Star, Plus, Minus, Search } from 'lucide-react';
 import { useCart } from '@/hooks/useCart';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
@@ -67,6 +68,8 @@ const HomePage = () => {
   const { toast } = useToast();
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
+  const [searchQuery, setSearchQuery] = useState('');
+  const navigate = useNavigate();
   
   // Auto rotate banner carousel
   useEffect(() => {
@@ -118,9 +121,35 @@ const HomePage = () => {
     return item ? item.quantity : 0;
   };
   
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/explore?query=${encodeURIComponent(searchQuery.trim())}`);
+    }
+  };
+  
   return (
     <div className="pb-20">
       <Header />
+      
+      {/* Search bar below header */}
+      <div className="sticky top-16 z-40 bg-white pb-2 pt-3 px-4 border-b border-gray-100 shadow-sm">
+        <form onSubmit={handleSearch} className="relative w-full">
+          <Input
+            type="search"
+            placeholder="Search products..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pr-10 bg-gray-50"
+          />
+          <button 
+            type="submit" 
+            className="absolute right-3 top-1/2 transform -translate-y-1/2"
+          >
+            <Search className="w-5 h-5 text-gray-500" />
+          </button>
+        </form>
+      </div>
       
       <main className="container px-4 py-4 mx-auto space-y-6">
         {/* Hero Carousel */}

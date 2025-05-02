@@ -1,6 +1,7 @@
+
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ChevronLeft, CreditCard, Wallet, Cash, MapPin } from 'lucide-react';
+import { ChevronLeft, CreditCard, Wallet, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
@@ -17,7 +18,7 @@ const PaymentMethodsPage = () => {
   const [showRazorpaySheet, setShowRazorpaySheet] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { getCartTotal } = useCart();
+  const { getCartTotal, clearCart } = useCart();
   
   const cartTotal = getCartTotal();
   
@@ -30,6 +31,15 @@ const PaymentMethodsPage = () => {
       // Simulate processing for COD
       setTimeout(() => {
         setIsProcessing(false);
+        
+        // Generate a unique order ID and store it for the confirmation page
+        const orderId = generateOrderId();
+        localStorage.setItem('lastOrderId', orderId);
+        
+        // Clear the cart
+        clearCart();
+        
+        // Navigate to confirmation
         navigate('/order-confirmation');
       }, 1500);
     } else {
@@ -48,8 +58,23 @@ const PaymentMethodsPage = () => {
       setIsProcessing(false);
       setShowRazorpaySheet(false);
       
+      // Generate a unique order ID and store it for the confirmation page
+      const orderId = generateOrderId();
+      localStorage.setItem('lastOrderId', orderId);
+      
+      // Clear the cart
+      clearCart();
+      
       navigate('/order-confirmation');
     }, 2000);
+  };
+  
+  // Generate a unique order ID
+  const generateOrderId = () => {
+    const prefix = 'ORD';
+    const timestamp = Date.now().toString().slice(-8);
+    const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+    return `${prefix}-${timestamp}${random}`;
   };
   
   return (

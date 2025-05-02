@@ -1,5 +1,5 @@
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Check, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -7,12 +7,20 @@ import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
 
 const OrderConfirmationPage = () => {
-  // Generate a random order ID
-  const orderId = `ORD-${Math.floor(Math.random() * 1000000)}`;
+  const [orderId, setOrderId] = useState<string>('');
   
   // Scroll to top on component mount
   useEffect(() => {
     window.scrollTo(0, 0);
+    
+    // Get the order ID from localStorage
+    const savedOrderId = localStorage.getItem('lastOrderId');
+    if (savedOrderId) {
+      setOrderId(savedOrderId);
+    } else {
+      // Fallback to a random order ID if none is stored
+      setOrderId(`ORD-${Math.floor(Math.random() * 1000000)}`);
+    }
   }, []);
   
   return (
@@ -84,7 +92,7 @@ const OrderConfirmationPage = () => {
           
           <div className="space-y-3 w-full max-w-md">
             <Button asChild className="w-full bg-brand-blue hover:bg-brand-darkBlue">
-              <Link to="/profile">View Your Orders</Link>
+              <Link to="/order-history">View Your Orders</Link>
             </Button>
             
             <Button asChild variant="outline" className="w-full">
