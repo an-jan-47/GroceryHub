@@ -64,10 +64,6 @@ const LoginPage = () => {
     }
   };
   
-  const handleForgotPassword = () => {
-    navigate('/forgot-password');
-  };
-  
   return (
     <div className="min-h-screen flex flex-col">
       <main className="flex-1 flex items-center justify-center p-6">
@@ -118,13 +114,9 @@ const LoginPage = () => {
                 </button>
               </div>
               <div className="flex justify-end mt-1">
-                <button
-                  type="button"
-                  onClick={handleForgotPassword}
-                  className="text-sm text-brand-blue hover:underline"
-                >
+                <Link to="/forgot-password" className="text-sm text-brand-blue hover:underline">
                   Forgot password?
-                </button>
+                </Link>
               </div>
             </div>
             

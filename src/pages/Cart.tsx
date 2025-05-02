@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ChevronLeft, Trash2, Plus, Minus, ShoppingCart } from 'lucide-react';
@@ -9,6 +8,7 @@ import { useCart } from '@/hooks/useCart';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
 import { useToast } from '@/hooks/use-toast';
+import { useAuthCheck } from '@/hooks/useAuthCheck';
 
 const CartPage = () => {
   const [couponCode, setCouponCode] = useState('');
@@ -16,6 +16,7 @@ const CartPage = () => {
   const { cartItems, removeFromCart, updateQuantity, getCartTotal } = useCart();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { checkAuthForCheckout } = useAuthCheck();
   
   const deliveryCharge = 3.00;
   const taxRate = 0.05; // 5%
@@ -52,8 +53,11 @@ const CartPage = () => {
       return;
     }
     
-    // Navigate to checkout page
-    navigate('/checkout');
+    // Check if user is authenticated before proceeding
+    if (checkAuthForCheckout()) {
+      // Navigate to address page instead of checkout
+      navigate('/address');
+    }
   };
   
   return (

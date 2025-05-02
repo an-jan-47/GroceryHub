@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
@@ -8,7 +9,6 @@ import { useCart } from '@/hooks/useCart';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
 import { useToast } from '@/hooks/use-toast';
-import { useEffect as useEmblaEffect } from "embla-carousel-react";
 import type { CarouselApi } from '@/components/ui/carousel';
 
 // Temporary product data

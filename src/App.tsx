@@ -17,6 +17,8 @@ import NotFound from "./pages/NotFound";
 import Address from "./pages/Address";
 import Payment from "./pages/Payment";
 import OrderConfirmation from "./pages/OrderConfirmation";
+import ForgotPassword from "./pages/ForgotPassword";
+import OrderHistory from "./pages/OrderHistory";
 
 // Providers
 import { CartProvider } from "./hooks/useCart";
@@ -42,7 +44,9 @@ const App = () => (
               <Route path="/order-confirmation" element={<ProtectedRoute><OrderConfirmation /></ProtectedRoute>} />
               <Route path="/explore" element={<Explore />} />
               <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+              <Route path="/order-history" element={<ProtectedRoute><OrderHistory /></ProtectedRoute>} />
               <Route path="/login" element={<Login />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/signup" element={<SignUp />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
