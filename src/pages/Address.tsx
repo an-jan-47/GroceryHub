@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
@@ -33,8 +32,21 @@ const addressSchema = z.object({
 
 type AddressFormValues = z.infer<typeof addressSchema>;
 
+// Define the Address type to match the existing data structure
+interface Address {
+  id: string;
+  addressType: string;
+  name: string;
+  phone: string;
+  address: string;
+  city: string;
+  state: string;
+  pincode: string;
+  isDefault: boolean;
+}
+
 // Sample saved addresses
-const INITIAL_ADDRESSES = [
+const INITIAL_ADDRESSES: Address[] = [
   {
     id: '1',
     addressType: 'home',
@@ -60,7 +72,7 @@ const INITIAL_ADDRESSES = [
 ];
 
 const AddressPage = () => {
-  const [savedAddresses, setSavedAddresses] = useState(INITIAL_ADDRESSES);
+  const [savedAddresses, setSavedAddresses] = useState<Address[]>(INITIAL_ADDRESSES);
   const [selectedAddress, setSelectedAddress] = useState<string>(savedAddresses[0]?.id || '');
   const [showNewAddressForm, setShowNewAddressForm] = useState(false);
   const navigate = useNavigate();
@@ -83,14 +95,14 @@ const AddressPage = () => {
     console.log('New address:', data);
     
     // Create new address and add it to the start of the list
-    const newAddress = {
+    const newAddress: Address = {
       id: `new-${Date.now()}`, // Generate a unique ID
       ...data,
       isDefault: false,
     };
     
     // Update addresses list with new address first
-    const updatedAddresses = [newAddress, ...savedAddresses];
+    const updatedAddresses: Address[] = [newAddress, ...savedAddresses];
     setSavedAddresses(updatedAddresses);
     
     // Select the new address
