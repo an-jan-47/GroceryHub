@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { Button } from '@/components/ui/button';
@@ -64,6 +64,18 @@ const BANNERS = [
 const HomePage = () => {
   const { addToCart, cartItems, updateQuantity } = useCart();
   const { toast } = useToast();
+  const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
+  
+  // Auto rotate banner carousel
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentBannerIndex(prevIndex => 
+        prevIndex === BANNERS.length - 1 ? 0 : prevIndex + 1
+      );
+    }, 5000); // Change banner every 5 seconds
+    
+    return () => clearInterval(interval);
+  }, []);
   
   const handleAddToCart = (product: any) => {
     const existingItem = cartItems.find(item => item.id === product.id);
@@ -93,7 +105,7 @@ const HomePage = () => {
       
       <main className="container px-4 py-4 mx-auto space-y-6">
         {/* Hero Carousel */}
-        <Carousel className="w-full">
+        <Carousel className="w-full" defaultIndex={currentBannerIndex} onIndexChange={setCurrentBannerIndex}>
           <CarouselContent>
             {BANNERS.map((banner) => (
               <CarouselItem key={banner.id} className="relative">
@@ -115,12 +127,13 @@ const HomePage = () => {
             {BANNERS.map((_, index) => (
               <div 
                 key={index} 
-                className={`h-1.5 rounded-full transition-all ${index === 0 ? 'w-6 bg-brand-blue' : 'w-2 bg-gray-300'}`} 
+                className={`h-1.5 rounded-full transition-all ${index === currentBannerIndex ? 'w-6 bg-brand-blue' : 'w-2 bg-gray-300'}`} 
               />
             ))}
           </div>
         </Carousel>
         
+        {/* Rest of HomePage content */}
         {/* Google Ads Section */}
         <div className="bg-gray-100 h-20 rounded-lg flex items-center justify-center">
           <p className="text-gray-500">Ad Space</p>

@@ -14,6 +14,9 @@ import Profile from "./pages/Profile";
 import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
 import NotFound from "./pages/NotFound";
+import Address from "./pages/Address";
+import Payment from "./pages/Payment";
+import OrderConfirmation from "./pages/OrderConfirmation";
 
 // Providers
 import { CartProvider } from "./hooks/useCart";
@@ -34,6 +37,9 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/product/:productId" element={<ProductDetail />} />
               <Route path="/cart" element={<Cart />} />
+              <Route path="/address" element={<ProtectedRoute><Address /></ProtectedRoute>} />
+              <Route path="/payment" element={<ProtectedRoute><Payment /></ProtectedRoute>} />
+              <Route path="/order-confirmation" element={<ProtectedRoute><OrderConfirmation /></ProtectedRoute>} />
               <Route path="/explore" element={<Explore />} />
               <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
               <Route path="/login" element={<Login />} />
