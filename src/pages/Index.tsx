@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
@@ -9,6 +8,8 @@ import { useCart } from '@/hooks/useCart';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
 import { useToast } from '@/hooks/use-toast';
+import { useEffect as useEmblaEffect } from "embla-carousel-react";
+import type { CarouselApi } from '@/components/ui/carousel';
 
 // Temporary product data
 const FEATURED_PRODUCTS = [
@@ -65,6 +66,7 @@ const HomePage = () => {
   const { addToCart, cartItems, updateQuantity } = useCart();
   const { toast } = useToast();
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
+  const [carouselApi, setCarouselApi] = useState<CarouselApi>();
   
   // Auto rotate banner carousel
   useEffect(() => {
@@ -72,10 +74,27 @@ const HomePage = () => {
       setCurrentBannerIndex(prevIndex => 
         prevIndex === BANNERS.length - 1 ? 0 : prevIndex + 1
       );
+      carouselApi?.scrollTo(currentBannerIndex);
     }, 5000); // Change banner every 5 seconds
     
     return () => clearInterval(interval);
-  }, []);
+  }, [carouselApi, currentBannerIndex]);
+  
+  // Handle carousel api change
+  useEffect(() => {
+    if (!carouselApi) return;
+    
+    const onSelect = () => {
+      setCurrentBannerIndex(carouselApi.selectedScrollSnap());
+    };
+    
+    carouselApi.on("select", onSelect);
+    
+    // Cleanup
+    return () => {
+      carouselApi.off("select", onSelect);
+    };
+  }, [carouselApi]);
   
   const handleAddToCart = (product: any) => {
     const existingItem = cartItems.find(item => item.id === product.id);
@@ -105,7 +124,7 @@ const HomePage = () => {
       
       <main className="container px-4 py-4 mx-auto space-y-6">
         {/* Hero Carousel */}
-        <Carousel className="w-full" defaultIndex={currentBannerIndex} onIndexChange={setCurrentBannerIndex}>
+        <Carousel className="w-full" setApi={setCarouselApi} opts={{ startIndex: currentBannerIndex }}>
           <CarouselContent>
             {BANNERS.map((banner) => (
               <CarouselItem key={banner.id} className="relative">
@@ -133,7 +152,6 @@ const HomePage = () => {
           </div>
         </Carousel>
         
-        {/* Rest of HomePage content */}
         {/* Google Ads Section */}
         <div className="bg-gray-100 h-20 rounded-lg flex items-center justify-center">
           <p className="text-gray-500">Ad Space</p>
