@@ -1,6 +1,6 @@
 
-import { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { 
   ChevronLeft, 
   Heart, 
@@ -27,53 +27,55 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
-
-// Temporary product data
-const PRODUCT = {
-  id: '2',
-  name: "Smart Watch Pro",
-  description: "The Smart Watch Pro is a premium wearable device designed for fitness enthusiasts and tech-savvy individuals. With its sleek design and advanced features, it's the perfect companion for your daily activities.",
-  price: 299.99,
-  salePrice: 249.99,
-  images: ['/placeholder.svg', '/placeholder.svg', '/placeholder.svg'],
-  category: 'Wearables',
-  brand: 'TechWear',
-  rating: 4.7,
-  reviewCount: 126,
-  stock: 15,
-  features: [
-    "Health monitoring with heart rate and SpO2 sensors",
-    "Water resistant up to 50 meters",
-    "7-day battery life on a single charge",
-    "Customizable watch faces and bands",
-    "Smart notifications and apps"
-  ],
-  reviews: [
-    { id: '1', user: 'John D.', rating: 5, comment: 'Excellent watch! Battery life is amazing.', date: '2023-10-15' },
-    { id: '2', user: 'Sarah M.', rating: 4, comment: 'Great features but the app could be better.', date: '2023-09-28' },
-    { id: '3', user: 'Robert K.', rating: 5, comment: "Best smartwatch I've owned so far.", date: '2023-11-02' }
-  ],
-  similarProducts: [
-    { id: '7', name: 'Fitness Tracker', price: 79.99, image: '/placeholder.svg', rating: 4.2 },
-    { id: '9', name: 'Sports Watch', price: 149.99, image: '/placeholder.svg', rating: 4.5 },
-    { id: '10', name: 'Smart Band Pro', price: 89.99, image: '/placeholder.svg', rating: 4.0 }
-  ]
-};
+import { getProductById, getProductReviews, getSimilarProducts, Product, Review } from '@/services/productService';
+import { useQuery } from '@tanstack/react-query';
 
 const ProductDetail = () => {
-  const { productId } = useParams();
+  const { productId } = useParams<{ productId: string }>();
   const [quantity, setQuantity] = useState(1);
   const [isWishlisted, setIsWishlisted] = useState(false);
   const { addToCart, updateQuantity, cartItems } = useCart();
   const { toast } = useToast();
+  const navigate = useNavigate();
   
-  const product = PRODUCT; // In a real app, fetch product by productId
+  // Fetch product details
+  const { 
+    data: product,
+    isLoading: isLoadingProduct,
+    error: productError
+  } = useQuery({
+    queryKey: ['product', productId],
+    queryFn: () => getProductById(productId!),
+    enabled: !!productId,
+  });
+  
+  // Fetch product reviews
+  const { 
+    data: reviews,
+    isLoading: isLoadingReviews
+  } = useQuery({
+    queryKey: ['reviews', productId],
+    queryFn: () => getProductReviews(productId!),
+    enabled: !!productId,
+  });
+  
+  // Fetch similar products based on category
+  const {
+    data: similarProducts,
+    isLoading: isLoadingSimilar
+  } = useQuery({
+    queryKey: ['similarProducts', product?.category, productId],
+    queryFn: () => getSimilarProducts(product!.category, productId!),
+    enabled: !!product,
+  });
   
   // Check if product is already in cart
-  const productInCart = cartItems.find(item => item.id === product.id);
+  const productInCart = product ? cartItems.find(item => item.id === product.id) : undefined;
   const quantityInCart = productInCart ? productInCart.quantity : 0;
   
   const handleAddToCart = () => {
+    if (!product) return;
+    
     if (productInCart) {
       updateQuantity(product.id, productInCart.quantity + quantity);
       toast({
@@ -81,7 +83,11 @@ const ProductDetail = () => {
         description: `${product.name} (${productInCart.quantity + quantity}) has been updated in your cart`,
       });
     } else {
-      addToCart({ ...product, quantity });
+      addToCart({ 
+        ...product, 
+        quantity,
+        image: product.images[0] // For compatibility with the cart type
+      });
       toast({
         title: "Added to cart",
         description: `${product.name} (${quantity}) has been added to your cart`,
@@ -98,6 +104,8 @@ const ProductDetail = () => {
   
   const handleToggleWishlist = () => {
     setIsWishlisted(!isWishlisted);
+    if (!product) return;
+    
     toast({
       title: isWishlisted ? "Removed from wishlist" : "Added to wishlist",
       description: `${product.name} has been ${isWishlisted ? "removed from" : "added to"} your wishlist`,
@@ -113,12 +121,41 @@ const ProductDetail = () => {
       />
     ));
   };
+
+  // Handle loading and error states
+  if (isLoadingProduct) {
+    return (
+      <div className="pb-20 bg-gray-50 min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-t-blue-500 border-b-blue-500 border-gray-200 rounded-full animate-spin mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading product details...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (productError || !product) {
+    return (
+      <div className="pb-20 bg-gray-50 min-h-screen flex items-center justify-center">
+        <div className="text-center px-4">
+          <h2 className="text-xl font-bold text-gray-800 mb-2">Product Not Found</h2>
+          <p className="text-gray-600 mb-6">Sorry, the product you're looking for doesn't exist or has been removed.</p>
+          <Button onClick={() => navigate('/explore')}>
+            Browse Products
+          </Button>
+        </div>
+      </div>
+    );
+  }
   
   // Calculate discount percentage
-  const discountPercentage = product.salePrice 
-    ? Math.round((1 - product.salePrice / product.price) * 100) 
+  const discountPercentage = product.sale_price 
+    ? Math.round((1 - product.sale_price / product.price) * 100) 
     : 0;
   
+  // Parse features from jsonb
+  const features = product.features ? (Array.isArray(product.features) ? product.features : JSON.parse(product.features as unknown as string)) : [];
+
   return (
     <div className="pb-20 bg-gray-50">
       <Header />
@@ -204,7 +241,7 @@ const ProductDetail = () => {
                   {renderStars(product.rating)}
                 </div>
                 <span className="text-sm text-blue-500 ml-2 hover:underline cursor-pointer">
-                  {product.rating} ({product.reviewCount} ratings)
+                  {product.rating} ({product.review_count} ratings)
                 </span>
                 <span className="ml-2 bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded">
                   Top Seller
@@ -215,10 +252,10 @@ const ProductDetail = () => {
               
               {/* Price Section */}
               <div className="mb-5">
-                {product.salePrice ? (
+                {product.sale_price ? (
                   <div>
                     <div className="flex items-baseline">
-                      <span className="text-2xl font-bold text-green-600">${product.salePrice.toFixed(2)}</span>
+                      <span className="text-2xl font-bold text-green-600">${product.sale_price.toFixed(2)}</span>
                       <span className="ml-3 text-gray-500 line-through text-base">${product.price.toFixed(2)}</span>
                       <span className="ml-2 bg-red-100 text-red-700 px-2 py-0.5 rounded-sm text-xs font-medium">
                         {discountPercentage}% OFF
@@ -329,7 +366,7 @@ const ProductDetail = () => {
               <div>
                 <h3 className="font-semibold text-lg mb-2">Key Features</h3>
                 <ul className="list-disc pl-5 space-y-1">
-                  {product.features.map((feature, index) => (
+                  {features.map((feature: string, index: number) => (
                     <li key={index} className="text-gray-700">{feature}</li>
                   ))}
                 </ul>
@@ -347,23 +384,34 @@ const ProductDetail = () => {
                       </div>
                       <span className="text-sm ml-2">{product.rating} out of 5</span>
                     </div>
-                    <p className="text-sm text-gray-500">{product.reviewCount} global ratings</p>
+                    <p className="text-sm text-gray-500">{product.review_count} global ratings</p>
                   </div>
                   <Button variant="outline" size="sm">Write a Review</Button>
                 </div>
                 
-                {product.reviews.map((review) => (
-                  <div key={review.id} className="border-b border-gray-100 pb-4">
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium">{review.user}</span>
-                      <span className="text-xs text-gray-500">{review.date}</span>
-                    </div>
-                    <div className="flex py-1">
-                      {renderStars(review.rating)}
-                    </div>
-                    <p className="text-gray-700">{review.comment}</p>
+                {isLoadingReviews ? (
+                  <div className="py-4 text-center">
+                    <div className="w-8 h-8 border-2 border-t-blue-500 border-blue-200 rounded-full animate-spin mx-auto"></div>
+                    <p className="mt-2 text-sm text-gray-500">Loading reviews...</p>
                   </div>
-                ))}
+                ) : reviews && reviews.length > 0 ? (
+                  reviews.map((review: Review) => (
+                    <div key={review.id} className="border-b border-gray-100 pb-4">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium">{review.user_name}</span>
+                        <span className="text-xs text-gray-500">
+                          {new Date(review.date).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <div className="flex py-1">
+                        {renderStars(review.rating)}
+                      </div>
+                      <p className="text-gray-700">{review.comment}</p>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-center py-4 text-gray-500">No reviews yet for this product.</p>
+                )}
               </div>
             </TabsContent>
           </Tabs>
@@ -372,46 +420,61 @@ const ProductDetail = () => {
         {/* Similar Products */}
         <div className="mb-4">
           <h2 className="text-lg font-bold mb-3 px-1">Similar Products</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {product.similarProducts.map((item) => (
-              <div key={item.id} className="bg-white border rounded-lg overflow-hidden shadow-sm">
-                <Link to={`/product/${item.id}`} className="block relative pt-[100%]">
-                  <img 
-                    src={item.image} 
-                    alt={item.name} 
-                    className="absolute inset-0 w-full h-full object-contain p-2"
-                  />
-                </Link>
-                <div className="p-3">
-                  <Link to={`/product/${item.id}`}>
-                    <h3 className="font-medium text-sm line-clamp-2 h-10">{item.name}</h3>
-                    <div className="flex items-center mt-1">
-                      <div className="flex">
-                        {renderStars(item.rating)}
-                      </div>
-                    </div>
+          {isLoadingSimilar ? (
+            <div className="py-8 text-center">
+              <div className="w-8 h-8 border-2 border-t-blue-500 border-blue-200 rounded-full animate-spin mx-auto"></div>
+              <p className="mt-2 text-sm text-gray-500">Loading similar products...</p>
+            </div>
+          ) : similarProducts && similarProducts.length > 0 ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {similarProducts.map((item: Product) => (
+                <div key={item.id} className="bg-white border rounded-lg overflow-hidden shadow-sm">
+                  <Link to={`/product/${item.id}`} className="block relative pt-[100%]">
+                    <img 
+                      src={item.images[0]} 
+                      alt={item.name} 
+                      className="absolute inset-0 w-full h-full object-contain p-2"
+                    />
                   </Link>
-                  <div className="mt-2 flex items-center justify-between">
-                    <span className="font-bold">${item.price.toFixed(2)}</span>
-                    <Button 
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        addToCart({ ...item, quantity: 1 });
-                        toast({
-                          title: "Added to cart",
-                          description: `${item.name} has been added to your cart`,
-                        });
-                      }}
-                      className="h-8 px-2 border-gray-300"
-                    >
-                      <ShoppingCart className="h-4 w-4" />
-                    </Button>
+                  <div className="p-3">
+                    <Link to={`/product/${item.id}`}>
+                      <h3 className="font-medium text-sm line-clamp-2 h-10">{item.name}</h3>
+                      <div className="flex items-center mt-1">
+                        <div className="flex">
+                          {renderStars(item.rating)}
+                        </div>
+                      </div>
+                    </Link>
+                    <div className="mt-2 flex items-center justify-between">
+                      <span className="font-bold">
+                        ${(item.sale_price || item.price).toFixed(2)}
+                      </span>
+                      <Button 
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          addToCart({ 
+                            ...item, 
+                            quantity: 1,
+                            image: item.images[0] // For compatibility with the cart type
+                          });
+                          toast({
+                            title: "Added to cart",
+                            description: `${item.name} has been added to your cart`,
+                          });
+                        }}
+                        className="h-8 px-2 border-gray-300"
+                      >
+                        <ShoppingCart className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-center py-4 text-gray-500">No similar products found.</p>
+          )}
         </div>
         
         {/* Ad Space */}

@@ -9,6 +9,57 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      products: {
+        Row: {
+          brand: string
+          category: string
+          created_at: string | null
+          description: string
+          features: Json | null
+          id: string
+          images: string[]
+          name: string
+          price: number
+          rating: number
+          review_count: number
+          sale_price: number | null
+          stock: number
+          updated_at: string | null
+        }
+        Insert: {
+          brand: string
+          category: string
+          created_at?: string | null
+          description: string
+          features?: Json | null
+          id?: string
+          images: string[]
+          name: string
+          price: number
+          rating: number
+          review_count?: number
+          sale_price?: number | null
+          stock?: number
+          updated_at?: string | null
+        }
+        Update: {
+          brand?: string
+          category?: string
+          created_at?: string | null
+          description?: string
+          features?: Json | null
+          id?: string
+          images?: string[]
+          name?: string
+          price?: number
+          rating?: number
+          review_count?: number
+          sale_price?: number | null
+          stock?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -32,6 +83,44 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      reviews: {
+        Row: {
+          comment: string
+          date: string | null
+          id: string
+          product_id: string
+          rating: number
+          user_id: string | null
+          user_name: string
+        }
+        Insert: {
+          comment: string
+          date?: string | null
+          id?: string
+          product_id: string
+          rating: number
+          user_id?: string | null
+          user_name: string
+        }
+        Update: {
+          comment?: string
+          date?: string | null
+          id?: string
+          product_id?: string
+          rating?: number
+          user_id?: string | null
+          user_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

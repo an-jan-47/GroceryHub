@@ -1,29 +1,40 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { Product } from '@/services/productService';
 
-export interface CartItem {
-  id: string;
-  name: string;
-  price: number;
-  salePrice?: number;
-  image: string;
+// Define types
+type CartItem = Product & {
   quantity: number;
-}
+  image?: string; // Compatibility with old cart structure
+};
 
-interface CartContextType {
+type CartContextType = {
   cartItems: CartItem[];
-  addToCart: (product: any) => void;
+  addToCart: (product: CartItem) => void;
   removeFromCart: (productId: string) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
+  updateQuantity: (productId: string, newQuantity: number) => void;
   clearCart: () => void;
-  getCartTotal: () => number;
-  getCartCount: () => number;
-}
+  cartTotal: number;
+  cartCount: number;
+};
 
+// Create context
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
+// Provider component
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  
+  // Calculate total price and item count
+  const cartTotal = cartItems.reduce(
+    (total, item) => total + (item.sale_price || item.price) * item.quantity, 
+    0
+  );
+  
+  const cartCount = cartItems.reduce(
+    (count, item) => count + item.quantity, 
+    0
+  );
 
   // Load cart from localStorage on initial render
   useEffect(() => {
@@ -32,7 +43,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       try {
         setCartItems(JSON.parse(savedCart));
       } catch (e) {
-        console.error('Error parsing cart from localStorage', e);
+        console.error('Failed to parse cart from localStorage', e);
+        localStorage.removeItem('cart');
       }
     }
   }, []);
@@ -42,83 +54,65 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem('cart', JSON.stringify(cartItems));
   }, [cartItems]);
 
-  const addToCart = (product: any) => {
-    const quantity = product.quantity || 1;
-    
+  // Add product to cart
+  const addToCart = (product: CartItem) => {
     setCartItems(prevItems => {
-      const existingItem = prevItems.find(item => item.id === product.id);
+      const existingItemIndex = prevItems.findIndex(item => item.id === product.id);
       
-      if (existingItem) {
-        // Update quantity if item already exists
-        return prevItems.map(item => 
-          item.id === product.id 
-            ? { ...item, quantity: item.quantity + quantity }
-            : item
-        );
+      if (existingItemIndex >= 0) {
+        // Update existing item
+        const newItems = [...prevItems];
+        newItems[existingItemIndex].quantity += product.quantity;
+        return newItems;
       } else {
         // Add new item
-        const newItem: CartItem = {
-          id: product.id,
-          name: product.name,
-          price: product.price,
-          salePrice: product.salePrice,
-          image: product.image || product.images?.[0] || '/placeholder.svg',
-          quantity: quantity
-        };
-        return [...prevItems, newItem];
+        return [...prevItems, product];
       }
     });
   };
 
+  // Remove product from cart
   const removeFromCart = (productId: string) => {
     setCartItems(prevItems => prevItems.filter(item => item.id !== productId));
   };
 
-  const updateQuantity = (productId: string, quantity: number) => {
-    if (quantity <= 0) {
+  // Update quantity of a product
+  const updateQuantity = (productId: string, newQuantity: number) => {
+    if (newQuantity <= 0) {
       removeFromCart(productId);
       return;
     }
     
     setCartItems(prevItems => 
       prevItems.map(item => 
-        item.id === productId ? { ...item, quantity } : item
+        item.id === productId 
+          ? { ...item, quantity: newQuantity } 
+          : item
       )
     );
   };
 
+  // Clear cart
   const clearCart = () => {
     setCartItems([]);
   };
 
-  const getCartTotal = () => {
-    return cartItems.reduce((total, item) => {
-      const price = item.salePrice || item.price;
-      return total + (price * item.quantity);
-    }, 0);
-  };
-
-  const getCartCount = () => {
-    return cartItems.reduce((count, item) => count + item.quantity, 0);
-  };
-
   return (
-    <CartContext.Provider 
-      value={{ 
-        cartItems, 
-        addToCart, 
-        removeFromCart, 
-        updateQuantity, 
-        clearCart, 
-        getCartTotal,
-        getCartCount
-      }}
-    >
+    <CartContext.Provider value={{
+      cartItems,
+      addToCart,
+      removeFromCart,
+      updateQuantity,
+      clearCart,
+      cartTotal,
+      cartCount,
+    }}>
       {children}
     </CartContext.Provider>
   );
 };
 
+// Custom hook
 export const useCart = () => {
   const context = useContext(CartContext);
   if (context === undefined) {

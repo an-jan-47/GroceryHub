@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
@@ -11,44 +10,10 @@ import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
 import { useToast } from '@/hooks/use-toast';
 import type { CarouselApi } from '@/components/ui/carousel';
+import { useQuery } from '@tanstack/react-query';
+import { getProducts, Product } from '@/services/productService';
 
-// Temporary product data
-const FEATURED_PRODUCTS = [
-  {
-    id: '1',
-    name: 'Wireless Headphones',
-    price: 79.99,
-    image: '/placeholder.svg',
-    category: 'Audio',
-    rating: 4.5,
-  },
-  {
-    id: '2',
-    name: 'Smart Watch Pro',
-    price: 299.99,
-    salePrice: 249.99,
-    image: '/placeholder.svg',
-    category: 'Wearables',
-    rating: 4.7,
-  },
-  {
-    id: '3',
-    name: 'Portable Speaker',
-    price: 89.99,
-    image: '/placeholder.svg',
-    category: 'Audio',
-    rating: 4.3,
-  },
-  {
-    id: '4',
-    name: 'White Sneakers',
-    price: 59.99,
-    image: '/placeholder.svg',
-    category: 'Fashion',
-    rating: 4.1,
-  },
-];
-
+// For categories and banners we'll keep the hardcoded data for now
 const CATEGORIES = [
   { id: '1', name: 'Electronics', image: '/placeholder.svg', count: '120+ items' },
   { id: '2', name: 'Fashion', image: '/placeholder.svg', count: '210+ items' },
@@ -71,6 +36,15 @@ const HomePage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
   
+  // Fetch products from Supabase
+  const { 
+    data: products, 
+    isLoading: isLoadingProducts 
+  } = useQuery({
+    queryKey: ['featuredProducts'],
+    queryFn: getProducts
+  });
+
   // Auto rotate banner carousel
   useEffect(() => {
     const interval = setInterval(() => {
@@ -99,7 +73,7 @@ const HomePage = () => {
     };
   }, [carouselApi]);
   
-  const handleAddToCart = (product: any) => {
+  const handleAddToCart = (product: Product) => {
     const existingItem = cartItems.find(item => item.id === product.id);
     if (existingItem) {
       updateQuantity(product.id, existingItem.quantity + 1);
@@ -108,7 +82,11 @@ const HomePage = () => {
         description: `${product.name} quantity updated to ${existingItem.quantity + 1}`,
       });
     } else {
-      addToCart(product);
+      addToCart({
+        ...product,
+        quantity: 1,
+        image: product.images[0] // For compatibility with the cart type
+      });
       toast({
         title: "Added to cart",
         description: `${product.name} has been added to your cart`,
@@ -127,6 +105,9 @@ const HomePage = () => {
       navigate(`/explore?query=${encodeURIComponent(searchQuery.trim())}`);
     }
   };
+  
+  // Get featured products - first 4 items or fewer if less available
+  const featuredProducts = products ? products.slice(0, 4) : [];
   
   return (
     <div className="pb-20">
@@ -221,74 +202,86 @@ const HomePage = () => {
             <h2 className="text-lg font-semibold">Most Popular</h2>
             <Link to="/explore" className="text-brand-blue text-sm">See all</Link>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {FEATURED_PRODUCTS.map((product) => (
-              <Card key={product.id} className="product-card animate-fade-in">
-                <Link to={`/product/${product.id}`}>
-                  <div className="relative">
-                    <img 
-                      src={product.image} 
-                      alt={product.name} 
-                      className="product-image"
-                    />
-                    {product.salePrice && (
-                      <div className="absolute top-2 right-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full">
-                        Sale
-                      </div>
-                    )}
-                  </div>
-                </Link>
-                <CardContent className="p-3">
-                  <Link to={`/product/${product.id}`} className="block">
-                    <h3 className="font-medium text-sm truncate">{product.name}</h3>
-                    <div className="flex items-center mt-1">
-                      <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                      <span className="text-xs ml-1">{product.rating}</span>
+          
+          {isLoadingProducts ? (
+            <div className="py-8 text-center">
+              <div className="w-10 h-10 border-4 border-t-blue-500 border-blue-200 rounded-full animate-spin mx-auto"></div>
+              <p className="mt-4 text-gray-600">Loading products...</p>
+            </div>
+          ) : featuredProducts.length > 0 ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {featuredProducts.map((product: Product) => (
+                <Card key={product.id} className="product-card animate-fade-in">
+                  <Link to={`/product/${product.id}`}>
+                    <div className="relative">
+                      <img 
+                        src={product.images[0]} 
+                        alt={product.name} 
+                        className="product-image"
+                      />
+                      {product.sale_price && (
+                        <div className="absolute top-2 right-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+                          Sale
+                        </div>
+                      )}
                     </div>
                   </Link>
-                  <div className="mt-2 flex items-center justify-between">
-                    {product.salePrice ? (
-                      <div>
-                        <span className="font-bold text-brand-blue">${product.salePrice.toFixed(2)}</span>
-                        <span className="text-xs text-gray-500 line-through ml-1">${product.price.toFixed(2)}</span>
+                  <CardContent className="p-3">
+                    <Link to={`/product/${product.id}`} className="block">
+                      <h3 className="font-medium text-sm truncate">{product.name}</h3>
+                      <div className="flex items-center mt-1">
+                        <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                        <span className="text-xs ml-1">{product.rating}</span>
+                      </div>
+                    </Link>
+                    <div className="mt-2 flex items-center justify-between">
+                      {product.sale_price ? (
+                        <div>
+                          <span className="font-bold text-brand-blue">${product.sale_price.toFixed(2)}</span>
+                          <span className="text-xs text-gray-500 line-through ml-1">${product.price.toFixed(2)}</span>
+                        </div>
+                      ) : (
+                        <span className="font-bold">${product.price.toFixed(2)}</span>
+                      )}
+                    </div>
+                  </CardContent>
+                  <CardFooter className="p-3 pt-0">
+                    {getProductQuantityInCart(product.id) > 0 ? (
+                      <div className="w-full flex items-center border rounded-md">
+                        <button
+                          onClick={() => updateQuantity(product.id, getProductQuantityInCart(product.id) - 1)}
+                          className="p-2 text-gray-600 hover:text-brand-blue"
+                        >
+                          <Minus className="w-4 h-4" />
+                        </button>
+                        <span className="flex-1 text-center">{getProductQuantityInCart(product.id)}</span>
+                        <button
+                          onClick={() => updateQuantity(product.id, getProductQuantityInCart(product.id) + 1)}
+                          className="p-2 text-gray-600 hover:text-brand-blue"
+                        >
+                          <Plus className="w-4 h-4" />
+                        </button>
                       </div>
                     ) : (
-                      <span className="font-bold">${product.price.toFixed(2)}</span>
+                      <Button
+                        onClick={() => handleAddToCart(product)}
+                        variant="outline"
+                        size="sm"
+                        className="w-full border-brand-blue text-brand-blue hover:bg-brand-blue hover:text-white"
+                      >
+                        <ShoppingCart className="mr-2 h-4 w-4" />
+                        Add to Cart
+                      </Button>
                     )}
-                  </div>
-                </CardContent>
-                <CardFooter className="p-3 pt-0">
-                  {getProductQuantityInCart(product.id) > 0 ? (
-                    <div className="w-full flex items-center border rounded-md">
-                      <button
-                        onClick={() => updateQuantity(product.id, getProductQuantityInCart(product.id) - 1)}
-                        className="p-2 text-gray-600 hover:text-brand-blue"
-                      >
-                        <Minus className="w-4 h-4" />
-                      </button>
-                      <span className="flex-1 text-center">{getProductQuantityInCart(product.id)}</span>
-                      <button
-                        onClick={() => updateQuantity(product.id, getProductQuantityInCart(product.id) + 1)}
-                        className="p-2 text-gray-600 hover:text-brand-blue"
-                      >
-                        <Plus className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ) : (
-                    <Button
-                      onClick={() => handleAddToCart(product)}
-                      variant="outline"
-                      size="sm"
-                      className="w-full border-brand-blue text-brand-blue hover:bg-brand-blue hover:text-white"
-                    >
-                      <ShoppingCart className="mr-2 h-4 w-4" />
-                      Add to Cart
-                    </Button>
-                  )}
-                </CardFooter>
-              </Card>
-            ))}
-          </div>
+                  </CardFooter>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 bg-gray-50 rounded-lg">
+              <p className="text-gray-500">No products found.</p>
+            </div>
+          )}
         </section>
       </main>
       
