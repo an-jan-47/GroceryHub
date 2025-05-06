@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ChevronLeft, Trash2, Plus, Minus, ShoppingCart } from 'lucide-react';
@@ -13,14 +14,14 @@ import { useAuthCheck } from '@/hooks/useAuthCheck';
 const CartPage = () => {
   const [couponCode, setCouponCode] = useState('');
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
-  const { cartItems, removeFromCart, updateQuantity, getCartTotal } = useCart();
+  const { cartItems, removeFromCart, updateQuantity, cartTotal } = useCart();
   const { toast } = useToast();
   const navigate = useNavigate();
   const { checkAuthForCheckout } = useAuthCheck();
   
   const deliveryCharge = 3.00;
   const taxRate = 0.05; // 5%
-  const subtotal = getCartTotal();
+  const subtotal = cartTotal;
   const tax = subtotal * taxRate;
   const total = subtotal + deliveryCharge + tax;
   
@@ -92,7 +93,7 @@ const CartPage = () => {
                 <div key={item.id} className="py-4 flex items-center">
                   <Link to={`/product/${item.id}`} className="flex-shrink-0 w-20 h-20">
                     <img 
-                      src={item.image} 
+                      src={item.images[0]} 
                       alt={item.name} 
                       className="w-full h-full object-cover rounded-md"
                     />
@@ -102,9 +103,9 @@ const CartPage = () => {
                       {item.name}
                     </Link>
                     <div className="mt-1">
-                      {item.salePrice ? (
+                      {item.sale_price ? (
                         <div className="flex items-center">
-                          <span className="font-bold text-brand-blue">${item.salePrice.toFixed(2)}</span>
+                          <span className="font-bold text-brand-blue">${item.sale_price.toFixed(2)}</span>
                           <span className="text-xs text-gray-500 line-through ml-1">${item.price.toFixed(2)}</span>
                         </div>
                       ) : (

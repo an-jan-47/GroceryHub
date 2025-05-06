@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ChevronLeft, CreditCard, Wallet, MapPin } from 'lucide-react';
@@ -18,9 +17,7 @@ const PaymentMethodsPage = () => {
   const [showRazorpaySheet, setShowRazorpaySheet] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { getCartTotal, clearCart } = useCart();
-  
-  const cartTotal = getCartTotal();
+  const { cartTotal, clearCart } = useCart();
   
   const handlePayment = () => {
     if (selectedMethod === 'razorpay') {

@@ -5,7 +5,6 @@ import { Product } from '@/services/productService';
 // Define types
 type CartItem = Product & {
   quantity: number;
-  image?: string; // Compatibility with old cart structure
 };
 
 type CartContextType = {
