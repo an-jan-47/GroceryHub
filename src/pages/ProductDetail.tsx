@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { 
@@ -86,7 +85,6 @@ const ProductDetail = () => {
       addToCart({ 
         ...product, 
         quantity,
-        image: product.images[0] // For compatibility with the cart type
       });
       toast({
         title: "Added to cart",
@@ -456,7 +454,6 @@ const ProductDetail = () => {
                           addToCart({ 
                             ...item, 
                             quantity: 1,
-                            image: item.images[0] // For compatibility with the cart type
                           });
                           toast({
                             title: "Added to cart",

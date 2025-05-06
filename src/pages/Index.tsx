@@ -85,7 +85,6 @@ const HomePage = () => {
       addToCart({
         ...product,
         quantity: 1,
-        image: product.images[0] // For compatibility with the cart type
       });
       toast({
         title: "Added to cart",
