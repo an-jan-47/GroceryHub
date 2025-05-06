@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ChevronLeft, Plus, MapPin, Home, Briefcase, Edit, Trash2 } from 'lucide-react';
+import { ChevronLeft, Plus, MapPin, Home, Briefcase, Edit, Trash2, Truck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
