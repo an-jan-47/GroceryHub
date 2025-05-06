@@ -41,25 +41,17 @@ const PRODUCT = {
   rating: 4.7,
   reviewCount: 126,
   stock: 15,
-  specifications: {
-    'Display': '1.4" AMOLED',
-    'Battery': 'Up to 7 days',
-    'Water Resistance': '5 ATM',
-    'Connectivity': 'Bluetooth 5.0, Wi-Fi',
-    'Sensors': 'Heart rate, SpO2, Accelerometer',
-    'Materials': 'Aluminum case, Silicone band'
-  },
-  reviews: [
-    { id: '1', user: 'John D.', rating: 5, comment: 'Excellent watch! Battery life is amazing.', date: '2023-10-15' },
-    { id: '2', user: 'Sarah M.', rating: 4, comment: 'Great features but the app could be better.', date: '2023-09-28' },
-    { id: '3', user: 'Robert K.', rating: 5, comment: "Best smartwatch I've owned so far.", date: '2023-11-02' }
-  ],
   features: [
     "Health monitoring with heart rate and SpO2 sensors",
     "Water resistant up to 50 meters",
     "7-day battery life on a single charge",
     "Customizable watch faces and bands",
     "Smart notifications and apps"
+  ],
+  reviews: [
+    { id: '1', user: 'John D.', rating: 5, comment: 'Excellent watch! Battery life is amazing.', date: '2023-10-15' },
+    { id: '2', user: 'Sarah M.', rating: 4, comment: 'Great features but the app could be better.', date: '2023-09-28' },
+    { id: '3', user: 'Robert K.', rating: 5, comment: "Best smartwatch I've owned so far.", date: '2023-11-02' }
   ],
   similarProducts: [
     { id: '7', name: 'Fitness Tracker', price: 79.99, image: '/placeholder.svg', rating: 4.2 },
@@ -99,7 +91,7 @@ const ProductDetail = () => {
   
   const handleQuantityChange = (change: number) => {
     const newQuantity = quantity + change;
-    if (newQuantity >= 1 && newQuantity <= product.stock) {
+    if (newQuantity >= 1) {
       setQuantity(newQuantity);
     }
   };
@@ -128,10 +120,10 @@ const ProductDetail = () => {
     : 0;
   
   return (
-    <div className="pb-20">
+    <div className="pb-20 bg-gray-50">
       <Header />
       
-      <main className="container px-4 pb-4 mx-auto">
+      <main className="container px-4 pb-6 mx-auto">
         {/* Navigation */}
         <div className="py-2 flex items-center">
           <Link to="/explore" className="flex items-center text-gray-500">
@@ -140,10 +132,10 @@ const ProductDetail = () => {
           </Link>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-2">
-          {/* Product Images */}
-          <div className="w-full">
-            <div className="bg-white p-4 rounded-lg shadow-sm border">
+        <div className="bg-white p-4 rounded-lg shadow-sm mb-4">
+          {/* Product Images and Main Info */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="w-full">
               <Carousel className="w-full">
                 <CarouselContent>
                   {product.images.map((image, index) => (
@@ -168,7 +160,7 @@ const ProductDetail = () => {
                 {product.images.map((image, index) => (
                   <button 
                     key={index}
-                    className="w-16 h-16 border rounded-md overflow-hidden"
+                    className={`w-14 h-14 border rounded-md overflow-hidden ${index === 0 ? 'border-blue-500' : 'border-gray-200'}`}
                   >
                     <img 
                       src={image} 
@@ -178,44 +170,27 @@ const ProductDetail = () => {
                   </button>
                 ))}
               </div>
+              
+              {/* Action Buttons */}
+              <div className="grid grid-cols-2 gap-3 mt-4 md:hidden">
+                <Button
+                  onClick={handleAddToCart}
+                  variant="outline"
+                  className="bg-white border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white h-14"
+                >
+                  <ShoppingCart className="mr-2 h-5 w-5" />
+                  ADD TO CART
+                </Button>
+                <Button className="bg-orange-500 hover:bg-orange-600 h-14">
+                  BUY NOW
+                </Button>
+              </div>
             </div>
             
-            {/* Share Button */}
-            <div className="mt-4 flex justify-end">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="text-gray-500"
-                onClick={() => {
-                  toast({
-                    title: "Share feature",
-                    description: "Share functionality will be implemented soon",
-                  });
-                }}
-              >
-                <Share2 className="w-4 h-4 mr-1" />
-                Share
-              </Button>
-            </div>
-          </div>
-          
-          {/* Product Info */}
-          <div className="space-y-5">
-            {/* Product Header */}
+            {/* Product Info */}
             <div>
               <div className="flex items-start justify-between">
-                <div>
-                  <h1 className="text-2xl font-bold">{product.name}</h1>
-                  <div className="flex items-center mt-1">
-                    <div className="flex">
-                      {renderStars(product.rating)}
-                    </div>
-                    <span className="text-sm text-blue-500 ml-2 hover:underline cursor-pointer">
-                      {product.rating} ({product.reviewCount} reviews)
-                    </span>
-                  </div>
-                  <p className="text-gray-500 text-sm mt-1">{product.brand} | {product.category}</p>
-                </div>
+                <h1 className="text-xl font-medium text-gray-800">{product.name}</h1>
                 <button 
                   onClick={handleToggleWishlist}
                   className="p-2 rounded-full hover:bg-gray-100"
@@ -224,109 +199,127 @@ const ProductDetail = () => {
                 </button>
               </div>
               
-              {product.stock < 5 && (
-                <div className="mt-2 text-orange-500 text-sm flex items-center">
-                  <Clock className="w-4 h-4 mr-1" />
-                  <span>Only {product.stock} left in stock - order soon</span>
+              <div className="flex items-center mt-1 mb-2">
+                <div className="flex">
+                  {renderStars(product.rating)}
                 </div>
-              )}
-            </div>
-            
-            {/* Price Section */}
-            <div className="bg-gray-50 p-4 rounded-lg">
-              {product.salePrice ? (
-                <div>
-                  <div className="flex items-center">
-                    <span className="text-3xl font-bold text-brand-blue">${product.salePrice.toFixed(2)}</span>
-                    <div className="ml-3">
-                      <span className="text-gray-500 line-through">${product.price.toFixed(2)}</span>
+                <span className="text-sm text-blue-500 ml-2 hover:underline cursor-pointer">
+                  {product.rating} ({product.reviewCount} ratings)
+                </span>
+                <span className="ml-2 bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded">
+                  Top Seller
+                </span>
+              </div>
+              
+              <p className="text-gray-500 text-sm mb-4">{product.brand} | {product.category}</p>
+              
+              {/* Price Section */}
+              <div className="mb-5">
+                {product.salePrice ? (
+                  <div>
+                    <div className="flex items-baseline">
+                      <span className="text-2xl font-bold text-green-600">${product.salePrice.toFixed(2)}</span>
+                      <span className="ml-3 text-gray-500 line-through text-base">${product.price.toFixed(2)}</span>
                       <span className="ml-2 bg-red-100 text-red-700 px-2 py-0.5 rounded-sm text-xs font-medium">
-                        Save {discountPercentage}%
+                        {discountPercentage}% OFF
                       </span>
                     </div>
+                    <p className="text-xs text-green-600 mt-1">Limited time deal</p>
                   </div>
-                  <p className="text-green-600 text-sm mt-1">Special Deal</p>
+                ) : (
+                  <span className="text-2xl font-bold">${product.price.toFixed(2)}</span>
+                )}
+              </div>
+              
+              {/* Delivery */}
+              <div className="border border-gray-200 rounded-lg p-3 mb-4 space-y-2 bg-gray-50">
+                <div className="flex items-center">
+                  <Truck className="w-5 h-5 mr-2 text-green-600" />
+                  <div>
+                    <p className="font-medium text-sm">Free Delivery</p>
+                  </div>
                 </div>
-              ) : (
-                <div>
-                  <span className="text-3xl font-bold">${product.price.toFixed(2)}</span>
+                
+                <div className="flex items-center">
+                  <Shield className="w-5 h-5 mr-2 text-green-600" />
+                  <div>
+                    <p className="font-medium text-sm">1 Year Warranty</p>
+                  </div>
                 </div>
-              )}
-            </div>
-            
-            {/* Delivery */}
-            <div className="p-4 border border-gray-200 rounded-lg space-y-3">
-              <div className="flex items-center">
-                <Truck className="w-5 h-5 mr-2 text-green-600" />
-                <div>
-                  <p className="font-medium">Free Delivery</p>
-                  <p className="text-sm text-gray-500">Delivered within 3-5 business days</p>
+                
+                <div className="flex items-center">
+                  <Check className="w-5 h-5 mr-2 text-green-600" />
+                  <p className="text-sm">7-day easy return policy</p>
                 </div>
               </div>
               
-              <div className="flex items-center">
-                <Shield className="w-5 h-5 mr-2 text-green-600" />
-                <div>
-                  <p className="font-medium">1 Year Warranty</p>
-                  <p className="text-sm text-gray-500">Official brand warranty</p>
-                </div>
-              </div>
-              
-              <div className="flex items-center">
-                <Check className="w-5 h-5 mr-2 text-green-600" />
-                <p className="text-sm">7-day easy return policy</p>
-              </div>
-            </div>
-            
-            {/* Quantity and Add to Cart */}
-            <div className="space-y-4">
-              <div className="flex items-center space-x-4">
-                <span className="text-gray-700 font-medium">Quantity:</span>
-                <div className="flex items-center border rounded-md">
+              {/* Quantity */}
+              <div className="mb-6">
+                <span className="text-gray-700 text-sm font-medium">Quantity:</span>
+                <div className="flex items-center mt-2 border border-gray-300 inline-flex rounded-md">
                   <button
                     onClick={() => handleQuantityChange(-1)}
                     disabled={quantity <= 1}
-                    className="p-2 text-gray-600 hover:text-brand-blue disabled:opacity-50"
+                    className="p-2 text-gray-600 hover:text-orange-500 disabled:opacity-50 border-r border-gray-300"
                   >
                     <Minus className="w-4 h-4" />
                   </button>
-                  <span className="px-6 py-1 font-medium">{quantity}</span>
+                  <span className="px-6 py-1 font-medium text-sm">{quantity}</span>
                   <button
                     onClick={() => handleQuantityChange(1)}
-                    disabled={quantity >= product.stock}
-                    className="p-2 text-gray-600 hover:text-brand-blue disabled:opacity-50"
+                    className="p-2 text-gray-600 hover:text-orange-500 border-l border-gray-300"
                   >
                     <Plus className="w-4 h-4" />
                   </button>
                 </div>
-                <span className="text-sm text-gray-500">
-                  ({quantityInCart > 0 ? `${quantityInCart} in cart · ` : ''}{product.stock} available)
-                </span>
+                {quantityInCart > 0 && (
+                  <span className="ml-3 text-xs text-gray-500">
+                    ({quantityInCart} already in cart)
+                  </span>
+                )}
               </div>
               
-              <div className="grid grid-cols-2 gap-3">
+              {/* Desktop Action Buttons */}
+              <div className="hidden md:grid grid-cols-2 gap-3">
                 <Button
                   onClick={handleAddToCart}
                   variant="outline"
-                  className="w-full border-brand-blue text-brand-blue hover:bg-brand-blue hover:text-white py-6"
+                  className="bg-white border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white h-14 text-base"
                 >
                   <ShoppingCart className="mr-2 h-5 w-5" />
-                  Add to Cart
+                  ADD TO CART
                 </Button>
-                <Button className="w-full bg-orange-500 hover:bg-orange-600 py-6">
-                  Buy Now
+                <Button className="bg-orange-500 hover:bg-orange-600 h-14 text-base">
+                  BUY NOW
+                </Button>
+              </div>
+              
+              {/* Share */}
+              <div className="mt-4 text-right">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="text-gray-500"
+                  onClick={() => {
+                    toast({
+                      title: "Share feature",
+                      description: "Share functionality will be implemented soon",
+                    });
+                  }}
+                >
+                  <Share2 className="w-4 h-4 mr-1" />
+                  Share
                 </Button>
               </div>
             </div>
           </div>
         </div>
         
-        {/* Tabs for Description, Specs, and Reviews */}
-        <div className="mt-8 bg-white p-4 rounded-lg shadow-sm border">
+        {/* Tabs for Description and Reviews */}
+        <div className="bg-white p-4 rounded-lg shadow-sm mb-4">
           <Tabs defaultValue="description" className="w-full">
-            <TabsList className="w-full grid grid-cols-3">
+            <TabsList className="w-full grid grid-cols-2">
               <TabsTrigger value="description">Description</TabsTrigger>
-              <TabsTrigger value="specifications">Specifications</TabsTrigger>
               <TabsTrigger value="reviews">Reviews</TabsTrigger>
             </TabsList>
             
@@ -340,22 +333,6 @@ const ProductDetail = () => {
                     <li key={index} className="text-gray-700">{feature}</li>
                   ))}
                 </ul>
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="specifications" className="pt-4">
-              <div className="space-y-0">
-                {Object.entries(product.specifications).map(([key, value], index) => (
-                  <div 
-                    key={key} 
-                    className={`grid grid-cols-2 py-3 px-2 ${
-                      index % 2 === 0 ? 'bg-gray-50' : ''
-                    }`}
-                  >
-                    <span className="font-medium">{key}</span>
-                    <span className="text-gray-700">{value}</span>
-                  </div>
-                ))}
               </div>
             </TabsContent>
             
@@ -393,23 +370,25 @@ const ProductDetail = () => {
         </div>
         
         {/* Similar Products */}
-        <div className="mt-8">
-          <h2 className="text-xl font-bold mb-4">Similar Products</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="mb-4">
+          <h2 className="text-lg font-bold mb-3 px-1">Similar Products</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {product.similarProducts.map((item) => (
-              <div key={item.id} className="border rounded-lg overflow-hidden shadow-sm">
-                <Link to={`/product/${item.id}`}>
+              <div key={item.id} className="bg-white border rounded-lg overflow-hidden shadow-sm">
+                <Link to={`/product/${item.id}`} className="block relative pt-[100%]">
                   <img 
                     src={item.image} 
                     alt={item.name} 
-                    className="w-full h-40 object-cover"
+                    className="absolute inset-0 w-full h-full object-contain p-2"
                   />
                 </Link>
                 <div className="p-3">
                   <Link to={`/product/${item.id}`}>
-                    <h3 className="font-medium text-sm truncate">{item.name}</h3>
+                    <h3 className="font-medium text-sm line-clamp-2 h-10">{item.name}</h3>
                     <div className="flex items-center mt-1">
-                      {renderStars(item.rating)}
+                      <div className="flex">
+                        {renderStars(item.rating)}
+                      </div>
                     </div>
                   </Link>
                   <div className="mt-2 flex items-center justify-between">
@@ -436,7 +415,7 @@ const ProductDetail = () => {
         </div>
         
         {/* Ad Space */}
-        <div className="mt-8 bg-gray-100 h-20 rounded-lg flex items-center justify-center">
+        <div className="bg-gray-100 h-20 rounded-lg flex items-center justify-center">
           <p className="text-gray-500">Ad Space</p>
         </div>
       </main>
