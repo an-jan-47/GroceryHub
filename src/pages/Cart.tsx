@@ -93,7 +93,7 @@ const CartPage = () => {
                 <div key={item.id} className="py-4 flex items-center">
                   <Link to={`/product/${item.id}`} className="flex-shrink-0 w-20 h-20">
                     <img 
-                      src={item.images[0]} 
+                      src={item.images && item.images.length > 0 ? item.images[0] : '/placeholder.svg'} 
                       alt={item.name} 
                       className="w-full h-full object-cover rounded-md"
                     />
