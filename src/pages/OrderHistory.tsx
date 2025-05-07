@@ -1,132 +1,31 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronLeft, Package, ShoppingBag, Search, ChevronRight, Calendar, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
 import { useAuth } from '@/contexts/AuthContext';
-
-// Enhanced order data structure
-interface OrderItem {
-  id: string;
-  name: string;
-  price: number;
-  quantity: number;
-  image: string;
-}
-
-interface Order {
-  id: string;
-  date: string;
-  total: number;
-  items: OrderItem[];
-  status: 'Delivered' | 'Processing' | 'Cancelled' | 'Shipped';
-  address: string;
-  paymentMethod: string;
-}
-
-// Placeholder order data (enhanced)
-const MOCK_ORDERS: Order[] = [
-  {
-    id: 'ORD-123456',
-    date: '2025-05-01',
-    total: 129.99,
-    items: [
-      { id: '1', name: 'Wireless Headphones', price: 79.99, quantity: 1, image: '/placeholder.svg' },
-      { id: '2', name: 'Smart Watch Pro', price: 49.99, quantity: 1, image: '/placeholder.svg' },
-    ],
-    status: 'Delivered',
-    address: '123 Main St, New York, NY 10001',
-    paymentMethod: 'Credit Card',
-  },
-  {
-    id: 'ORD-123455',
-    date: '2025-04-25',
-    total: 89.50,
-    items: [
-      { id: '3', name: 'Portable Speaker', price: 89.99, quantity: 1, image: '/placeholder.svg' },
-    ],
-    status: 'Processing',
-    address: '456 Park Ave, Boston, MA 02108',
-    paymentMethod: 'Cash on Delivery',
-  },
-  {
-    id: 'ORD-123454',
-    date: '2025-04-15',
-    total: 45.75,
-    items: [
-      { id: '4', name: 'White Sneakers', price: 45.75, quantity: 1, image: '/placeholder.svg' },
-    ],
-    status: 'Cancelled',
-    address: '789 Broadway, San Francisco, CA 94107',
-    paymentMethod: 'Razorpay',
-  },
-  {
-    id: 'ORD-123453',
-    date: '2025-04-05',
-    total: 210.25,
-    items: [
-      { id: '2', name: 'Smart Watch Pro', price: 49.99, quantity: 2, image: '/placeholder.svg' },
-      { id: '5', name: 'Bluetooth Earbuds', price: 110.27, quantity: 1, image: '/placeholder.svg' },
-    ],
-    status: 'Shipped',
-    address: '101 Fifth Ave, Chicago, IL 60601',
-    paymentMethod: 'Razorpay',
-  },
-];
-
-// Check if there's a new order in localStorage and add it if it exists
-const getLocalStorageOrder = (): Order | null => {
-  const orderId = localStorage.getItem('lastOrderId');
-  if (!orderId) return null;
-  
-  // Create a new order based on localStorage data
-  return {
-    id: orderId,
-    date: new Date().toISOString().split('T')[0],
-    total: Math.floor(Math.random() * 200) + 50,
-    items: [
-      { 
-        id: '1', 
-        name: 'Recent Purchase', 
-        price: Math.floor(Math.random() * 100) + 20, 
-        quantity: 1, 
-        image: '/placeholder.svg' 
-      },
-    ],
-    status: 'Processing',
-    address: '123 Main St, New York, NY 10001',
-    paymentMethod: 'Razorpay',
-  };
-};
+import { useQuery } from '@tanstack/react-query';
+import { getOrders, OrderWithItems } from '@/services/orderService';
 
 const OrderHistory = () => {
-  const [orders, setOrders] = useState<Order[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
   const { user } = useAuth();
+  
+  // Fetch orders from backend
+  const { 
+    data: orders = [], 
+    isLoading,
+  } = useQuery({
+    queryKey: ['orders'],
+    queryFn: getOrders,
+    enabled: !!user // Only fetch if user is authenticated
+  });
 
-  useEffect(() => {
-    // Simulating API fetch delay
-    const timer = setTimeout(() => {
-      // Check for any new orders from localStorage
-      const newOrder = getLocalStorageOrder();
-      if (newOrder) {
-        // Add new order at the top of the list
-        setOrders([newOrder, ...MOCK_ORDERS]);
-      } else {
-        setOrders(MOCK_ORDERS);
-      }
-      setIsLoading(false);
-    }, 1000);
-    
-    return () => clearTimeout(timer);
-  }, []);
-
+  // Filter orders by ID
   const filteredOrders = orders.filter(order => 
     order.id.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -159,6 +58,16 @@ const OrderHistory = () => {
       default:
         return <Package className="w-4 h-4" />;
     }
+  };
+
+  // Format date to a readable string
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric' 
+    });
   };
 
   return (
@@ -216,7 +125,7 @@ const OrderHistory = () => {
           </div>
         ) : (
           <div className="space-y-4">
-            {filteredOrders.map((order) => (
+            {filteredOrders.map((order: OrderWithItems) => (
               <div key={order.id} className="bg-white rounded-lg shadow-sm overflow-hidden">
                 {/* Order header */}
                 <div className="p-4 border-b">
@@ -225,11 +134,11 @@ const OrderHistory = () => {
                       <div className="font-medium">{order.id}</div>
                       <div className="flex items-center mt-1 text-sm text-gray-500 space-x-2">
                         <Calendar className="w-3.5 h-3.5 inline mr-1" />
-                        <span>{new Date(order.date).toLocaleDateString()}</span>
+                        <span>{formatDate(order.order_date)}</span>
                         <span>•</span>
                         <span>{order.items.reduce((acc, item) => acc + item.quantity, 0)} item(s)</span>
                         <span>•</span>
-                        <span>${order.total.toFixed(2)}</span>
+                        <span>${order.total_amount.toFixed(2)}</span>
                       </div>
                     </div>
                     <Badge variant="outline" className={`${getStatusColor(order.status)} flex items-center space-x-1`}>
@@ -250,8 +159,8 @@ const OrderHistory = () => {
                           style={{ marginLeft: index > 0 ? '-0.75rem' : 0 }}
                         >
                           <img 
-                            src={item.image} 
-                            alt={item.name} 
+                            src={item.product.images[0]} 
+                            alt={item.product.name} 
                             className="w-full h-full object-cover"
                           />
                           {item.quantity > 1 && (
@@ -271,11 +180,11 @@ const OrderHistory = () => {
                     <div className="flex-grow overflow-hidden">
                       {order.items.slice(0, 1).map((item) => (
                         <div key={`${order.id}-${item.id}-name`} className="text-sm font-medium truncate">
-                          {item.name}{order.items.length > 1 ? ' and more' : ''}
+                          {item.product.name}{order.items.length > 1 ? ' and more' : ''}
                         </div>
                       ))}
                       <div className="text-xs text-gray-500 mt-1">
-                        Payment: {order.paymentMethod}
+                        Payment: {order.payment_method}
                       </div>
                     </div>
                     

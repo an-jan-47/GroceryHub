@@ -1,102 +1,114 @@
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ChevronLeft, Plus, MapPin, Home, Briefcase, Edit, Trash2, Truck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import { toast } from '@/components/ui/sonner';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
-
-// Define the Address type to match the existing data structure
-interface Address {
-  id: string;
-  addressType: string;
-  name: string;
-  phone: string;
-  address: string;
-  city: string;
-  state: string;
-  pincode: string;
-  isDefault: boolean;
-}
-
-// Sample saved addresses
-const INITIAL_ADDRESSES: Address[] = [
-  {
-    id: '1',
-    addressType: 'home',
-    name: 'John Doe',
-    phone: '1234567890',
-    address: '123 Main Street',
-    city: 'New York',
-    state: 'NY',
-    pincode: '10001',
-    isDefault: true,
-  },
-  {
-    id: '2',
-    addressType: 'work',
-    name: 'John Doe',
-    phone: '9876543210',
-    address: '456 Business Avenue',
-    city: 'San Francisco',
-    state: 'CA',
-    pincode: '94107',
-    isDefault: false,
-  },
-];
+import { getAddresses, Address, deleteAddress, setDefaultAddress } from '@/services/addressService';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { AddressDialog } from '@/components/AddressDialog';
+import { useAuth } from '@/contexts/AuthContext';
+import { useAuthCheck } from '@/hooks/useAuthCheck';
 
 const AddressPage = () => {
-  const [savedAddresses, setSavedAddresses] = useState<Address[]>(INITIAL_ADDRESSES);
-  const [selectedAddress, setSelectedAddress] = useState<string>(savedAddresses[0]?.id || '');
+  const [selectedAddress, setSelectedAddress] = useState<string>('');
+  const [showAddressDialog, setShowAddressDialog] = useState(false);
+  const [editingAddress, setEditingAddress] = useState<Address | null>(null);
   const navigate = useNavigate();
-  const { toast } = useToast();
-  
-  const handleContinue = () => {
-    // Log which address was selected
-    console.log('Selected address ID:', selectedAddress);
-    
-    if (!selectedAddress) {
-      toast({
-        title: "Select an Address",
-        description: "Please select an address to continue.",
-        variant: "destructive",
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const { checkAuthForCheckout } = useAuthCheck();
+
+  // Fetch addresses from backend
+  const { data: addresses = [], isLoading: isLoadingAddresses } = useQuery({
+    queryKey: ['addresses'],
+    queryFn: getAddresses,
+    enabled: !!user // Only fetch if user is authenticated
+  });
+
+  useEffect(() => {
+    // Set the default address when addresses are loaded
+    if (addresses.length > 0) {
+      // First try to find a default address
+      const defaultAddress = addresses.find(addr => addr.is_default);
+      if (defaultAddress) {
+        setSelectedAddress(defaultAddress.id);
+      } else {
+        // Otherwise use the first address
+        setSelectedAddress(addresses[0].id);
+      }
+    }
+  }, [addresses]);
+
+  // Delete address mutation
+  const deleteAddressMutation = useMutation({
+    mutationFn: deleteAddress,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['addresses'] });
+      toast('Address removed successfully');
+    },
+    onError: (error) => {
+      toast('Failed to remove address', {
+        description: error.message
       });
+    }
+  });
+
+  // Set default address mutation
+  const setDefaultMutation = useMutation({
+    mutationFn: setDefaultAddress,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['addresses'] });
+    }
+  });
+
+  useEffect(() => {
+    // Check if user is authenticated
+    checkAuthForCheckout();
+  }, []);
+
+  const handleContinue = () => {
+    if (!selectedAddress) {
+      toast('Please select an address to continue.');
       return;
     }
     
-    // Navigate to payment page
-    navigate('/payment');
+    // Navigate to payment page with selected address
+    navigate(`/payment?address=${selectedAddress}`);
   };
 
   const handleAddAddress = () => {
-    // Navigate to add address page or show add address form
-    toast({
-      title: "Add Address",
-      description: "This would open the add address form.",
-    });
+    setEditingAddress(null);
+    setShowAddressDialog(true);
   };
 
-  const handleEditAddress = (addressId: string) => {
-    toast({
-      title: "Edit Address",
-      description: `Editing address ${addressId}`,
-    });
+  const handleEditAddress = (address: Address) => {
+    setEditingAddress(address);
+    setShowAddressDialog(true);
   };
 
   const handleDeleteAddress = (addressId: string) => {
-    setSavedAddresses(savedAddresses.filter(addr => addr.id !== addressId));
+    deleteAddressMutation.mutate(addressId);
     
     if (selectedAddress === addressId) {
-      setSelectedAddress(savedAddresses.find(addr => addr.id !== addressId)?.id || '');
+      // If we're deleting the selected address, select another one if available
+      if (addresses.length > 1) {
+        const newSelectedAddress = addresses.find(addr => addr.id !== addressId);
+        if (newSelectedAddress) setSelectedAddress(newSelectedAddress.id);
+      } else {
+        setSelectedAddress('');
+      }
     }
-    
-    toast({
-      title: "Address Removed",
-      description: "Address has been removed successfully",
-    });
+  };
+
+  const handleAddressSelect = (addressId: string) => {
+    setSelectedAddress(addressId);
+    // When selecting an address, also set it as default
+    setDefaultMutation.mutate(addressId);
   };
 
   const getAddressIcon = (type: string) => {
@@ -120,7 +132,11 @@ const AddressPage = () => {
         <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
           <h1 className="text-xl font-bold mb-4">Select Delivery Address</h1>
           
-          {savedAddresses.length === 0 ? (
+          {isLoadingAddresses ? (
+            <div className="py-8 flex justify-center">
+              <div className="animate-spin h-8 w-8 border-4 border-blue-500 rounded-full border-t-transparent"></div>
+            </div>
+          ) : addresses.length === 0 ? (
             <div className="text-center py-8 border border-dashed border-gray-300 rounded-lg">
               <MapPin className="mx-auto w-12 h-12 text-gray-400 mb-2" />
               <p className="text-gray-600 mb-4">No saved addresses found</p>
@@ -132,10 +148,10 @@ const AddressPage = () => {
             <div>
               <RadioGroup 
                 value={selectedAddress} 
-                onValueChange={setSelectedAddress}
+                onValueChange={handleAddressSelect}
                 className="space-y-3"
               >
-                {savedAddresses.map(address => (
+                {addresses.map(address => (
                   <div 
                     key={address.id} 
                     className={`p-4 border rounded-lg flex ${
@@ -160,11 +176,11 @@ const AddressPage = () => {
                           </Label>
                           
                           <div className="flex items-center gap-1 text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded-full">
-                            {getAddressIcon(address.addressType)}
-                            <span className="uppercase">{address.addressType}</span>
+                            {getAddressIcon(address.address_type)}
+                            <span className="uppercase">{address.address_type}</span>
                           </div>
                           
-                          {address.isDefault && (
+                          {address.is_default && (
                             <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
                               Default
                             </span>
@@ -183,7 +199,7 @@ const AddressPage = () => {
                         variant="ghost" 
                         size="sm" 
                         className="h-8 px-2"
-                        onClick={() => handleEditAddress(address.id)}
+                        onClick={() => handleEditAddress(address)}
                       >
                         <Edit className="h-4 w-4 text-blue-500" />
                       </Button>
@@ -193,6 +209,7 @@ const AddressPage = () => {
                         size="sm" 
                         className="h-8 px-2"
                         onClick={() => handleDeleteAddress(address.id)}
+                        disabled={deleteAddressMutation.isPending}
                       >
                         <Trash2 className="h-4 w-4 text-red-500" />
                       </Button>
@@ -214,6 +231,7 @@ const AddressPage = () => {
                 <Button 
                   onClick={handleContinue}
                   className="bg-orange-500 hover:bg-orange-600"
+                  disabled={!selectedAddress || addresses.length === 0}
                 >
                   Deliver to this Address
                 </Button>
@@ -238,6 +256,13 @@ const AddressPage = () => {
       </main>
       
       <BottomNavigation />
+      
+      {/* Address Add/Edit Dialog */}
+      <AddressDialog
+        open={showAddressDialog}
+        onOpenChange={setShowAddressDialog}
+        addressToEdit={editingAddress}
+      />
     </div>
   );
 };

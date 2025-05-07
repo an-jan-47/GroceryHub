@@ -1,79 +1,104 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+
+import { useState, useEffect } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ChevronLeft, CreditCard, Wallet, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from '@/components/ui/sonner';
 import { useCart } from '@/hooks/useCart';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { createOrder } from '@/services/orderService';
+import { getAddressById, Address } from '@/services/addressService';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { useAuthCheck } from '@/hooks/useAuthCheck';
 
 const PaymentMethodsPage = () => {
   const [selectedMethod, setSelectedMethod] = useState('cod');  // Default to COD
-  const [isProcessing, setIsProcessing] = useState(false);
   const [showRazorpaySheet, setShowRazorpaySheet] = useState(false);
+  const [searchParams] = useSearchParams();
+  const addressId = searchParams.get('address');
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const { cartTotal, clearCart } = useCart();
-  
-  const handlePayment = () => {
-    if (selectedMethod === 'razorpay') {
-      setShowRazorpaySheet(true);
-    } else if (selectedMethod === 'cod') {
-      setIsProcessing(true);
-      
-      // Simulate processing for COD
-      setTimeout(() => {
-        setIsProcessing(false);
-        
-        // Generate a unique order ID and store it for the confirmation page
-        const orderId = generateOrderId();
-        localStorage.setItem('lastOrderId', orderId);
-        
-        // Clear the cart
-        clearCart();
-        
-        // Navigate to confirmation
-        navigate('/order-confirmation');
-      }, 1500);
-    } else {
-      toast({
-        title: 'Payment Method Not Available',
-        description: 'Please select a valid payment method.',
-      });
-    }
-  };
-  
-  const handleProcessPayment = () => {
-    setIsProcessing(true);
+  const { cartItems, cartTotal, clearCart } = useCart();
+  const { checkAuthForCheckout } = useAuthCheck();
+
+  // Check if user is authenticated
+  useEffect(() => {
+    checkAuthForCheckout();
     
-    // Simulate payment processing
-    setTimeout(() => {
-      setIsProcessing(false);
-      setShowRazorpaySheet(false);
+    if (!addressId) {
+      toast('Please select a delivery address first');
+      navigate('/address');
+    }
+  }, []);
+  
+  // Fetch the selected address
+  const { data: address, isLoading: isLoadingAddress } = useQuery({
+    queryKey: ['address', addressId],
+    queryFn: () => addressId ? getAddressById(addressId) : Promise.reject('No address ID'),
+    enabled: !!addressId
+  });
+  
+  // Calculate costs
+  const deliveryCharge = cartTotal > 50 ? 0 : 5;
+  const taxRate = 0.08;
+  const tax = cartTotal * taxRate;
+  const totalAmount = cartTotal + deliveryCharge + tax;
+  
+  // Create order mutation
+  const createOrderMutation = useMutation({
+    mutationFn: async () => {
+      if (!addressId) throw new Error('No address selected');
       
-      // Generate a unique order ID and store it for the confirmation page
-      const orderId = generateOrderId();
+      // Prepare order items
+      const items = cartItems.map(item => ({
+        productId: item.id,
+        quantity: item.quantity,
+        price: item.sale_price || item.price
+      }));
+      
+      return createOrder(
+        addressId,
+        totalAmount,
+        selectedMethod,
+        items
+      );
+    },
+    onSuccess: ({ orderId }) => {
+      // Store order ID for confirmation page
       localStorage.setItem('lastOrderId', orderId);
       
       // Clear the cart
       clearCart();
       
+      // Navigate to confirmation
       navigate('/order-confirmation');
-    }, 2000);
+    },
+    onError: (error) => {
+      toast('Failed to create order', {
+        description: error.message
+      });
+    }
+  });
+
+  const handlePayment = () => {
+    if (selectedMethod === 'razorpay') {
+      setShowRazorpaySheet(true);
+    } else if (selectedMethod === 'cod') {
+      createOrderMutation.mutate();
+    } else {
+      toast('Please select a valid payment method');
+    }
   };
   
-  // Generate a unique order ID
-  const generateOrderId = () => {
-    const prefix = 'ORD';
-    const timestamp = Date.now().toString().slice(-8);
-    const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-    return `${prefix}-${timestamp}${random}`;
+  const handleProcessPayment = () => {
+    setShowRazorpaySheet(false);
+    createOrderMutation.mutate();
   };
-  
+
   return (
     <div className="pb-20">
       <Header />
@@ -87,6 +112,25 @@ const PaymentMethodsPage = () => {
         </div>
         
         <h1 className="text-2xl font-bold mb-6">Payment Method</h1>
+        
+        {isLoadingAddress ? (
+          <div className="flex justify-center py-8">
+            <div className="animate-spin h-8 w-8 border-4 border-blue-500 rounded-full border-t-transparent"></div>
+          </div>
+        ) : address ? (
+          <div className="bg-white rounded-lg shadow-sm mb-6 p-4">
+            <div className="flex items-center">
+              <MapPin className="text-gray-500 mr-3" />
+              <div>
+                <h3 className="font-medium">Deliver to:</h3>
+                <p className="text-sm text-gray-700">{address.name} • {address.phone}</p>
+                <p className="text-sm text-gray-600">
+                  {address.address}, {address.city}, {address.state} {address.pincode}
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : null}
         
         <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-6">
           <div className="p-4">
@@ -147,19 +191,19 @@ const PaymentMethodsPage = () => {
               
               <div className="flex justify-between">
                 <span className="text-gray-600">Shipping</span>
-                <span>${(cartTotal > 50 ? 0 : 5).toFixed(2)}</span>
+                <span>${deliveryCharge.toFixed(2)}</span>
               </div>
               
               <div className="flex justify-between">
                 <span className="text-gray-600">Tax</span>
-                <span>${(cartTotal * 0.08).toFixed(2)}</span>
+                <span>${tax.toFixed(2)}</span>
               </div>
               
               <Separator className="my-2" />
               
               <div className="flex justify-between font-semibold">
                 <span>Total</span>
-                <span>${(cartTotal + (cartTotal > 50 ? 0 : 5) + cartTotal * 0.08).toFixed(2)}</span>
+                <span>${totalAmount.toFixed(2)}</span>
               </div>
             </div>
           </div>
@@ -168,10 +212,12 @@ const PaymentMethodsPage = () => {
         <div className="mt-6 sticky bottom-20 bg-white pt-4 pb-4">
           <Button 
             onClick={handlePayment}
-            disabled={isProcessing}
+            disabled={createOrderMutation.isPending || !address}
             className="w-full bg-brand-blue hover:bg-brand-darkBlue"
           >
-            {isProcessing ? 'Processing...' : selectedMethod === 'cod' ? 'Place Order' : 'Pay Now'}
+            {createOrderMutation.isPending 
+              ? 'Processing...' 
+              : selectedMethod === 'cod' ? 'Place Order' : 'Pay Now'}
           </Button>
         </div>
         
@@ -189,7 +235,7 @@ const PaymentMethodsPage = () => {
               <div className="bg-gray-50 p-4 rounded-lg mb-4">
                 <div className="flex justify-between mb-2">
                   <span className="text-gray-600">Amount</span>
-                  <span className="font-semibold">${(cartTotal + (cartTotal > 50 ? 0 : 5) + cartTotal * 0.08).toFixed(2)}</span>
+                  <span className="font-semibold">${totalAmount.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Order ID</span>
@@ -250,10 +296,10 @@ const PaymentMethodsPage = () => {
                 
                 <Button 
                   onClick={handleProcessPayment} 
-                  disabled={isProcessing}
+                  disabled={createOrderMutation.isPending}
                   className="w-full bg-brand-blue hover:bg-brand-darkBlue"
                 >
-                  {isProcessing ? 'Processing...' : 'Pay Now'}
+                  {createOrderMutation.isPending ? 'Processing...' : 'Pay Now'}
                 </Button>
                 
                 <div className="text-center">

@@ -8,8 +8,9 @@ import BottomNavigation from '@/components/BottomNavigation';
 
 const OrderConfirmationPage = () => {
   const [orderId, setOrderId] = useState<string>('');
+  const [orderDate, setOrderDate] = useState<string>('');
   
-  // Scroll to top on component mount
+  // Scroll to top on component mount and get the order ID from localStorage
   useEffect(() => {
     window.scrollTo(0, 0);
     
@@ -17,11 +18,39 @@ const OrderConfirmationPage = () => {
     const savedOrderId = localStorage.getItem('lastOrderId');
     if (savedOrderId) {
       setOrderId(savedOrderId);
+      
+      // Set current date for display
+      const date = new Date();
+      setOrderDate(date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      }));
     } else {
       // Fallback to a random order ID if none is stored
       setOrderId(`ORD-${Math.floor(Math.random() * 1000000)}`);
+      setOrderDate('May 7, 2025');
     }
   }, []);
+  
+  // Calculate expected delivery date (3-5 days from now)
+  const getDeliveryDateRange = () => {
+    const today = new Date();
+    const deliveryStart = new Date(today);
+    deliveryStart.setDate(today.getDate() + 3);
+    
+    const deliveryEnd = new Date(today);
+    deliveryEnd.setDate(today.getDate() + 5);
+    
+    const formatDate = (date: Date) => {
+      return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric'
+      });
+    };
+    
+    return `${formatDate(deliveryStart)} - ${formatDate(deliveryEnd)}`;
+  };
   
   return (
     <div className="pb-20">
@@ -42,7 +71,7 @@ const OrderConfirmationPage = () => {
             <div className="p-4 border-b">
               <div className="flex justify-between items-center">
                 <h2 className="font-semibold">Order Details</h2>
-                <span className="text-sm text-gray-500">May 2, 2025</span>
+                <span className="text-sm text-gray-500">{orderDate}</span>
               </div>
             </div>
             
@@ -55,7 +84,7 @@ const OrderConfirmationPage = () => {
                 
                 <div className="flex justify-between">
                   <span className="text-gray-600">Payment Method</span>
-                  <span>Razorpay</span>
+                  <span>Online Payment</span>
                 </div>
                 
                 <div className="flex justify-between">
@@ -77,7 +106,7 @@ const OrderConfirmationPage = () => {
                   <Package className="w-5 h-5 text-brand-blue" />
                 </div>
                 <div>
-                  <p className="font-medium">May 5 - May 7</p>
+                  <p className="font-medium">{getDeliveryDateRange()}</p>
                   <p className="text-sm text-gray-500">Standard Shipping</p>
                 </div>
               </div>
