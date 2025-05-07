@@ -34,12 +34,22 @@ export const getAddressById = async (id: string) => {
 };
 
 export const createAddress = async (address: Omit<Address, 'id' | 'created_at' | 'updated_at' | 'user_id'>) => {
+  // First get the current user
+  const { data: userData } = await supabase.auth.getUser();
+  
+  if (!userData.user) {
+    throw new Error("User not authenticated");
+  }
+  
+  const userId = userData.user.id;
+  
+  // Then create the address
   const { data, error } = await supabase
     .from('addresses')
-    .insert([{
+    .insert({
       ...address,
-      user_id: supabase.auth.getUser().then(({ data }) => data.user?.id) // This is a promise, but it's resolved by Supabase
-    }])
+      user_id: userId
+    })
     .select()
     .single();
   
