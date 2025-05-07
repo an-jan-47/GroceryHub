@@ -10,7 +10,8 @@ import BottomNavigation from '@/components/BottomNavigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
-interface PrivacySettings {
+// Define the interface for user settings
+interface UserSettings {
   marketing_emails: boolean;
   product_updates: boolean;
   order_notifications: boolean;
@@ -20,7 +21,7 @@ interface PrivacySettings {
 }
 
 const PrivacySettings = () => {
-  const [settings, setSettings] = useState<PrivacySettings>({
+  const [settings, setSettings] = useState<UserSettings>({
     marketing_emails: false,
     product_updates: true,
     order_notifications: true,
@@ -43,9 +44,9 @@ const PrivacySettings = () => {
           .from('user_settings')
           .select('*')
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
           
-        if (error && error.code !== 'PGRST116') {
+        if (error) {
           throw error;
         }
         
@@ -73,7 +74,7 @@ const PrivacySettings = () => {
     fetchSettings();
   }, [user]);
 
-  const handleToggle = (setting: keyof PrivacySettings) => {
+  const handleToggle = (setting: keyof UserSettings) => {
     setSettings(prev => ({
       ...prev,
       [setting]: !prev[setting]

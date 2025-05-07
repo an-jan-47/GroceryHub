@@ -253,6 +253,45 @@ export type Database = {
           },
         ]
       }
+      user_settings: {
+        Row: {
+          account_activity_alerts: boolean
+          created_at: string
+          data_sharing: boolean
+          id: string
+          marketing_emails: boolean
+          order_notifications: boolean
+          personalized_recommendations: boolean
+          product_updates: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_activity_alerts?: boolean
+          created_at?: string
+          data_sharing?: boolean
+          id?: string
+          marketing_emails?: boolean
+          order_notifications?: boolean
+          personalized_recommendations?: boolean
+          product_updates?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_activity_alerts?: boolean
+          created_at?: string
+          data_sharing?: boolean
+          id?: string
+          marketing_emails?: boolean
+          order_notifications?: boolean
+          personalized_recommendations?: boolean
+          product_updates?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

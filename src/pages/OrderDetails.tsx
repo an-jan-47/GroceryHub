@@ -33,13 +33,13 @@ const OrderDetails = () => {
     queryFn: () => getOrderById(id!),
     enabled: !!id,
     retry: 1,
-    onError: (error) => {
-      trackError(error, { orderId: id });
-      toast({
-        title: "Error loading order",
-        description: "Could not load order details. Please try again later.",
-        variant: "destructive",
-      });
+    onSettled: (_, error) => {
+      if (error) {
+        trackError(error, { orderId: id });
+        toast("Error loading order", {
+          description: "Could not load order details. Please try again later."
+        });
+      }
     }
   });
   
@@ -84,16 +84,13 @@ const OrderDetails = () => {
       
       setOptimisticStatus(null);
       trackError(error, { action: 'cancelOrder', orderId });
-      toast({
-        title: "Error cancelling order",
-        description: "Could not cancel your order. Please try again later.",
-        variant: "destructive",
+      toast("Error cancelling order", {
+        description: "Could not cancel your order. Please try again later."
       });
     },
     onSuccess: () => {
-      toast({
-        title: "Order cancelled",
-        description: "Your order has been successfully cancelled.",
+      toast("Order cancelled", {
+        description: "Your order has been successfully cancelled."
       });
       
       // Invalidate related queries
@@ -371,9 +368,8 @@ const OrderDetails = () => {
               className="w-full bg-brand-blue hover:bg-brand-darkBlue"
               onClick={() => {
                 // This would typically navigate to a review form
-                toast({
-                  title: "Review feature coming soon",
-                  description: "The ability to leave product reviews will be available soon.",
+                toast("Review feature coming soon", {
+                  description: "The ability to leave product reviews will be available soon."
                 });
               }}
             >
@@ -385,9 +381,8 @@ const OrderDetails = () => {
               className="w-full"
               onClick={() => {
                 // This would navigate to a return form or flow
-                toast({
-                  title: "Return feature coming soon",
-                  description: "The ability to return products will be available soon.",
+                toast("Return feature coming soon", {
+                  description: "The ability to return products will be available soon."
                 });
               }}
             >
