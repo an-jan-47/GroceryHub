@@ -21,6 +21,9 @@ import OrderConfirmation from "./pages/OrderConfirmation";
 import ForgotPassword from "./pages/ForgotPassword";
 import OrderHistory from "./pages/OrderHistory";
 import OrderDetails from "./pages/OrderDetails";
+import ChangePassword from "./pages/ChangePassword";
+import PrivacySettings from "./pages/PrivacySettings";
+import AboutUs from "./pages/AboutUs";
 
 // Providers
 import { CartProvider } from "./hooks/useCart";
@@ -46,16 +49,7 @@ const queryClient = new QueryClient({
       },
       staleTime: 1000 * 60, // 1 minute
       refetchOnWindowFocus: false,
-      refetchOnMount: true,
-      onError: (error) => {
-        trackError(error, { source: 'react-query' });
-      }
-    },
-    mutations: {
-      retry: false,
-      onError: (error) => {
-        trackError(error, { source: 'react-query-mutation' });
-      }
+      refetchOnMount: true
     }
   }
 });
@@ -92,6 +86,12 @@ const App = () => {
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/signup" element={<SignUp />} />
                 <Route path="/orders" element={<Navigate to="/order-history" replace />} />
+                
+                {/* New Routes */}
+                <Route path="/change-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
+                <Route path="/privacy-settings" element={<ProtectedRoute><PrivacySettings /></ProtectedRoute>} />
+                <Route path="/about-us" element={<AboutUs />} />
+                
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>

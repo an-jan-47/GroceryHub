@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ChevronLeft, Heart, ShoppingCart, Star, Plus, Minus, Truck, Share2, Clock, Shield, Check } from 'lucide-react';
@@ -10,50 +11,31 @@ import { useToast } from '@/hooks/use-toast';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { getProductById, getProductReviews, getSimilarProducts, Product, Review } from '@/services/productService';
 import { useQuery } from '@tanstack/react-query';
+
 const ProductDetail = () => {
-  const {
-    productId
-  } = useParams<{
-    productId: string;
-  }>();
+  const { productId } = useParams<{ productId: string; }>();
   const [quantity, setQuantity] = useState(1);
   const [isWishlisted, setIsWishlisted] = useState(false);
-  const {
-    addToCart,
-    updateQuantity,
-    cartItems
-  } = useCart();
-  const {
-    toast
-  } = useToast();
+  const { addToCart, updateQuantity, cartItems } = useCart();
+  const { toast } = useToast();
   const navigate = useNavigate();
 
   // Fetch product details
-  const {
-    data: product,
-    isLoading: isLoadingProduct,
-    error: productError
-  } = useQuery({
+  const { data: product, isLoading: isLoadingProduct, error: productError } = useQuery({
     queryKey: ['product', productId],
     queryFn: () => getProductById(productId!),
     enabled: !!productId
   });
 
   // Fetch product reviews
-  const {
-    data: reviews,
-    isLoading: isLoadingReviews
-  } = useQuery({
+  const { data: reviews, isLoading: isLoadingReviews } = useQuery({
     queryKey: ['reviews', productId],
     queryFn: () => getProductReviews(productId!),
     enabled: !!productId
   });
 
   // Fetch similar products based on category
-  const {
-    data: similarProducts,
-    isLoading: isLoadingSimilar
-  } = useQuery({
+  const { data: similarProducts, isLoading: isLoadingSimilar } = useQuery({
     queryKey: ['similarProducts', product?.category, productId],
     queryFn: () => getSimilarProducts(product!.category, productId!),
     enabled: !!product
@@ -62,8 +44,10 @@ const ProductDetail = () => {
   // Check if product is already in cart
   const productInCart = product ? cartItems.find(item => item.id === product.id) : undefined;
   const quantityInCart = productInCart ? productInCart.quantity : 0;
+
   const handleAddToCart = () => {
     if (!product) return;
+
     if (productInCart) {
       updateQuantity(product.id, productInCart.quantity + quantity);
       toast({
@@ -81,12 +65,14 @@ const ProductDetail = () => {
       });
     }
   };
+
   const handleQuantityChange = (change: number) => {
     const newQuantity = quantity + change;
     if (newQuantity >= 1) {
       setQuantity(newQuantity);
     }
   };
+
   const handleToggleWishlist = () => {
     setIsWishlisted(!isWishlisted);
     if (!product) return;
@@ -110,6 +96,7 @@ const ProductDetail = () => {
         </div>
       </div>;
   }
+
   if (productError || !product) {
     return <div className="pb-20 bg-gray-50 min-h-screen flex items-center justify-center">
         <div className="text-center px-4">
@@ -127,7 +114,9 @@ const ProductDetail = () => {
 
   // Parse features from jsonb
   const features = product.features ? Array.isArray(product.features) ? product.features : JSON.parse(product.features as unknown as string) : [];
-  return <div className="pb-20 bg-gray-50">
+
+  return (
+    <div className="pb-20 bg-gray-50">
       <Header />
       
       <main className="container px-4 pb-6 mx-auto">
@@ -234,21 +223,32 @@ const ProductDetail = () => {
                 </div>
               </div>
               
-              {/* Quantity */}
+              {/* Quantity - IMPROVED ALIGNMENT */}
               <div className="mb-6">
-                <span className="text-gray-700 text-sm font-medium my-[20px] px-[10px] py-[5px] text-left mx-[12px]">Quantity</span>
-                <div className="flex items-center mt-2 border border-gray-300 inline-flex rounded-md">
-                  <button onClick={() => handleQuantityChange(-1)} disabled={quantity <= 1} className="p-2 text-gray-600 hover:text-orange-500 disabled:opacity-50 border-r border-gray-300">
-                    <Minus className="w-4 h-4" />
-                  </button>
-                  <span className="px-6 py-1 font-medium text-sm">{quantity}</span>
-                  <button onClick={() => handleQuantityChange(1)} className="p-2 text-gray-600 hover:text-orange-500 border-l border-gray-300">
-                    <Plus className="w-4 h-4" />
-                  </button>
+                <div className="flex items-center">
+                  <span className="text-gray-700 font-medium w-24">Quantity</span>
+                  <div className="flex items-center border border-gray-300 rounded-md">
+                    <button 
+                      onClick={() => handleQuantityChange(-1)} 
+                      disabled={quantity <= 1} 
+                      className="p-2 text-gray-600 hover:text-orange-500 disabled:opacity-50 border-r border-gray-300"
+                    >
+                      <Minus className="w-4 h-4" />
+                    </button>
+                    <span className="px-6 py-1 font-medium text-sm">{quantity}</span>
+                    <button 
+                      onClick={() => handleQuantityChange(1)} 
+                      className="p-2 text-gray-600 hover:text-orange-500 border-l border-gray-300"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
+                  </div>
+                  {quantityInCart > 0 && (
+                    <span className="ml-3 text-xs text-gray-500">
+                      ({quantityInCart} already in cart)
+                    </span>
+                  )}
                 </div>
-                {quantityInCart > 0 && <span className="ml-3 text-xs text-gray-500">
-                    ({quantityInCart} already in cart)
-                  </span>}
               </div>
               
               {/* Desktop Action Buttons */}
@@ -382,6 +382,8 @@ const ProductDetail = () => {
       </main>
       
       <BottomNavigation />
-    </div>;
+    </div>
+  );
 };
+
 export default ProductDetail;
