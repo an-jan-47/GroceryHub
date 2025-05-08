@@ -143,6 +143,21 @@ const OrderDetails = () => {
     }
   };
   
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'Delivered':
+        return <Package className="w-4 h-4" />;
+      case 'Processing':
+        return <Package className="w-4 h-4" />;
+      case 'Shipped':
+        return <Package className="w-4 h-4" />;
+      case 'Cancelled':
+        return <Package className="w-4 h-4" />;
+      default:
+        return <Package className="w-4 h-4" />;
+    }
+  };
+  
   if (orderError) {
     return (
       <div className="pb-20">
@@ -283,15 +298,17 @@ const OrderDetails = () => {
             {items.map((item) => (
               <div key={item.id} className="p-4 flex items-center">
                 <Link to={`/product/${item.product_id}`} className="flex-shrink-0 w-16 h-16">
-                  <img 
-                    src={item.product?.images && item.product?.images.length > 0 ? item.product.images[0] : '/placeholder.svg'} 
-                    alt={item.product?.name || 'Product'} 
-                    className="w-full h-full object-cover rounded-md"
-                  />
+                  {item.product && (
+                    <img 
+                      src={item.product.images && item.product.images.length > 0 ? item.product.images[0] : '/placeholder.svg'} 
+                      alt={item.product.name || 'Product'} 
+                      className="w-full h-full object-cover rounded-md"
+                    />
+                  )}
                 </Link>
                 <div className="ml-4 flex-grow">
                   <Link to={`/product/${item.product_id}`} className="font-medium text-gray-800 hover:text-brand-blue">
-                    {item.product?.name || 'Product'}
+                    {item.product ? item.product.name : 'Product'}
                   </Link>
                   <div className="mt-1 flex justify-between">
                     <span className="text-sm text-gray-500">Qty: {item.quantity}</span>

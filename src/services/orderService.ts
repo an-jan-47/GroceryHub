@@ -90,7 +90,14 @@ export const getOrders = async (): Promise<OrderWithItems[]> => {
 // Get order details including items
 export const getOrderById = async (orderId: string): Promise<{
   order: Order | null;
-  items: OrderItem[];
+  items: (OrderItem & {
+    product: {
+      id: string;
+      name: string;
+      price: number;
+      images: string[];
+    }
+  })[];
 }> => {
   try {
     // Get order

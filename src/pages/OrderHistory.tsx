@@ -9,7 +9,7 @@ import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
-import { getUserOrders, OrderWithItems } from '@/services/orderService';
+import { getUserOrders } from '@/services/orderService';
 
 const OrderHistory = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -20,7 +20,7 @@ const OrderHistory = () => {
     data: orders = [], 
     isLoading,
   } = useQuery({
-    queryKey: ['orders'],
+    queryKey: ['orders', user?.id],
     queryFn: () => getUserOrders(user?.id),
     enabled: !!user // Only fetch if user is authenticated
   });
@@ -126,7 +126,11 @@ const OrderHistory = () => {
         ) : (
           <div className="space-y-4">
             {filteredOrders.map((order) => (
-              <div key={order.id} className="bg-white rounded-lg shadow-sm overflow-hidden">
+              <Link
+                to={`/order/${order.id}`} 
+                key={order.id}
+                className="block bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow"
+              >
                 {/* Order header */}
                 <div className="p-4 border-b">
                   <div className="flex justify-between items-center">
@@ -160,24 +164,24 @@ const OrderHistory = () => {
                       </div>
                     </div>
                     
-                    <Link 
-                      to={`/order/${order.id}`} 
-                      className="flex items-center text-brand-blue text-sm font-medium"
-                    >
+                    <span className="flex items-center text-brand-blue text-sm font-medium">
                       <span>Details</span>
                       <ChevronRight className="w-4 h-4 ml-1" />
-                    </Link>
+                    </span>
                   </div>
                   
                   {order.status === 'Delivered' && (
                     <div className="mt-4 pt-3 border-t flex justify-end">
-                      <Button variant="outline" size="sm" className="text-xs">
+                      <Button variant="outline" size="sm" className="text-xs" onClick={(e) => {
+                        e.preventDefault(); // Prevent navigation from the link
+                        // Add buy again functionality
+                      }}>
                         Buy Again
                       </Button>
                     </div>
                   )}
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         )}

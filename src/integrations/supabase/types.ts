@@ -143,6 +143,35 @@ export type Database = {
           },
         ]
       }
+      popular_products: {
+        Row: {
+          id: string
+          last_updated: string
+          product_id: string
+          total_orders: number
+        }
+        Insert: {
+          id?: string
+          last_updated?: string
+          product_id: string
+          total_orders?: number
+        }
+        Update: {
+          id?: string
+          last_updated?: string
+          product_id?: string
+          total_orders?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "popular_products_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: true
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           brand: string

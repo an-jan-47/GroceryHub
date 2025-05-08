@@ -4,6 +4,9 @@ import { Database } from "@/integrations/supabase/types";
 
 export type Product = Database['public']['Tables']['products']['Row'];
 export type Review = Database['public']['Tables']['reviews']['Row'];
+export type PopularProduct = Database['public']['Tables']['popular_products']['Row'] & {
+  product?: Product;
+};
 
 export const getProducts = async () => {
   const { data, error } = await supabase
@@ -28,6 +31,22 @@ export const getProductById = async (id: string) => {
   
   if (error) {
     console.error(`Error fetching product with id ${id}:`, error);
+    throw error;
+  }
+  
+  return data;
+};
+
+// Get popular products with their full information
+export const getPopularProducts = async (limit = 4) => {
+  const { data, error } = await supabase
+    .from('popular_products')
+    .select('*, product:product_id(*)')
+    .order('total_orders', { ascending: false })
+    .limit(limit);
+  
+  if (error) {
+    console.error('Error fetching popular products:', error);
     throw error;
   }
   
