@@ -6,6 +6,20 @@ import { toast } from "@/components/ui/sonner";
 type Order = Database['public']['Tables']['orders']['Row'];
 type OrderItem = Database['public']['Tables']['order_items']['Row'];
 
+// Add the missing types that were referenced in OrderHistory and OrderDetails
+export type OrderStatus = 'Processing' | 'Shipped' | 'Delivered' | 'Cancelled';
+
+export interface OrderWithItems extends Order {
+  items: (OrderItem & {
+    product: {
+      id: string;
+      name: string;
+      price: number;
+      images: string[];
+    }
+  })[];
+}
+
 interface CreateOrderParams {
   addressId: string;
   products: Array<{
@@ -36,6 +50,43 @@ export const getUserOrders = async (userId?: string): Promise<Order[]> => {
   }
 };
 
+// Add the missing getOrders function that's used in OrderHistory.tsx
+export const getOrders = async (): Promise<OrderWithItems[]> => {
+  try {
+    // Get all orders with their items
+    const { data: orders, error: ordersError } = await supabase
+      .from('orders')
+      .select('*')
+      .order('order_date', { ascending: false });
+    
+    if (ordersError) throw ordersError;
+    
+    if (!orders || orders.length === 0) return [];
+    
+    // For each order, get its items
+    const ordersWithItems: OrderWithItems[] = await Promise.all(
+      orders.map(async (order) => {
+        const { data: items, error: itemsError } = await supabase
+          .from('order_items')
+          .select('*, product:product_id(*)')
+          .eq('order_id', order.id);
+        
+        if (itemsError) throw itemsError;
+        
+        return {
+          ...order,
+          items: items || []
+        };
+      })
+    );
+    
+    return ordersWithItems;
+  } catch (error) {
+    console.error('Error fetching orders:', error);
+    return [];
+  }
+};
+
 // Get order details including items
 export const getOrderById = async (orderId: string): Promise<{
   order: Order | null;
@@ -54,7 +105,7 @@ export const getOrderById = async (orderId: string): Promise<{
     // Get order items
     const { data: items, error: itemsError } = await supabase
       .from('order_items')
-      .select('*')
+      .select('*, product:products!inner(*)')
       .eq('order_id', orderId);
     
     if (itemsError) throw itemsError;
@@ -166,9 +217,10 @@ export const updateOrderStatus = async (
   status: string
 ): Promise<boolean> => {
   try {
+    // Fix the Date type issue by converting to ISO string
     const { error } = await supabase
       .from('orders')
-      .update({ status, updated_at: new Date() })
+      .update({ status, updated_at: new Date().toISOString() })
       .eq('id', orderId);
     
     if (error) throw error;
@@ -184,6 +236,11 @@ export const updateOrderStatus = async (
     console.error('Error updating order status:', error);
     return false;
   }
+};
+
+// Add the cancelOrder function that's used in OrderDetails.tsx
+export const cancelOrder = async (orderId: string): Promise<boolean> => {
+  return await updateOrderStatus(orderId, 'Cancelled');
 };
 
 // Process payment for an order

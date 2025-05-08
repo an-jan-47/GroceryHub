@@ -15,6 +15,7 @@ import { createOrder } from '@/services/orderService';
 import { getAddressById, Address } from '@/services/addressService';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useAuthCheck } from '@/hooks/useAuthCheck';
+import { useAuth } from '@/contexts/AuthContext';
 
 const PaymentMethodsPage = () => {
   const [selectedMethod, setSelectedMethod] = useState('cod');  // Default to COD
@@ -24,6 +25,7 @@ const PaymentMethodsPage = () => {
   const navigate = useNavigate();
   const { cartItems, cartTotal, clearCart } = useCart();
   const { checkAuthForCheckout } = useAuthCheck();
+  const { user } = useAuth();
 
   // Check if user is authenticated
   useEffect(() => {
@@ -51,25 +53,26 @@ const PaymentMethodsPage = () => {
   // Create order mutation
   const createOrderMutation = useMutation({
     mutationFn: async () => {
-      if (!addressId) throw new Error('No address selected');
+      if (!addressId || !user) throw new Error('No address or user found');
       
-      // Prepare order items
-      const items = cartItems.map(item => ({
-        productId: item.id,
-        quantity: item.quantity,
-        price: item.sale_price || item.price
-      }));
-      
+      // Fixed: Create order with correct parameters
       return createOrder(
-        addressId,
-        totalAmount,
-        selectedMethod,
-        items
+        user.id,
+        {
+          addressId,
+          products: cartItems.map(item => ({
+            id: item.id,
+            name: item.name,
+            price: item.salePrice || item.price,
+            quantity: item.quantity
+          })),
+          paymentMethod: selectedMethod
+        }
       );
     },
     onSuccess: ({ orderId }) => {
       // Store order ID for confirmation page
-      localStorage.setItem('lastOrderId', orderId);
+      localStorage.setItem('lastOrderId', orderId!);
       
       // Clear the cart
       clearCart();
@@ -77,7 +80,7 @@ const PaymentMethodsPage = () => {
       // Navigate to confirmation
       navigate('/order-confirmation');
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast('Failed to create order', {
         description: error.message
       });

@@ -57,9 +57,10 @@ const ProfileEditor = () => {
     try {
       setIsSaving(true);
       
+      // Fix Date vs String issue by converting Date to ISO string
       const { error } = await supabase
         .from('profiles')
-        .update({ name, phone, updated_at: new Date() })
+        .update({ name, phone, updated_at: new Date().toISOString() })
         .eq('id', user.id);
       
       if (error) throw error;

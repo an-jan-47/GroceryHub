@@ -8,7 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { toast } from '@/components/ui/sonner';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
-import { OrderWithItems, getOrderById, cancelOrder, OrderStatus } from '@/services/orderService';
+import { getOrderById, updateOrderStatus, cancelOrder, OrderStatus } from '@/services/orderService';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getAddressById } from '@/services/addressService';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -25,7 +25,7 @@ const OrderDetails = () => {
   
   // Fetch order details
   const { 
-    data: order, 
+    data, 
     isLoading: isLoadingOrder, 
     error: orderError 
   } = useQuery({
@@ -42,6 +42,10 @@ const OrderDetails = () => {
       }
     }
   });
+  
+  // Extract order and items for easier access
+  const order = data?.order;
+  const items = data?.items || [];
   
   // Fetch address details if order is loaded
   const { 
@@ -61,25 +65,25 @@ const OrderDetails = () => {
       await queryClient.cancelQueries({ queryKey: ['order', orderId] });
       
       // Snapshot the previous value
-      const previousOrder = queryClient.getQueryData<OrderWithItems>(['order', orderId]);
+      const previousData = queryClient.getQueryData(['order', orderId]);
       
       // Optimistically update to the new value
-      if (previousOrder) {
+      if (previousData && order) {
         queryClient.setQueryData(['order', orderId], {
-          ...previousOrder,
-          status: 'Cancelled'
+          order: { ...order, status: 'Cancelled' },
+          items
         });
         
         // Store optimistic status
         setOptimisticStatus('Cancelled');
       }
       
-      return { previousOrder };
+      return { previousData };
     },
     onError: (error, orderId, context) => {
       // If the mutation fails, use the context returned from onMutate to roll back
-      if (context?.previousOrder) {
-        queryClient.setQueryData(['order', orderId], context.previousOrder);
+      if (context?.previousData) {
+        queryClient.setQueryData(['order', orderId], context.previousData);
       }
       
       setOptimisticStatus(null);
@@ -276,18 +280,18 @@ const OrderDetails = () => {
           </div>
           
           <div className="divide-y">
-            {order.items.map((item) => (
+            {items.map((item) => (
               <div key={item.id} className="p-4 flex items-center">
                 <Link to={`/product/${item.product_id}`} className="flex-shrink-0 w-16 h-16">
                   <img 
-                    src={item.product.images && item.product.images.length > 0 ? item.product.images[0] : '/placeholder.svg'} 
-                    alt={item.product.name} 
+                    src={item.product?.images && item.product?.images.length > 0 ? item.product.images[0] : '/placeholder.svg'} 
+                    alt={item.product?.name || 'Product'} 
                     className="w-full h-full object-cover rounded-md"
                   />
                 </Link>
                 <div className="ml-4 flex-grow">
                   <Link to={`/product/${item.product_id}`} className="font-medium text-gray-800 hover:text-brand-blue">
-                    {item.product.name}
+                    {item.product?.name || 'Product'}
                   </Link>
                   <div className="mt-1 flex justify-between">
                     <span className="text-sm text-gray-500">Qty: {item.quantity}</span>

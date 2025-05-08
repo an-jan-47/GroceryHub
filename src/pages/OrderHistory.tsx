@@ -9,7 +9,7 @@ import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
-import { getOrders, OrderWithItems } from '@/services/orderService';
+import { getUserOrders, OrderWithItems } from '@/services/orderService';
 
 const OrderHistory = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -21,14 +21,14 @@ const OrderHistory = () => {
     isLoading,
   } = useQuery({
     queryKey: ['orders'],
-    queryFn: getOrders,
+    queryFn: () => getUserOrders(user?.id),
     enabled: !!user // Only fetch if user is authenticated
   });
 
   // Filter orders by ID
-  const filteredOrders = orders.filter(order => 
+  const filteredOrders = orders ? orders.filter(order => 
     order.id.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  ) : [];
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -125,7 +125,7 @@ const OrderHistory = () => {
           </div>
         ) : (
           <div className="space-y-4">
-            {filteredOrders.map((order: OrderWithItems) => (
+            {filteredOrders.map((order) => (
               <div key={order.id} className="bg-white rounded-lg shadow-sm overflow-hidden">
                 {/* Order header */}
                 <div className="p-4 border-b">
@@ -136,7 +136,7 @@ const OrderHistory = () => {
                         <Calendar className="w-3.5 h-3.5 inline mr-1" />
                         <span>{formatDate(order.order_date)}</span>
                         <span>•</span>
-                        <span>{order.items.reduce((acc, item) => acc + item.quantity, 0)} item(s)</span>
+                        <span>{order.products_name?.length || 0} item(s)</span>
                         <span>•</span>
                         <span>${order.total_amount.toFixed(2)}</span>
                       </div>
@@ -151,38 +151,10 @@ const OrderHistory = () => {
                 {/* Order items */}
                 <div className="p-4">
                   <div className="flex items-center space-x-4">
-                    <div className="flex flex-shrink-0">
-                      {order.items.slice(0, 3).map((item, index) => (
-                        <div 
-                          key={`${order.id}-${item.id}-${index}`} 
-                          className="w-12 h-12 rounded overflow-hidden border relative"
-                          style={{ marginLeft: index > 0 ? '-0.75rem' : 0 }}
-                        >
-                          <img 
-                            src={item.product.images[0]} 
-                            alt={item.product.name} 
-                            className="w-full h-full object-cover"
-                          />
-                          {item.quantity > 1 && (
-                            <div className="absolute bottom-0 right-0 bg-gray-800 text-white text-xs px-1 rounded-tl">
-                              x{item.quantity}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                      {order.items.length > 3 && (
-                        <div className="w-12 h-12 rounded bg-gray-100 flex items-center justify-center text-sm font-medium" style={{ marginLeft: '-0.75rem' }}>
-                          +{order.items.length - 3}
-                        </div>
-                      )}
-                    </div>
-                    
                     <div className="flex-grow overflow-hidden">
-                      {order.items.slice(0, 1).map((item) => (
-                        <div key={`${order.id}-${item.id}-name`} className="text-sm font-medium truncate">
-                          {item.product.name}{order.items.length > 1 ? ' and more' : ''}
-                        </div>
-                      ))}
+                      <div className="text-sm font-medium truncate">
+                        {order.products_name && order.products_name.length > 0 ? order.products_name[0] : 'No items'}{order.products_name && order.products_name.length > 1 ? ' and more' : ''}
+                      </div>
                       <div className="text-xs text-gray-500 mt-1">
                         Payment: {order.payment_method}
                       </div>
