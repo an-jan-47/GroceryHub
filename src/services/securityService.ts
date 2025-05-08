@@ -153,10 +153,9 @@ const checkForSuspiciousActivity = (activities: any[]): void => {
       current: lastActivity.userAgent
     });
     
-    toast({
-      title: 'Security Alert',
-      description: 'Unusual activity detected in your account',
-      variant: 'destructive',
+    // Fixed: Using the correct toast API format
+    toast("Security Alert", {
+      description: 'Unusual activity detected in your account'
     });
   }
   

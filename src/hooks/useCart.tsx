@@ -22,6 +22,7 @@ interface CartContextType {
   updateQuantity: (productId: string, quantity: number) => void;
   totalItems: number;
   subtotal: number;
+  cartTotal: number; // Added cartTotal property
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -140,6 +141,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return total + itemPrice * item.quantity;
   }, 0);
   
+  // Set cartTotal to be equal to subtotal for now
+  const cartTotal = subtotal;
+  
   return (
     <CartContext.Provider
       value={{
@@ -149,7 +153,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         clearCart,
         updateQuantity,
         totalItems,
-        subtotal
+        subtotal,
+        cartTotal // Added cartTotal to the provider
       }}
     >
       {children}
