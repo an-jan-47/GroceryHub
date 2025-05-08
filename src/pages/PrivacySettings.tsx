@@ -1,265 +1,197 @@
 
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Bell, Globe, Mail, ShieldAlert, Info, Save } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { ChevronLeft, Save } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
-import { toast } from '@/components/ui/sonner';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-
-// Define the interface for user settings
-interface UserSettings {
-  marketing_emails: boolean;
-  product_updates: boolean;
-  order_notifications: boolean;
-  personalized_recommendations: boolean;
-  data_sharing: boolean;
-  account_activity_alerts: boolean;
-}
+import { toast } from '@/components/ui/sonner';
+import { useUserSettings } from '@/hooks/useUserSettings';
 
 const PrivacySettings = () => {
-  const [settings, setSettings] = useState<UserSettings>({
-    marketing_emails: false,
-    product_updates: true,
-    order_notifications: true,
-    personalized_recommendations: true,
-    data_sharing: false,
-    account_activity_alerts: true
-  });
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
   const { user } = useAuth();
-  const navigate = useNavigate();
-
-  // Fetch user's privacy settings
-  useEffect(() => {
-    const fetchSettings = async () => {
-      if (!user) return;
+  const {
+    settings,
+    isLoading,
+    isSaving,
+    saveSettings,
+    updateSetting
+  } = useUserSettings();
+  
+  const [isSaveComplete, setIsSaveComplete] = useState(false);
+  
+  const handleSave = async () => {
+    const success = await saveSettings();
+    if (success) {
+      setIsSaveComplete(true);
       
-      try {
-        const { data, error } = await supabase
-          .from('user_settings')
-          .select('*')
-          .eq('user_id', user.id)
-          .maybeSingle();
-          
-        if (error) {
-          throw error;
-        }
-        
-        // If user has settings, use them
-        if (data) {
-          setSettings({
-            marketing_emails: data.marketing_emails || false,
-            product_updates: data.product_updates ?? true,
-            order_notifications: data.order_notifications ?? true,
-            personalized_recommendations: data.personalized_recommendations ?? true,
-            data_sharing: data.data_sharing || false,
-            account_activity_alerts: data.account_activity_alerts ?? true
-          });
-        }
-      } catch (error) {
-        console.error('Error fetching privacy settings:', error);
-        toast("Error loading settings", {
-          description: "Failed to load your privacy settings"
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    fetchSettings();
-  }, [user]);
-
-  const handleToggle = (setting: keyof UserSettings) => {
-    setSettings(prev => ({
-      ...prev,
-      [setting]: !prev[setting]
-    }));
-  };
-
-  const saveSettings = async () => {
-    if (!user) return;
-    
-    setIsSaving(true);
-    try {
-      const { error } = await supabase
-        .from('user_settings')
-        .upsert({
-          user_id: user.id,
-          ...settings,
-          updated_at: new Date().toISOString()
-        });
-        
-      if (error) throw error;
-      
-      toast("Settings saved", {
-        description: "Your privacy settings have been updated"
-      });
-    } catch (error) {
-      console.error('Error saving privacy settings:', error);
-      toast("Error saving settings", {
-        description: "Failed to save your privacy settings"
-      });
-    } finally {
-      setIsSaving(false);
+      // Reset the save complete status after a while
+      setTimeout(() => {
+        setIsSaveComplete(false);
+      }, 3000);
     }
   };
-
-  return (
-    <div className="pb-20 min-h-screen bg-gray-50">
-      <Header />
-      
-      <main className="container mx-auto px-4 py-6">
-        <div className="mb-6 flex items-center">
-          <Button
-            variant="ghost"
-            onClick={() => navigate('/profile')}
-            className="p-0 h-auto"
-          >
-            <ArrowLeft className="h-5 w-5 mr-2" />
-            Back to profile
-          </Button>
-        </div>
+  
+  if (!user) {
+    return (
+      <div className="pb-20">
+        <Header />
         
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h1 className="text-xl font-bold">Privacy Settings</h1>
-            <Button 
-              onClick={saveSettings} 
-              disabled={isLoading || isSaving}
-              className="flex items-center"
-            >
-              <Save className="h-4 w-4 mr-2" />
-              {isSaving ? 'Saving...' : 'Save Changes'}
+        <main className="container px-4 py-4 mx-auto">
+          <div className="text-center py-8">
+            <h1 className="text-2xl font-bold">Please Sign In</h1>
+            <p className="mt-2 text-gray-500">
+              You need to be signed in to view and manage your privacy settings.
+            </p>
+            <Button asChild className="mt-4">
+              <Link to="/login">Sign In</Link>
             </Button>
           </div>
-          
-          {isLoading ? (
-            <div className="py-10 text-center">
-              <div className="w-10 h-10 border-4 border-t-blue-500 border-blue-200 rounded-full animate-spin mx-auto"></div>
-              <p className="mt-4 text-gray-600">Loading your settings...</p>
-            </div>
-          ) : (
+        </main>
+        
+        <BottomNavigation />
+      </div>
+    );
+  }
+  
+  return (
+    <div className="pb-20">
+      <Header />
+      
+      <main className="container px-4 py-4 mx-auto">
+        <div className="py-3 flex items-center">
+          <Link to="/profile" className="flex items-center text-gray-500">
+            <ChevronLeft className="w-5 h-5 mr-1" />
+            <span>Back to Profile</span>
+          </Link>
+        </div>
+        
+        <h1 className="text-2xl font-bold mb-4">Privacy Settings</h1>
+        
+        {isLoading ? (
+          <div className="space-y-6">
+            {[1, 2, 3, 4, 5, 6].map(i => (
+              <div key={i} className="animate-pulse">
+                <div className="h-5 bg-gray-200 rounded w-48 mb-2"></div>
+                <div className="h-4 bg-gray-200 rounded w-72 mb-4"></div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div>
             <div className="space-y-6">
-              <div className="border-b pb-6">
-                <h2 className="text-lg font-medium mb-4 flex items-center">
-                  <Mail className="h-5 w-5 mr-2 text-blue-500" />
-                  Email Notifications
-                </h2>
-                
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">Marketing Emails</p>
-                      <p className="text-sm text-gray-500">Receive emails about promotions and special offers</p>
-                    </div>
-                    <Switch 
-                      checked={settings.marketing_emails} 
-                      onCheckedChange={() => handleToggle('marketing_emails')}
-                    />
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">Product Updates</p>
-                      <p className="text-sm text-gray-500">Receive emails about product updates and new features</p>
-                    </div>
-                    <Switch 
-                      checked={settings.product_updates} 
-                      onCheckedChange={() => handleToggle('product_updates')}
-                    />
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">Order Notifications</p>
-                      <p className="text-sm text-gray-500">Receive emails about your orders, deliveries, and returns</p>
-                    </div>
-                    <Switch 
-                      checked={settings.order_notifications} 
-                      onCheckedChange={() => handleToggle('order_notifications')}
-                    />
-                  </div>
-                </div>
-              </div>
-              
-              <div className="border-b pb-6">
-                <h2 className="text-lg font-medium mb-4 flex items-center">
-                  <ShieldAlert className="h-5 w-5 mr-2 text-blue-500" />
-                  Data & Privacy
-                </h2>
-                
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">Personalized Recommendations</p>
-                      <p className="text-sm text-gray-500">Allow us to use your browsing history to recommend products</p>
-                    </div>
-                    <Switch 
-                      checked={settings.personalized_recommendations} 
-                      onCheckedChange={() => handleToggle('personalized_recommendations')}
-                    />
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">Data Sharing with Partners</p>
-                      <p className="text-sm text-gray-500">Allow us to share your data with trusted third parties</p>
-                    </div>
-                    <Switch 
-                      checked={settings.data_sharing} 
-                      onCheckedChange={() => handleToggle('data_sharing')}
-                    />
-                  </div>
-                </div>
-              </div>
-              
-              <div>
-                <h2 className="text-lg font-medium mb-4 flex items-center">
-                  <Bell className="h-5 w-5 mr-2 text-blue-500" />
-                  Account Security
-                </h2>
-                
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">Account Activity Alerts</p>
-                      <p className="text-sm text-gray-500">Receive alerts about suspicious activity on your account</p>
-                    </div>
-                    <Switch 
-                      checked={settings.account_activity_alerts} 
-                      onCheckedChange={() => handleToggle('account_activity_alerts')}
-                    />
-                  </div>
-                </div>
-              </div>
-              
-              <div className="mt-8 pt-4 border-t">
-                <div className="flex items-start bg-blue-50 p-4 rounded-md">
-                  <Info className="h-5 w-5 text-blue-500 mt-0.5 mr-3 flex-shrink-0" />
-                  <p className="text-sm text-blue-700">
-                    Your privacy is important to us. We only collect data that helps us provide you with a better shopping experience. You can request a copy of your data or deletion of your account from the Privacy Center.
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="font-medium">Marketing Emails</h3>
+                  <p className="text-sm text-gray-500">
+                    Receive emails about special offers and promotions
                   </p>
                 </div>
-                
-                <div className="mt-4 flex justify-center">
-                  <Button
-                    variant="link"
-                    onClick={() => navigate('/about-us')}
-                    className="text-sm"
-                  >
-                    <Globe className="h-4 w-4 mr-2" />
-                    View our Privacy Policy
-                  </Button>
+                <Switch
+                  checked={settings.marketing_emails}
+                  onCheckedChange={(value) => updateSetting('marketing_emails', value)}
+                />
+              </div>
+              
+              <Separator />
+              
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="font-medium">Product Updates</h3>
+                  <p className="text-sm text-gray-500">
+                    Notifications about new products and features
+                  </p>
                 </div>
+                <Switch
+                  checked={settings.product_updates}
+                  onCheckedChange={(value) => updateSetting('product_updates', value)}
+                />
+              </div>
+              
+              <Separator />
+              
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="font-medium">Order Notifications</h3>
+                  <p className="text-sm text-gray-500">
+                    Updates about your orders, deliveries, and returns
+                  </p>
+                </div>
+                <Switch
+                  checked={settings.order_notifications}
+                  onCheckedChange={(value) => updateSetting('order_notifications', value)}
+                />
+              </div>
+              
+              <Separator />
+              
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="font-medium">Personalized Recommendations</h3>
+                  <p className="text-sm text-gray-500">
+                    Allow us to use your browsing history to suggest products
+                  </p>
+                </div>
+                <Switch
+                  checked={settings.personalized_recommendations}
+                  onCheckedChange={(value) => updateSetting('personalized_recommendations', value)}
+                />
+              </div>
+              
+              <Separator />
+              
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="font-medium">Data Sharing</h3>
+                  <p className="text-sm text-gray-500">
+                    Share your data with our trusted partners for improved services
+                  </p>
+                </div>
+                <Switch
+                  checked={settings.data_sharing}
+                  onCheckedChange={(value) => updateSetting('data_sharing', value)}
+                />
+              </div>
+              
+              <Separator />
+              
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="font-medium">Account Activity Alerts</h3>
+                  <p className="text-sm text-gray-500">
+                    Get notified of login attempts and account changes
+                  </p>
+                </div>
+                <Switch
+                  checked={settings.account_activity_alerts}
+                  onCheckedChange={(value) => updateSetting('account_activity_alerts', value)}
+                />
               </div>
             </div>
-          )}
-        </div>
+            
+            <div className="mt-8">
+              <Button
+                onClick={handleSave}
+                disabled={isSaving || isSaveComplete}
+                className="w-full"
+              >
+                {isSaving ? (
+                  'Saving...'
+                ) : isSaveComplete ? (
+                  <>
+                    <Save className="w-4 h-4 mr-2" />
+                    Saved!
+                  </>
+                ) : (
+                  'Save Settings'
+                )}
+              </Button>
+            </div>
+          </div>
+        )}
       </main>
       
       <BottomNavigation />

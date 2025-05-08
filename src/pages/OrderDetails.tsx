@@ -33,8 +33,8 @@ const OrderDetails = () => {
     queryFn: () => getOrderById(id!),
     enabled: !!id,
     retry: 1,
-    onSettled: (_, error) => {
-      if (error) {
+    meta: {
+      onError: (error: any) => {
         trackError(error, { orderId: id });
         toast("Error loading order", {
           description: "Could not load order details. Please try again later."

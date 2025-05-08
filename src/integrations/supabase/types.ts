@@ -103,6 +103,7 @@ export type Database = {
           id: string
           order_date: string
           payment_method: string
+          products_name: string[] | null
           status: string
           total_amount: number
           updated_at: string
@@ -114,6 +115,7 @@ export type Database = {
           id?: string
           order_date?: string
           payment_method: string
+          products_name?: string[] | null
           status?: string
           total_amount: number
           updated_at?: string
@@ -125,6 +127,7 @@ export type Database = {
           id?: string
           order_date?: string
           payment_method?: string
+          products_name?: string[] | null
           status?: string
           total_amount?: number
           updated_at?: string
@@ -297,7 +300,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      decrease_product_stock: {
+        Args: { product_id: string; quantity: number }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

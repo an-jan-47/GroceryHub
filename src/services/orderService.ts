@@ -1,7 +1,9 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { Database } from "@/integrations/supabase/types";
-import { Product } from "./productService";
+
+export type Product = Database['public']['Tables']['products']['Row'];
+export type Review = Database['public']['Tables']['reviews']['Row'];
 
 export type Order = Database['public']['Tables']['orders']['Row'];
 export type OrderItem = Database['public']['Tables']['order_items']['Row'];
@@ -24,7 +26,7 @@ export const createOrder = async (
   addressId: string,
   totalAmount: number,
   paymentMethod: string,
-  items: { productId: string; quantity: number; price: number }[]
+  items: { productId: string; quantity: number; price: number; product?: Product }[]
 ): Promise<{ orderId: string }> => {
   // Start a Supabase transaction by using a stored procedure
   const { data: user } = await supabase.auth.getUser();
@@ -34,6 +36,9 @@ export const createOrder = async (
   }
   
   try {
+    // Extract product names for the order
+    const productNames = items.map(item => item.product?.name || '');
+    
     // First create the order
     const { data: order, error: orderError } = await supabase
       .from('orders')
@@ -42,7 +47,8 @@ export const createOrder = async (
         address_id: addressId,
         total_amount: totalAmount,
         payment_method: paymentMethod,
-        status: 'Processing'
+        status: 'Processing',
+        products_name: productNames
       })
       .select()
       .single();
