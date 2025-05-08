@@ -1,13 +1,22 @@
 
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { User, Package, CreditCard, LogOut, Heart, Settings, Lock, ShieldCheck, Info } from 'lucide-react';
+import { User, Package, CreditCard, LogOut, Heart, Settings, Lock, ShieldCheck, Info, Edit } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
+import ProfileEditor from '@/components/ProfileEditor';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 const Profile = () => {
   const { user, signOut } = useAuth();
@@ -52,14 +61,33 @@ const Profile = () => {
       <main className="container mx-auto px-4 py-6">
         {/* Profile Header */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-4">
-          <div className="flex items-center">
-            <div className="h-16 w-16 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 mr-4">
-              <User className="h-8 w-8" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <div className="h-16 w-16 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 mr-4">
+                <User className="h-8 w-8" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold">{userName}</h1>
+                <p className="text-gray-500">{userEmail}</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-xl font-bold">{userName}</h1>
-              <p className="text-gray-500">{userEmail}</p>
-            </div>
+            
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="flex items-center">
+                  <Edit className="h-4 w-4 mr-1" /> Edit Profile
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Edit Profile</DialogTitle>
+                  <DialogDescription>
+                    Update your personal information
+                  </DialogDescription>
+                </DialogHeader>
+                <ProfileEditor />
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
         

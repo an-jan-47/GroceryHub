@@ -44,8 +44,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     // Check if we have stock information and validate
     if (product.stock !== undefined && product.stock <= 0) {
-      toast("Product out of stock", {
-        description: `Sorry, ${product.name} is currently out of stock.`
+      toast("Out of stock", {
+        description: `${product.name} is currently out of stock`,
+        duration: 2000,
+        position: "bottom-center"
       });
       return;
     }
@@ -60,8 +62,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         // Stock check
         if (product.stock !== undefined && newQuantity > product.stock) {
-          toast("Maximum stock reached", {
-            description: `Sorry, only ${product.stock} units of this product are available.`
+          toast("Limited stock", {
+            description: `Only ${product.stock} units available`,
+            duration: 2000,
+            position: "bottom-center"
           });
           updatedItems[existingItemIndex].quantity = product.stock;
         } else {
@@ -76,14 +80,18 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
     
     toast("Added to cart", {
-      description: `${product.name} has been added to your cart.`
+      description: `${product.name} added to cart`,
+      duration: 2000,
+      position: "bottom-center"
     });
   };
   
   const removeFromCart = (productId: string) => {
     setCartItems(prevItems => prevItems.filter(item => item.id !== productId));
-    toast("Removed from cart", {
-      description: "Item has been removed from your cart."
+    toast("Removed", {
+      description: "Item removed from cart",
+      duration: 2000,
+      position: "bottom-center"
     });
   };
   
@@ -99,8 +107,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const newItems = [...prevItems];
           newItems.splice(itemIndex, 1);
           
-          toast("Removed from cart", {
-            description: `${item.name} has been removed from your cart.`
+          toast("Removed", {
+            description: `${item.name} removed from cart`,
+            duration: 2000,
+            position: "bottom-center"
           });
           
           return newItems;
@@ -108,8 +118,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         // Check against stock if available
         if (item.stock !== undefined && quantity > item.stock) {
-          toast("Maximum stock reached", {
-            description: `Sorry, only ${item.stock} units of this product are available.`
+          toast("Limited stock", {
+            description: `Only ${item.stock} units available`,
+            duration: 2000,
+            position: "bottom-center"
           });
           
           const newItems = [...prevItems];
@@ -130,7 +142,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const clearCart = () => {
     setCartItems([]);
     toast("Cart cleared", {
-      description: "All items have been removed from your cart."
+      description: "All items removed from cart",
+      duration: 2000,
+      position: "bottom-center"
     });
   };
   

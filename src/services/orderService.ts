@@ -1,277 +1,209 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Database } from "@/integrations/supabase/types";
+import { toast } from "@/components/ui/sonner";
 
-export type Product = Database['public']['Tables']['products']['Row'];
-export type Review = Database['public']['Tables']['reviews']['Row'];
+type Order = Database['public']['Tables']['orders']['Row'];
+type OrderItem = Database['public']['Tables']['order_items']['Row'];
 
-export type Order = Database['public']['Tables']['orders']['Row'];
-export type OrderItem = Database['public']['Tables']['order_items']['Row'];
+interface CreateOrderParams {
+  addressId: string;
+  products: Array<{
+    id: string;
+    name: string;
+    price: number;
+    quantity: number;
+  }>;
+  paymentMethod: string;
+}
 
-export type OrderWithItems = Order & {
-  items: (OrderItem & { product: Product })[];
-};
-
-export type OrderStatus = 'Processing' | 'Confirmed' | 'Shipped' | 'Delivered' | 'Cancelled';
-
-/**
- * Creates a new order with the provided details
- * @param addressId The ID of the delivery address
- * @param totalAmount The total order amount
- * @param paymentMethod The payment method used (cod, razorpay, etc.)
- * @param items Array of order items with product ID, quantity and price
- * @returns The created order ID
- */
-export const createOrder = async (
-  addressId: string,
-  totalAmount: number,
-  paymentMethod: string,
-  items: { productId: string; quantity: number; price: number; product?: Product }[]
-): Promise<{ orderId: string }> => {
-  // Start a Supabase transaction by using a stored procedure
-  const { data: user } = await supabase.auth.getUser();
-  
-  if (!user.user) {
-    throw new Error('User not authenticated');
-  }
+// Get order history for a user
+export const getUserOrders = async (userId?: string): Promise<Order[]> => {
+  if (!userId) return [];
   
   try {
-    // Extract product names for the order
-    const productNames = items.map(item => item.product?.name || '');
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*')
+      .eq('user_id', userId)
+      .order('order_date', { ascending: false });
     
-    // First create the order
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching user orders:', error);
+    return [];
+  }
+};
+
+// Get order details including items
+export const getOrderById = async (orderId: string): Promise<{
+  order: Order | null;
+  items: OrderItem[];
+}> => {
+  try {
+    // Get order
     const { data: order, error: orderError } = await supabase
       .from('orders')
-      .insert({
-        user_id: user.user.id,
-        address_id: addressId,
-        total_amount: totalAmount,
-        payment_method: paymentMethod,
-        status: 'Processing',
-        products_name: productNames
-      })
+      .select('*')
+      .eq('id', orderId)
+      .single();
+    
+    if (orderError) throw orderError;
+    
+    // Get order items
+    const { data: items, error: itemsError } = await supabase
+      .from('order_items')
+      .select('*')
+      .eq('order_id', orderId);
+    
+    if (itemsError) throw itemsError;
+    
+    return {
+      order,
+      items: items || []
+    };
+  } catch (error) {
+    console.error(`Error fetching order ${orderId}:`, error);
+    return {
+      order: null,
+      items: []
+    };
+  }
+};
+
+// Create a new order
+export const createOrder = async (
+  userId: string,
+  orderData: CreateOrderParams
+): Promise<{
+  success: boolean;
+  orderId?: string;
+  error?: string;
+}> => {
+  try {
+    // Calculate total amount
+    const totalAmount = orderData.products.reduce(
+      (sum, item) => sum + item.price * item.quantity,
+      0
+    );
+    
+    // Get product names for display in order history
+    const productNames = orderData.products.map(p => p.name);
+    
+    // Create order
+    const { data: order, error: orderError } = await supabase
+      .from('orders')
+      .insert([
+        {
+          user_id: userId,
+          address_id: orderData.addressId,
+          total_amount: totalAmount,
+          payment_method: orderData.paymentMethod,
+          products_name: productNames
+        }
+      ])
       .select()
       .single();
     
-    if (orderError) {
-      console.error('Error creating order:', orderError);
-      throw orderError;
+    if (orderError) throw orderError;
+    
+    if (!order) {
+      throw new Error('Failed to create order: No order was returned');
     }
     
-    // Then create the order items
-    const orderItems = items.map(item => ({
+    // Create order items
+    const orderItems = orderData.products.map(product => ({
       order_id: order.id,
-      product_id: item.productId,
-      quantity: item.quantity,
-      price: item.price
+      product_id: product.id,
+      quantity: product.quantity,
+      price: product.price
     }));
     
     const { error: itemsError } = await supabase
       .from('order_items')
       .insert(orderItems);
     
-    if (itemsError) {
-      console.error('Error creating order items:', itemsError);
-      // Rollback would be ideal here, but Supabase doesn't support transactions in the JS client
-      // We'll handle this manually by deleting the order
-      await supabase.from('orders').delete().eq('id', order.id);
-      throw itemsError;
-    }
+    if (itemsError) throw itemsError;
     
-    // Update product stock counts
-    for (const item of items) {
-      const { error: stockError } = await supabase.rpc('decrease_product_stock', {
-        product_id: item.productId,
-        quantity: item.quantity
-      });
-      
-      if (stockError) {
-        console.error('Error updating product stock:', stockError);
-        // We don't want to fail the order if stock update fails, but we should log it
+    // Decrease product stock for each product
+    for (const product of orderData.products) {
+      try {
+        await supabase.rpc('decrease_product_stock', {
+          product_id: product.id,
+          quantity: product.quantity
+        });
+      } catch (stockError) {
+        console.error('Error decreasing stock:', stockError);
+        // Don't fail the entire order if this fails, but log it
       }
     }
     
-    return { orderId: order.id };
-  } catch (error) {
-    console.error('Error in order creation:', error);
-    throw error;
-  }
-};
-
-/**
- * Gets all orders for the current user
- * @returns Array of orders with items and product details
- */
-export const getOrders = async (): Promise<OrderWithItems[]> => {
-  try {
-    const { data: orders, error: ordersError } = await supabase
-      .from('orders')
-      .select('*')
-      .order('created_at', { ascending: false });
-    
-    if (ordersError) {
-      console.error('Error fetching orders:', ordersError);
-      throw ordersError;
-    }
-    
-    // For each order, get the order items and join with product info
-    const ordersWithItems: OrderWithItems[] = [];
-    
-    for (const order of orders) {
-      const { data: orderItems, error: itemsError } = await supabase
-        .from('order_items')
-        .select(`
-          *,
-          product:products(*)
-        `)
-        .eq('order_id', order.id);
-      
-      if (itemsError) {
-        console.error(`Error fetching items for order ${order.id}:`, itemsError);
-        continue; // Skip this order but continue with others
-      }
-      
-      ordersWithItems.push({
-        ...order,
-        items: orderItems as any
-      });
-    }
-    
-    return ordersWithItems;
-  } catch (error) {
-    console.error('Error in getOrders:', error);
-    throw error;
-  }
-};
-
-/**
- * Gets a single order by ID with all its items and products
- * @param id Order ID
- * @returns The order with its items and product details
- */
-export const getOrderById = async (id: string): Promise<OrderWithItems> => {
-  try {
-    const { data: order, error: orderError } = await supabase
-      .from('orders')
-      .select('*')
-      .eq('id', id)
-      .maybeSingle();
-    
-    if (orderError) {
-      console.error(`Error fetching order with id ${id}:`, orderError);
-      throw orderError;
-    }
-    
-    if (!order) {
-      throw new Error(`Order with ID ${id} not found`);
-    }
-    
-    // Get the order items and join with product info
-    const { data: orderItems, error: itemsError } = await supabase
-      .from('order_items')
-      .select(`
-        *,
-        product:products(*)
-      `)
-      .eq('order_id', id);
-    
-    if (itemsError) {
-      console.error(`Error fetching items for order ${id}:`, itemsError);
-      throw itemsError;
-    }
+    // Show a small toast notification for successful order
+    toast("Order placed successfully", {
+      description: `Order #${order.id.substring(0, 8)} confirmed`,
+      duration: 2000,
+      position: "bottom-center"
+    });
     
     return {
-      ...order,
-      items: orderItems as any
-    } as OrderWithItems;
-  } catch (error) {
-    console.error('Error in getOrderById:', error);
-    throw error;
+      success: true,
+      orderId: order.id
+    };
+  } catch (error: any) {
+    console.error('Error creating order:', error);
+    
+    return {
+      success: false,
+      error: error.message || 'Failed to create order'
+    };
   }
 };
 
-/**
- * Updates the status of an order
- * @param id Order ID
- * @param status New order status
- * @returns Updated order
- */
-export const updateOrderStatus = async (id: string, status: OrderStatus): Promise<Order> => {
+// Update an order's status
+export const updateOrderStatus = async (
+  orderId: string,
+  status: string
+): Promise<boolean> => {
   try {
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('orders')
-      .update({ status, updated_at: new Date().toISOString() })
-      .eq('id', id)
-      .select()
-      .single();
+      .update({ status, updated_at: new Date() })
+      .eq('id', orderId);
     
-    if (error) {
-      console.error(`Error updating order status for order ${id}:`, error);
-      throw error;
-    }
+    if (error) throw error;
     
-    return data;
+    toast("Order updated", {
+      description: `Order status changed to ${status}`,
+      duration: 2000,
+      position: "bottom-center"
+    });
+    
+    return true;
   } catch (error) {
-    console.error('Error in updateOrderStatus:', error);
-    throw error;
+    console.error('Error updating order status:', error);
+    return false;
   }
 };
 
-/**
- * Cancels an order
- * @param id Order ID
- * @returns Updated order
- */
-export const cancelOrder = async (id: string): Promise<Order> => {
-  try {
-    const { data, error } = await supabase
-      .from('orders')
-      .update({ 
-        status: 'Cancelled', 
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', id)
-      .select()
-      .single();
-    
-    if (error) {
-      console.error(`Error cancelling order ${id}:`, error);
-      throw error;
-    }
-    
-    return data;
-  } catch (error) {
-    console.error('Error in cancelOrder:', error);
-    throw error;
-  }
-};
-
-/**
- * Process order payment once completed
- * @param orderId Order ID to process payment for
- * @param paymentDetails Additional payment details
- */
-export const processOrderPayment = async (
-  orderId: string, 
-  paymentDetails: { 
+// Process payment for an order
+export const processPayment = async (
+  orderId: string,
+  paymentDetails: {
     transactionId: string;
-    amount: number; 
+    amount: number;
   }
 ): Promise<void> => {
   try {
-    // Fixed: Using "decrease_product_stock" instead of "process_payment"
-    // This is a temporary fix as the RPC function doesn't seem to exist
-    // We should ideally create this function or remove this call
-    const { error } = await supabase.rpc("decrease_product_stock", {
-      product_id: orderId, // Note: This might need further adjustment
-      quantity: 1 // Using a placeholder value
-    });
+    // Here we would typically call a payment processing API
+    // For now we'll just log the payment and update the order
+    console.log(`Processing payment for order ${orderId}`, paymentDetails);
     
-    if (error) {
-      console.error(`Error processing payment for order ${orderId}:`, error);
-      throw error;
-    }
+    // Update order status after successful payment
+    await updateOrderStatus(orderId, 'Paid');
+    
   } catch (error) {
-    console.error('Error in processOrderPayment:', error);
+    console.error('Error processing payment:', error);
     throw error;
   }
 };
