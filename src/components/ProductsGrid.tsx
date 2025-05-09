@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { getProducts, getProductCount, subscribeToProductChanges, Product } from '@/services/productService';
 import ProductCard from '@/components/ProductCard';
@@ -8,15 +7,24 @@ interface ProductsGridProps {
   limit?: number;
   title?: string;
   showCount?: boolean;
+  customProducts?: Product[]; // New prop for custom products
 }
 
-const ProductsGrid = ({ category, limit, title = 'Products', showCount = true }: ProductsGridProps) => {
+const ProductsGrid = ({ category, limit, title = 'Products', showCount = true, customProducts }: ProductsGridProps) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [productCount, setProductCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
-    // Subscribe to product changes
+    // If customProducts are provided, use them directly
+    if (customProducts) {
+      setProducts(customProducts);
+      setProductCount(customProducts.length);
+      setIsLoading(false);
+      return;
+    }
+    
+    // Otherwise, subscribe to product changes
     const unsubscribe = subscribeToProductChanges((updatedProducts) => {
       let filteredProducts = updatedProducts;
       
@@ -44,7 +52,7 @@ const ProductsGrid = ({ category, limit, title = 'Products', showCount = true }:
     return () => {
       unsubscribe();
     };
-  }, [category, limit]);
+  }, [category, limit, customProducts]);
   
   if (isLoading) {
     return (

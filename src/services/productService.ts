@@ -53,6 +53,23 @@ export const getPopularProducts = async (limit = 4) => {
   return data;
 };
 
+// Search for products by term
+export const searchProducts = async (searchTerm: string) => {
+  const term = searchTerm.toLowerCase();
+  
+  const { data, error } = await supabase
+    .from('products')
+    .select('*')
+    .or(`name.ilike.%${term}%,description.ilike.%${term}%,brand.ilike.%${term}%,category.ilike.%${term}%`);
+  
+  if (error) {
+    console.error('Error searching products:', error);
+    throw error;
+  }
+  
+  return data;
+};
+
 export const getProductReviews = async (productId: string) => {
   const { data, error } = await supabase
     .from('reviews')
@@ -117,6 +134,106 @@ export const getProductCount = async (): Promise<number> => {
   }
   
   return count || 0;
+};
+
+// New function to update product stock
+export const updateProductStock = async (productId: string, newStock: number): Promise<void> => {
+  const { error } = await supabase
+    .from('products')
+    .update({ stock: newStock })
+    .eq('id', productId);
+  
+  if (error) {
+    console.error('Error updating product stock:', error);
+    throw error;
+  }
+};
+
+// Decrement product stock - used after placing an order
+export const decrementProductStock = async (productId: string, quantity: number): Promise<void> => {
+  try {
+    // First get the current stock
+    const { data: product, error: fetchError } = await supabase
+      .from('products')
+      .select('stock')
+      .eq('id', productId)
+      .single();
+      
+    if (fetchError) {
+      throw fetchError;
+    }
+    
+    if (!product) {
+      throw new Error(`Product with ID ${productId} not found`);
+    }
+    
+    // Calculate new stock level
+    const newStock = Math.max(0, product.stock - quantity);
+    
+    // Update the stock
+    const { error: updateError } = await supabase
+      .from('products')
+      .update({ stock: newStock })
+      .eq('id', productId);
+      
+    if (updateError) {
+      throw updateError;
+    }
+    
+    // Update popular products
+    await updatePopularProduct(productId, quantity);
+    
+  } catch (error) {
+    console.error('Error decrementing product stock:', error);
+    throw error;
+  }
+};
+
+// Update popular products count
+export const updatePopularProduct = async (productId: string, quantity: number = 1): Promise<void> => {
+  try {
+    // Check if product already exists in popular_products
+    const { data: existingEntry, error: checkError } = await supabase
+      .from('popular_products')
+      .select('id, total_orders')
+      .eq('product_id', productId)
+      .single();
+    
+    if (checkError && checkError.code !== 'PGRST116') { // PGRST116 is "not found" error
+      throw checkError;
+    }
+    
+    if (existingEntry) {
+      // Update existing entry
+      const { error: updateError } = await supabase
+        .from('popular_products')
+        .update({ 
+          total_orders: existingEntry.total_orders + quantity,
+          last_updated: new Date().toISOString()
+        })
+        .eq('id', existingEntry.id);
+        
+      if (updateError) {
+        throw updateError;
+      }
+    } else {
+      // Insert new entry
+      const { error: insertError } = await supabase
+        .from('popular_products')
+        .insert([{ 
+          product_id: productId, 
+          total_orders: quantity,
+          last_updated: new Date().toISOString()
+        }]);
+        
+      if (insertError) {
+        throw insertError;
+      }
+    }
+  } catch (error) {
+    console.error('Error updating popular products:', error);
+    throw error;
+  }
 };
 
 // Setup real-time listener for product changes

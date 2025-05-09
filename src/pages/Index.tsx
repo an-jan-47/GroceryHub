@@ -11,7 +11,8 @@ import BottomNavigation from '@/components/BottomNavigation';
 import { useToast } from '@/hooks/use-toast';
 import type { CarouselApi } from '@/components/ui/carousel';
 import { useQuery } from '@tanstack/react-query';
-import { getProducts, Product } from '@/services/productService';
+import { getProducts, getPopularProducts, Product } from '@/services/productService';
+import PopularProducts from '@/components/PopularProducts';
 
 // For categories and banners we'll keep the hardcoded data for now
 const CATEGORIES = [
@@ -21,11 +22,11 @@ const CATEGORIES = [
 ];
 
 const BANNERS = [
-  { id: '1', image: '/placeholder.svg', title: 'New Arrivals', subtitle: 'Check out our latest products' },
-  { id: '2', image: '/placeholder.svg', title: 'Summer Sale', subtitle: 'Up to 50% off' },
-  { id: '3', image: '/placeholder.svg', title: 'Exclusive Deals', subtitle: 'Limited time offers' },
-  { id: '4', image: '/placeholder.svg', title: 'Flash Sale', subtitle: 'Today only - premium products' },
-  { id: '5', image: '/placeholder.svg', title: 'Trending Items', subtitle: 'Most popular this month' },
+  { id: '1', image: '/placeholder.svg', title: 'New Arrivals', subtitle: 'Check out our latest products', link: '/explore?category=New' },
+  { id: '2', image: '/placeholder.svg', title: 'Summer Sale', subtitle: 'Up to 50% off', link: '/search?query=sale' },
+  { id: '3', image: '/placeholder.svg', title: 'Exclusive Deals', subtitle: 'Limited time offers', link: '/explore' },
+  { id: '4', image: '/placeholder.svg', title: 'Flash Sale', subtitle: 'Today only - premium products', link: '/search?category=premium' },
+  { id: '5', image: '/placeholder.svg', title: 'Trending Items', subtitle: 'Most popular this month', link: '/search?sort=popular' },
 ];
 
 const HomePage = () => {
@@ -101,7 +102,7 @@ const HomePage = () => {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      navigate(`/explore?query=${encodeURIComponent(searchQuery.trim())}`);
+      navigate(`/search?query=${encodeURIComponent(searchQuery.trim())}`);
     }
   };
   
@@ -137,13 +138,15 @@ const HomePage = () => {
           <CarouselContent>
             {BANNERS.map((banner) => (
               <CarouselItem key={banner.id} className="relative">
-                <div className="h-48 md:h-64 rounded-lg overflow-hidden relative">
-                  <img src={banner.image} alt={banner.title} className="w-full h-full object-cover" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent p-5 flex flex-col justify-end">
-                    <h3 className="text-xl font-bold text-white">{banner.title}</h3>
-                    <p className="text-sm text-white/90">{banner.subtitle}</p>
+                <Link to={banner.link} className="block">
+                  <div className="h-48 md:h-64 rounded-lg overflow-hidden relative">
+                    <img src={banner.image} alt={banner.title} className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent p-5 flex flex-col justify-end">
+                      <h3 className="text-xl font-bold text-white">{banner.title}</h3>
+                      <p className="text-sm text-white/90">{banner.subtitle}</p>
+                    </div>
                   </div>
-                </div>
+                </Link>
               </CarouselItem>
             ))}
           </CarouselContent>
@@ -160,6 +163,9 @@ const HomePage = () => {
             ))}
           </div>
         </Carousel>
+        
+        {/* Popular Products Section */}
+        <PopularProducts />
         
         {/* Google Ads Section */}
         <div className="bg-gray-100 h-20 rounded-lg flex items-center justify-center">
@@ -214,7 +220,7 @@ const HomePage = () => {
                   <Link to={`/product/${product.id}`}>
                     <div className="relative">
                       <img 
-                        src={product.images[0]} 
+                        src={product.images && product.images.length > 0 ? product.images[0] : '/placeholder.svg'} 
                         alt={product.name} 
                         className="product-image"
                       />

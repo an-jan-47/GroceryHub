@@ -1,17 +1,67 @@
 
-import React, { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ProductsGrid from '@/components/ProductsGrid';
-import PopularProducts from '@/components/PopularProducts';
+import { getProducts, Product } from '@/services/productService';
 
 const Explore = () => {
   const navigate = useNavigate();
-  const [searchTerm, setSearchTerm] = React.useState('');
+  const [searchParams] = useSearchParams();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [products, setProducts] = useState<Product[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  useEffect(() => {
+    // Get the query parameter if available
+    const queryParam = searchParams.get('query');
+    if (queryParam) {
+      setSearchTerm(queryParam);
+    }
+
+    // Get category parameter if available
+    const categoryParam = searchParams.get('category');
+    
+    // Fetch products
+    const loadProducts = async () => {
+      try {
+        const data = await getProducts();
+        setProducts(data);
+        
+        // Apply initial filters if needed
+        if (queryParam || categoryParam) {
+          const filtered = data.filter(product => {
+            const matchesQuery = queryParam ? 
+              product.name.toLowerCase().includes(queryParam.toLowerCase()) || 
+              product.description.toLowerCase().includes(queryParam.toLowerCase()) || 
+              product.brand.toLowerCase().includes(queryParam.toLowerCase()) : 
+              true;
+              
+            const matchesCategory = categoryParam ? 
+              product.category.toLowerCase() === categoryParam.toLowerCase() : 
+              true;
+              
+            return matchesQuery && matchesCategory;
+          });
+          setFilteredProducts(filtered);
+        } else {
+          setFilteredProducts(data);
+        }
+        
+        setIsLoading(false);
+      } catch (error) {
+        console.error('Error fetching products:', error);
+        setIsLoading(false);
+      }
+    };
+    
+    loadProducts();
+  }, [searchParams]);
   
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,6 +69,22 @@ const Explore = () => {
       navigate(`/search?query=${encodeURIComponent(searchTerm.trim())}`);
     }
   };
+
+  // Filter products when search term changes
+  useEffect(() => {
+    if (products.length > 0 && searchTerm) {
+      const term = searchTerm.toLowerCase();
+      const filtered = products.filter(product => 
+        product.name.toLowerCase().includes(term) ||
+        product.description.toLowerCase().includes(term) ||
+        product.brand.toLowerCase().includes(term) ||
+        product.category.toLowerCase().includes(term)
+      );
+      setFilteredProducts(filtered);
+    } else {
+      setFilteredProducts(products);
+    }
+  }, [searchTerm, products]);
   
   return (
     <div className="pb-20">
@@ -43,38 +109,19 @@ const Explore = () => {
           </div>
         </div>
         
-        {/* Popular Products Section */}
-        <PopularProducts />
-        
-        {/* Featured Categories */}
-        <div className="mt-8">
-          <h2 className="text-xl font-bold mb-4">Featured Categories</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {['Audio', 'Electronics', 'Fashion', 'Wearables'].map(category => (
-              <Button 
-                key={category}
-                variant="outline"
-                className="py-8 flex flex-col items-center justify-center text-lg"
-                onClick={() => navigate(`/search?category=${category}`)}
-              >
-                {category}
-              </Button>
-            ))}
-          </div>
-        </div>
-        
         {/* All Products */}
-        <div className="mt-8">
-          <ProductsGrid title="All Products" limit={8} />
-          <div className="flex justify-center mt-6">
-            <Button 
-              onClick={() => navigate('/search')} 
-              variant="outline"
-              className="border-brand-blue text-brand-blue"
-            >
-              View All Products
-            </Button>
-          </div>
+        <div className="mt-4">
+          {isLoading ? (
+            <div className="flex justify-center items-center py-10">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-brand-blue"></div>
+            </div>
+          ) : (
+            <ProductsGrid 
+              title="All Products" 
+              showCount={true}
+              customProducts={filteredProducts}
+            />
+          )}
         </div>
       </main>
       

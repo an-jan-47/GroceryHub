@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ShoppingCart, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/hooks/useCart';
@@ -10,10 +10,12 @@ import { cn } from '@/lib/utils';
 interface ProductCardProps {
   product: Product;
   className?: string;
+  showBuyNow?: boolean;
 }
 
-const ProductCard = ({ product, className }: ProductCardProps) => {
+const ProductCard = ({ product, className, showBuyNow = false }: ProductCardProps) => {
   const { addToCart } = useCart();
+  const navigate = useNavigate();
   
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -27,6 +29,25 @@ const ProductCard = ({ product, className }: ProductCardProps) => {
       quantity: 1,
       stock: product.stock
     });
+  };
+  
+  const handleBuyNow = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Add to cart first
+    addToCart({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      salePrice: product.sale_price,
+      images: product.images,
+      quantity: 1,
+      stock: product.stock
+    });
+    
+    // Navigate to cart
+    navigate('/cart');
   };
   
   // Calculate discount percentage if there's a sale price
@@ -78,20 +99,33 @@ const ProductCard = ({ product, className }: ProductCardProps) => {
             <span className="font-bold">${product.price.toFixed(2)}</span>
           )}
         </div>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={handleAddToCart}
-          disabled={product.stock <= 0}
-          className="w-full mt-2 border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white"
-        >
-          {product.stock <= 0 ? 'Out of Stock' : (
-            <>
-              <ShoppingCart className="h-3.5 w-3.5 mr-1" />
-              Add to Cart
-            </>
+        <div className={`mt-2 ${showBuyNow ? 'grid grid-cols-2 gap-2' : ''}`}>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleAddToCart}
+            disabled={product.stock <= 0}
+            className={`${showBuyNow ? 'w-full' : 'w-full'} border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white`}
+          >
+            {product.stock <= 0 ? 'Out of Stock' : (
+              <>
+                <ShoppingCart className="h-3.5 w-3.5 mr-1" />
+                Add to Cart
+              </>
+            )}
+          </Button>
+          
+          {showBuyNow && (
+            <Button
+              size="sm"
+              onClick={handleBuyNow}
+              disabled={product.stock <= 0}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              Buy Now
+            </Button>
           )}
-        </Button>
+        </div>
       </div>
     </div>
   );
