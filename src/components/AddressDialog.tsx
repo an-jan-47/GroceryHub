@@ -70,12 +70,13 @@ export const AddressDialog = ({ open, onOpenChange, addressToEdit }: AddressDial
     mutationFn: createAddress,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['addresses'] });
-      toast('Address added successfully');
+      toast('Address added successfully', { position: 'bottom-center' });
       onOpenChange(false);
     },
     onError: (error) => {
       toast('Failed to add address', {
-        description: error.message
+        description: error.message,
+        position: 'bottom-center'
       });
       setIsSubmitting(false);
     }
@@ -87,12 +88,13 @@ export const AddressDialog = ({ open, onOpenChange, addressToEdit }: AddressDial
       updateAddress(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['addresses'] });
-      toast('Address updated successfully');
+      toast('Address updated successfully', { position: 'bottom-center' });
       onOpenChange(false);
     },
     onError: (error) => {
       toast('Failed to update address', {
-        description: error.message
+        description: error.message,
+        position: 'bottom-center'
       });
       setIsSubmitting(false);
     }
@@ -227,7 +229,7 @@ export const AddressDialog = ({ open, onOpenChange, addressToEdit }: AddressDial
               className="flex space-x-2"
             >
               <div className="flex items-center space-x-2 border rounded-md p-2 flex-1 cursor-pointer hover:bg-gray-50">
-                <RadioGroupItem value="home" id="home" />
+                <RadioGroupItem value="home" id="home" className="data-[state=checked]:border-blue-600 data-[state=checked]:text-blue-600" />
                 <Label htmlFor="home" className="cursor-pointer flex items-center">
                   <Home className="w-4 h-4 mr-1" />
                   Home
@@ -235,7 +237,7 @@ export const AddressDialog = ({ open, onOpenChange, addressToEdit }: AddressDial
               </div>
               
               <div className="flex items-center space-x-2 border rounded-md p-2 flex-1 cursor-pointer hover:bg-gray-50">
-                <RadioGroupItem value="work" id="work" />
+                <RadioGroupItem value="work" id="work" className="data-[state=checked]:border-blue-600 data-[state=checked]:text-blue-600" />
                 <Label htmlFor="work" className="cursor-pointer flex items-center">
                   <Briefcase className="w-4 h-4 mr-1" />
                   Work
@@ -243,7 +245,7 @@ export const AddressDialog = ({ open, onOpenChange, addressToEdit }: AddressDial
               </div>
               
               <div className="flex items-center space-x-2 border rounded-md p-2 flex-1 cursor-pointer hover:bg-gray-50">
-                <RadioGroupItem value="other" id="other" />
+                <RadioGroupItem value="other" id="other" className="data-[state=checked]:border-blue-600 data-[state=checked]:text-blue-600" />
                 <Label htmlFor="other" className="cursor-pointer flex items-center">
                   <MapPin className="w-4 h-4 mr-1" />
                   Other

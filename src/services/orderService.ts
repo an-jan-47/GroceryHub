@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { decrementProductStock, updateProductStock, updatePopularProduct } from "./productService";
+import { decrementProductStock, updateProductStock } from "./productService";
 
 export interface OrderItem {
   product_id: string;
@@ -64,15 +64,11 @@ export const placeOrder = async (orderDetails: OrderDetails) => {
     // Update product stock and popular products
     for (const item of items) {
       try {
-        // Update stock
+        // Update stock - now using await to ensure stocks are updated
         await decrementProductStock(item.product_id, item.quantity);
-        
-        // Update popular products
-        await updatePopularProduct(item.product_id, item.quantity);
       } catch (err) {
         console.error(`Error updating product ${item.product_id}:`, err);
-        // We don't want to fail the order if stock update fails
-        // But we log the error for monitoring
+        // We log the error but don't fail the order
       }
     }
 
@@ -142,7 +138,7 @@ export const getUserOrders = async (userId: string) => {
   return data;
 };
 
-// Get a specific order by ID - needed for OrderDetails.tsx
+// Get a specific order by ID
 export const getOrderById = async (orderId: string) => {
   try {
     // Get the order
@@ -198,7 +194,10 @@ export const cancelOrder = async (orderId: string) => {
     // Update order status to Cancelled
     const { data, error } = await supabase
       .from('orders')
-      .update({ status: 'Cancelled' })
+      .update({ 
+        status: 'Cancelled',
+        updated_at: new Date().toISOString() 
+      })
       .eq('id', orderId)
       .select()
       .single();
@@ -248,6 +247,7 @@ export const returnOrder = async (orderId: string, reason: string) => {
     .from('orders')
     .update({ 
       status: 'Return Requested',
+      updated_at: new Date().toISOString(),
       metadata: { return_reason: reason } 
     })
     .eq('id', orderId)
@@ -262,11 +262,14 @@ export const returnOrder = async (orderId: string, reason: string) => {
   return data;
 };
 
-// Update order status - needed for OrderDetails.tsx
+// Update order status
 export const updateOrderStatus = async (orderId: string, status: OrderStatus) => {
   const { data, error } = await supabase
     .from('orders')
-    .update({ status })
+    .update({ 
+      status,
+      updated_at: new Date().toISOString() 
+    })
     .eq('id', orderId)
     .select()
     .single();

@@ -12,7 +12,7 @@ export const getProducts = async () => {
   const { data, error } = await supabase
     .from('products')
     .select('*')
-    .order('created_at', { ascending: false }); // Order by newest first
+    .order('created_at', { ascending: false });
   
   if (error) {
     console.error('Error fetching products:', error);
@@ -136,15 +136,25 @@ export const getProductCount = async (): Promise<number> => {
   return count || 0;
 };
 
-// New function to update product stock
+// Update product stock - improved to be more reliable
 export const updateProductStock = async (productId: string, newStock: number): Promise<void> => {
-  const { error } = await supabase
-    .from('products')
-    .update({ stock: newStock })
-    .eq('id', productId);
-  
-  if (error) {
-    console.error('Error updating product stock:', error);
+  try {
+    const { error } = await supabase
+      .from('products')
+      .update({ 
+        stock: newStock,
+        updated_at: new Date().toISOString() 
+      })
+      .eq('id', productId);
+    
+    if (error) {
+      console.error('Error updating product stock:', error);
+      throw error;
+    }
+    
+    console.log(`Stock updated for product ${productId}: ${newStock}`);
+  } catch (error) {
+    console.error('Error in updateProductStock:', error);
     throw error;
   }
 };
@@ -169,11 +179,15 @@ export const decrementProductStock = async (productId: string, quantity: number)
     
     // Calculate new stock level
     const newStock = Math.max(0, product.stock - quantity);
+    console.log(`Updating stock for product ${productId}: ${product.stock} -> ${newStock}`);
     
     // Update the stock
     const { error: updateError } = await supabase
       .from('products')
-      .update({ stock: newStock })
+      .update({ 
+        stock: newStock,
+        updated_at: new Date().toISOString() 
+      })
       .eq('id', productId);
       
     if (updateError) {

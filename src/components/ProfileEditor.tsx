@@ -12,6 +12,7 @@ interface Profile {
   id: string;
   name: string;
   phone?: string;
+  email?: string;
 }
 
 const ProfileEditor = () => {
@@ -34,13 +35,33 @@ const ProfileEditor = () => {
           .eq('id', user.id)
           .single();
         
-        if (error) throw error;
-        
-        setProfile(data);
-        setName(data?.name || '');
-        setPhone(data?.phone || '');
+        if (error) {
+          // If profile doesn't exist yet, create one
+          if (error.code === 'PGRST116') {
+            const newProfile = {
+              id: user.id,
+              name: user.user_metadata?.name || '',
+              phone: user.user_metadata?.phone || '',
+              email: user.email
+            };
+            
+            await supabase.from('profiles').insert(newProfile);
+            setProfile(newProfile);
+            setName(newProfile.name);
+            setPhone(newProfile.phone || '');
+          } else {
+            throw error;
+          }
+        } else {
+          setProfile(data);
+          setName(data?.name || '');
+          setPhone(data?.phone || '');
+        }
       } catch (error) {
         console.error('Error fetching profile:', error);
+        toast("Error loading profile", {
+          description: "Please try again later",
+        });
       } finally {
         setIsLoading(false);
       }
@@ -57,17 +78,27 @@ const ProfileEditor = () => {
     try {
       setIsSaving(true);
       
-      // Fix Date vs String issue by converting Date to ISO string
-      const { error } = await supabase
+      // Update both profiles table and auth user metadata
+      const { error: profileError } = await supabase
         .from('profiles')
-        .update({ name, phone, updated_at: new Date().toISOString() })
+        .update({ 
+          name,
+          phone,
+          updated_at: new Date().toISOString()
+        })
         .eq('id', user.id);
       
-      if (error) throw error;
+      if (profileError) throw profileError;
+      
+      // Update auth user metadata
+      const { error: authError } = await supabase.auth.updateUser({
+        data: { name, phone }
+      });
+      
+      if (authError) throw authError;
       
       toast("Profile updated", {
         description: "Your profile has been successfully updated",
-        duration: 2000,
         position: "bottom-center"
       });
       
@@ -75,7 +106,6 @@ const ProfileEditor = () => {
       console.error('Error updating profile:', error);
       toast("Update failed", {
         description: "There was an error updating your profile",
-        duration: 3000,
         position: "bottom-center"
       });
     } finally {
@@ -119,6 +149,20 @@ const ProfileEditor = () => {
               className="bg-gray-50 focus:bg-white"
             />
           </div>
+          
+          {user?.email && (
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input 
+                id="email"
+                value={user.email}
+                disabled
+                readOnly
+                className="bg-gray-100 text-gray-500"
+              />
+              <p className="text-xs text-gray-500">Email cannot be changed</p>
+            </div>
+          )}
         </CardContent>
         
         <CardFooter className="px-4 py-3 sm:p-6">

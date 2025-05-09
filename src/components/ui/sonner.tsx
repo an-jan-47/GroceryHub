@@ -30,4 +30,17 @@ const Toaster = ({ ...props }: ToasterProps) => {
   )
 }
 
-export { Toaster, toast }
+// Override toast function to apply consistent positioning
+const showToast = toast;
+
+// Create a custom toast function that applies consistent styling and positioning
+const customToast = (message: string, options?: any) => {
+  return showToast(message, {
+    position: "bottom-center",
+    duration: 2000,
+    ...options,
+  });
+};
+
+// Export the modified toast function
+export { Toaster, customToast as toast }
