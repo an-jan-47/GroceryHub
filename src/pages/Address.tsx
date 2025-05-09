@@ -1,14 +1,15 @@
+
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { ChevronLeft, Plus, MapPin, Home, Briefcase, Edit, Trash2, Truck } from 'lucide-react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { ChevronLeft, Plus, MapPin, Home, Briefcase, Edit, Trash2, Truck, AlertCircle, Check, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { useToast } from '@/hooks/use-toast';
 import { toast } from '@/components/ui/sonner';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
-import { getAddresses, Address, deleteAddress, setDefaultAddress } from '@/services/addressService';
+import { getAddresses, Address, deleteAddress, setDefaultAddress, archiveAddress } from '@/services/addressService';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AddressDialog } from '@/components/AddressDialog';
 import { useAuth } from '@/contexts/AuthContext';
@@ -18,10 +19,12 @@ const AddressPage = () => {
   const [selectedAddress, setSelectedAddress] = useState<string>('');
   const [showAddressDialog, setShowAddressDialog] = useState(false);
   const [editingAddress, setEditingAddress] = useState<Address | null>(null);
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const { checkAuthForCheckout } = useAuthCheck();
+  const isCheckout = searchParams.get('checkout') === 'true';
 
   // Fetch addresses from backend
   const { data: addresses = [], isLoading: isLoadingAddresses } = useQuery({
@@ -46,7 +49,17 @@ const AddressPage = () => {
 
   // Delete address mutation
   const deleteAddressMutation = useMutation({
-    mutationFn: deleteAddress,
+    mutationFn: async (addressId: string) => {
+      try {
+        return await deleteAddress(addressId);
+      } catch (error) {
+        // If error due to FK constraint (address used in orders), archive instead
+        if (error.message?.includes('linked to orders')) {
+          return await archiveAddress(addressId);
+        }
+        throw error;
+      }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['addresses'] });
       toast('Address removed successfully');
@@ -130,13 +143,21 @@ const AddressPage = () => {
         </div>
         
         <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
-          <h1 className="text-xl font-bold mb-4">Select Delivery Address</h1>
+          <div className="flex items-center justify-between mb-4">
+            <h1 className="text-xl font-bold">Select Delivery Address</h1>
+            
+            <Button 
+              variant="outline" 
+              onClick={handleAddAddress}
+              className="border-dashed border-gray-300 flex items-center text-blue-500"
+              size="sm"
+            >
+              <Plus className="w-4 h-4 mr-1" />
+              Add New
+            </Button>
+          </div>
           
-          {isLoadingAddresses ? (
-            <div className="py-8 flex justify-center">
-              <div className="animate-spin h-8 w-8 border-4 border-blue-500 rounded-full border-t-transparent"></div>
-            </div>
-          ) : addresses.length === 0 ? (
+          {addresses.length === 0 && !isLoadingAddresses && (
             <div className="text-center py-8 border border-dashed border-gray-300 rounded-lg">
               <MapPin className="mx-auto w-12 h-12 text-gray-400 mb-2" />
               <p className="text-gray-600 mb-4">No saved addresses found</p>
@@ -144,23 +165,31 @@ const AddressPage = () => {
                 Add New Address
               </Button>
             </div>
-          ) : (
+          )}
+          
+          {isLoadingAddresses ? (
+            <div className="py-8 flex justify-center">
+              <div className="animate-spin h-8 w-8 border-4 border-blue-500 rounded-full border-t-transparent"></div>
+            </div>
+          ) : addresses.length > 0 ? (
             <div>
               <RadioGroup 
                 value={selectedAddress} 
                 onValueChange={handleAddressSelect}
                 className="space-y-3"
               >
-                {addresses.map(address => (
+                {addresses
+                  .filter(address => !address.archived)
+                  .map(address => (
                   <div 
                     key={address.id} 
-                    className={`p-4 border rounded-lg flex ${
+                    className={`p-3 sm:p-4 border rounded-lg flex flex-col sm:flex-row ${
                       selectedAddress === address.id 
                       ? 'border-blue-500 bg-blue-50' 
                       : 'border-gray-200 hover:border-gray-300'
                     }`}
                   >
-                    <div className="flex items-start">
+                    <div className="flex items-start flex-1">
                       <RadioGroupItem 
                         value={address.id} 
                         id={`address-${address.id}`} 
@@ -194,7 +223,7 @@ const AddressPage = () => {
                       </div>
                     </div>
                     
-                    <div className="flex flex-col space-y-2 ml-auto">
+                    <div className="flex flex-row sm:flex-col justify-end space-x-2 sm:space-x-0 sm:space-y-2 mt-3 sm:mt-0">
                       <Button 
                         variant="ghost" 
                         size="sm" 
@@ -218,41 +247,47 @@ const AddressPage = () => {
                 ))}
               </RadioGroup>
               
-              <div className="mt-4 flex items-center justify-between">
-                <Button 
-                  variant="outline" 
-                  onClick={handleAddAddress}
-                  className="border-dashed border-gray-300 flex items-center text-blue-500"
-                >
-                  <Plus className="w-4 h-4 mr-1" />
-                  Add New Address
-                </Button>
-                
-                <Button 
-                  onClick={handleContinue}
-                  className="bg-orange-500 hover:bg-orange-600"
-                  disabled={!selectedAddress || addresses.length === 0}
-                >
-                  Deliver to this Address
-                </Button>
-              </div>
+              {isCheckout && (
+                <div className="mt-6 flex justify-end">
+                  <Button 
+                    onClick={handleContinue}
+                    className="bg-orange-500 hover:bg-orange-600"
+                    disabled={!selectedAddress || addresses.length === 0}
+                    size="lg"
+                  >
+                    Deliver to this Address
+                  </Button>
+                </div>
+              )}
             </div>
-          )}
+          ) : null}
         </div>
         
-        <div className="bg-white p-4 rounded-lg shadow-sm">
-          <h2 className="font-medium mb-3">Delivery Options</h2>
-          <div className="flex items-center justify-between border-t border-gray-100 py-3">
-            <div className="flex items-center">
-              <Truck className="text-green-600 w-5 h-5 mr-3" />
-              <div>
-                <p className="font-medium text-sm">Standard Delivery</p>
-                <p className="text-xs text-gray-500">Get by Friday, 10th May</p>
+        {isCheckout && (
+          <>
+            <div className="bg-white p-4 rounded-lg shadow-sm mb-4">
+              <h2 className="font-medium mb-3">Delivery Options</h2>
+              <div className="flex items-center justify-between border-t border-gray-100 py-3">
+                <div className="flex items-center">
+                  <Truck className="text-green-600 w-5 h-5 mr-3" />
+                  <div>
+                    <p className="font-medium text-sm">Standard Delivery</p>
+                    <p className="text-xs text-gray-500">Get by Friday, 10th May</p>
+                  </div>
+                </div>
+                <span className="text-green-600 font-medium text-sm">FREE</span>
               </div>
             </div>
-            <span className="text-green-600 font-medium text-sm">FREE</span>
-          </div>
-        </div>
+            
+            <Alert variant="default" className="bg-blue-50 border-blue-200">
+              <Shield className="h-4 w-4 text-blue-500" />
+              <AlertTitle className="text-blue-700">Secure Checkout</AlertTitle>
+              <AlertDescription className="text-blue-600 text-sm">
+                Your personal and payment information is protected with industry-standard encryption.
+              </AlertDescription>
+            </Alert>
+          </>
+        )}
       </main>
       
       <BottomNavigation />

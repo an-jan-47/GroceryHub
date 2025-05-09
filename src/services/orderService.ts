@@ -1,6 +1,8 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { decrementProductStock, updateProductStock } from "./productService";
+import { toast } from '@/components/ui/sonner';
+import type { OrderStatus } from "@/types";
+import type { Address } from "./addressService";
 
 export interface OrderItem {
   product_id: string;
@@ -17,58 +19,45 @@ export interface OrderDetails {
   items: OrderItem[];
 }
 
-// Define OrderStatus type that's being imported in OrderDetails.tsx
-export type OrderStatus = 'Processing' | 'Shipped' | 'Delivered' | 'Cancelled' | 'Return Requested';
-
 // Place an order
 export const placeOrder = async (orderDetails: OrderDetails) => {
   const { user_id, address_id, payment_method, total_amount, products_name, items } = orderDetails;
 
   try {
-    // Start a transaction for order creation
-    const { data: order, error: orderError } = await supabase
-      .from('orders')
-      .insert({
-        user_id,
-        address_id,
-        payment_method,
-        total_amount,
-        products_name,
-        status: 'Processing'
-      })
-      .select()
-      .single();
+    // Start a transaction for order creation using RPC call to ensure atomicity
+    const { data: order, error: orderError } = await supabase.rpc('create_order_with_items', {
+      p_user_id: user_id,
+      p_address_id: address_id,
+      p_payment_method: payment_method,
+      p_total_amount: total_amount,
+      p_products_name: products_name,
+      p_items: items.map(item => ({
+        product_id: item.product_id,
+        quantity: item.quantity,
+        price: item.price
+      }))
+    });
 
     if (orderError) {
       console.error('Error creating order:', orderError);
       throw orderError;
     }
 
-    // Insert order items
-    const orderItemsToInsert = items.map(item => ({
-      order_id: order.id,
-      product_id: item.product_id,
-      quantity: item.quantity,
-      price: item.price
-    }));
-
-    const { error: itemsError } = await supabase
-      .from('order_items')
-      .insert(orderItemsToInsert);
-
-    if (itemsError) {
-      console.error('Error inserting order items:', itemsError);
-      throw itemsError;
-    }
-
     // Update product stock and popular products
     for (const item of items) {
       try {
-        // Update stock - now using await to ensure stocks are updated
-        await decrementProductStock(item.product_id, item.quantity);
+        // Call the database function to decrease stock
+        const { error: stockError } = await supabase.rpc('decrease_product_stock', {
+          product_id: item.product_id,
+          quantity: item.quantity
+        });
+
+        if (stockError) {
+          console.error(`Error updating stock for product ${item.product_id}:`, stockError);
+          toast(`Stock update error: ${stockError.message}`);
+        }
       } catch (err) {
         console.error(`Error updating product ${item.product_id}:`, err);
-        // We log the error but don't fail the order
       }
     }
 
@@ -86,6 +75,19 @@ export const createOrder = async (userId: string, orderData: {
   paymentMethod: string;
 }) => {
   try {
+    // Validate stock availability before placing the order
+    for (const product of orderData.products) {
+      const { data: stockData } = await supabase
+        .from('products')
+        .select('stock')
+        .eq('id', product.id)
+        .single();
+      
+      if (!stockData || stockData.stock < product.quantity) {
+        throw new Error(`Not enough stock available for ${product.name}`);
+      }
+    }
+    
     // Calculate total amount
     const totalAmount = orderData.products.reduce((total, product) => {
       return total + (product.price * product.quantity);
@@ -125,7 +127,8 @@ export const getUserOrders = async (userId: string) => {
     .from('orders')
     .select(`
       *,
-      order_items(*)
+      order_items(*),
+      address:address_id(*)
     `)
     .eq('user_id', userId)
     .order('order_date', { ascending: false });
@@ -141,10 +144,13 @@ export const getUserOrders = async (userId: string) => {
 // Get a specific order by ID
 export const getOrderById = async (orderId: string) => {
   try {
-    // Get the order
+    // Get the order with address information
     const { data: order, error: orderError } = await supabase
       .from('orders')
-      .select('*')
+      .select(`
+        *,
+        address:address_id(*)
+      `)
       .eq('id', orderId)
       .single();
 
@@ -153,7 +159,7 @@ export const getOrderById = async (orderId: string) => {
       throw orderError;
     }
 
-    // Get the order items
+    // Get the order items with product details
     const { data: items, error: itemsError } = await supabase
       .from('order_items')
       .select(`
@@ -211,25 +217,18 @@ export const cancelOrder = async (orderId: string) => {
     if (orderItems && orderItems.length > 0) {
       for (const item of orderItems) {
         try {
-          // First get current stock
-          const { data: product, error: productError } = await supabase
-            .from('products')
-            .select('stock')
-            .eq('id', item.product_id)
-            .single();
+          // Call the database function to increase stock
+          const { error: stockError } = await supabase.rpc('increase_product_stock', {
+            product_id: item.product_id,
+            quantity: item.quantity
+          });
 
-          if (productError) {
-            console.error(`Error fetching product ${item.product_id}:`, productError);
-            continue;
+          if (stockError) {
+            console.error(`Error restoring stock for product ${item.product_id}:`, stockError);
+            toast(`Stock restoration error: ${stockError.message}`);
           }
-
-          // Update product stock by adding back the ordered quantity
-          const newStock = product.stock + item.quantity;
-          await updateProductStock(item.product_id, newStock);
-          
         } catch (err) {
           console.error(`Error restoring stock for product ${item.product_id}:`, err);
-          // We don't want to fail the order cancellation if stock restoration fails
         }
       }
     }
@@ -279,5 +278,71 @@ export const updateOrderStatus = async (orderId: string, status: OrderStatus) =>
     throw error;
   }
 
+  // If status is changed to Cancelled, restore stock
+  if (status === 'Cancelled') {
+    try {
+      // Get order items
+      const { data: orderItems } = await supabase
+        .from('order_items')
+        .select('product_id, quantity')
+        .eq('order_id', orderId);
+        
+      if (orderItems && orderItems.length > 0) {
+        // Restore stock for each product
+        for (const item of orderItems) {
+          await supabase.rpc('increase_product_stock', {
+            product_id: item.product_id,
+            quantity: item.quantity
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Error restoring stock after cancellation:', err);
+    }
+  }
+
   return data;
+};
+
+// Add function to get addresses with order history
+export const getAddressesWithOrderHistory = async () => {
+  const { data: userData } = await supabase.auth.getUser();
+  
+  if (!userData?.user) {
+    throw new Error("User not authenticated");
+  }
+  
+  const userId = userData.user.id;
+  
+  const { data, error } = await supabase
+    .from('addresses')
+    .select(`
+      *,
+      orders:id(count)
+    `)
+    .eq('user_id', userId)
+    .eq('archived', false)
+    .order('is_default', { ascending: false });
+  
+  if (error) {
+    console.error('Error fetching addresses with order history:', error);
+    throw error;
+  }
+  
+  return data;
+};
+
+// Function to check if address is used in any orders
+export const isAddressUsedInOrders = async (addressId: string) => {
+  const { count, error } = await supabase
+    .from('orders')
+    .select('id', { count: 'exact', head: true })
+    .eq('address_id', addressId);
+  
+  if (error) {
+    console.error(`Error checking if address ${addressId} is used in orders:`, error);
+    throw error;
+  }
+  
+  return count > 0;
 };

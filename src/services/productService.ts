@@ -55,19 +55,24 @@ export const getPopularProducts = async (limit = 4) => {
 
 // Search for products by term
 export const searchProducts = async (searchTerm: string) => {
-  const term = searchTerm.toLowerCase();
+  if (!searchTerm.trim()) {
+    return [];
+  }
+  
+  const term = searchTerm.toLowerCase().trim();
   
   const { data, error } = await supabase
     .from('products')
     .select('*')
-    .or(`name.ilike.%${term}%,description.ilike.%${term}%,brand.ilike.%${term}%,category.ilike.%${term}%`);
+    .or(`name.ilike.%${term}%,description.ilike.%${term}%,brand.ilike.%${term}%,category.ilike.%${term}%`)
+    .limit(20);
   
   if (error) {
     console.error('Error searching products:', error);
     throw error;
   }
   
-  return data;
+  return data || [];
 };
 
 export const getProductReviews = async (productId: string) => {
@@ -136,67 +141,72 @@ export const getProductCount = async (): Promise<number> => {
   return count || 0;
 };
 
-// Update product stock - improved to be more reliable
+// Use the new DB function to update product stock
 export const updateProductStock = async (productId: string, newStock: number): Promise<void> => {
   try {
-    const { error } = await supabase
+    const { data: product, error: fetchError } = await supabase
       .from('products')
-      .update({ 
-        stock: newStock,
-        updated_at: new Date().toISOString() 
-      })
-      .eq('id', productId);
+      .select('stock')
+      .eq('id', productId)
+      .single();
     
-    if (error) {
-      console.error('Error updating product stock:', error);
-      throw error;
+    if (fetchError) {
+      console.error(`Error fetching product ${productId}:`, fetchError);
+      throw fetchError;
     }
     
-    console.log(`Stock updated for product ${productId}: ${newStock}`);
+    const currentStock = product.stock;
+    
+    // Determine if we're increasing or decreasing stock
+    if (newStock > currentStock) {
+      const increaseAmount = newStock - currentStock;
+      const { error } = await supabase.rpc('increase_product_stock', {
+        product_id: productId,
+        quantity: increaseAmount
+      });
+      
+      if (error) {
+        console.error(`Error increasing stock for product ${productId}:`, error);
+        throw error;
+      }
+    } else if (newStock < currentStock) {
+      const decreaseAmount = currentStock - newStock;
+      const { error } = await supabase.rpc('decrease_product_stock', {
+        product_id: productId,
+        quantity: decreaseAmount
+      });
+      
+      if (error) {
+        console.error(`Error decreasing stock for product ${productId}:`, error);
+        throw error;
+      }
+    }
+    // If equal, no change needed
+    
+    console.log(`Stock updated for product ${productId}: ${currentStock} -> ${newStock}`);
   } catch (error) {
     console.error('Error in updateProductStock:', error);
     throw error;
   }
 };
 
-// Decrement product stock - used after placing an order
+// Use the new DB function to decrement product stock
 export const decrementProductStock = async (productId: string, quantity: number): Promise<void> => {
   try {
-    // First get the current stock
-    const { data: product, error: fetchError } = await supabase
-      .from('products')
-      .select('stock')
-      .eq('id', productId)
-      .single();
-      
-    if (fetchError) {
-      throw fetchError;
+    const { error } = await supabase.rpc('decrease_product_stock', {
+      product_id: productId,
+      quantity: quantity
+    });
+    
+    if (error) {
+      console.error(`Error decreasing stock for product ${productId}:`, error);
+      throw error;
     }
     
-    if (!product) {
-      throw new Error(`Product with ID ${productId} not found`);
-    }
-    
-    // Calculate new stock level
-    const newStock = Math.max(0, product.stock - quantity);
-    console.log(`Updating stock for product ${productId}: ${product.stock} -> ${newStock}`);
-    
-    // Update the stock
-    const { error: updateError } = await supabase
-      .from('products')
-      .update({ 
-        stock: newStock,
-        updated_at: new Date().toISOString() 
-      })
-      .eq('id', productId);
-      
-    if (updateError) {
-      throw updateError;
-    }
+    console.log(`Stock decreased for product ${productId} by ${quantity}`);
     
     // Update popular products
     await updatePopularProduct(productId, quantity);
-    
   } catch (error) {
     console.error('Error decrementing product stock:', error);
     throw error;
@@ -276,4 +286,21 @@ export const subscribeToProductChanges = (callback: (products: Product[]) => voi
   return () => {
     supabase.removeChannel(channel);
   };
+};
+
+// Get stock update history for a product
+export const getStockUpdateHistory = async (productId: string, limit = 10) => {
+  const { data, error } = await supabase
+    .from('stock_updates')
+    .select('*')
+    .eq('product_id', productId)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  
+  if (error) {
+    console.error(`Error fetching stock history for product ${productId}:`, error);
+    throw error;
+  }
+  
+  return data || [];
 };

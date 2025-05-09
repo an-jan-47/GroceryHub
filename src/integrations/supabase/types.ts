@@ -13,6 +13,7 @@ export type Database = {
         Row: {
           address: string
           address_type: string
+          archived: boolean | null
           city: string
           created_at: string
           id: string
@@ -27,6 +28,7 @@ export type Database = {
         Insert: {
           address: string
           address_type: string
+          archived?: boolean | null
           city: string
           created_at?: string
           id?: string
@@ -41,6 +43,7 @@ export type Database = {
         Update: {
           address?: string
           address_type?: string
+          archived?: boolean | null
           city?: string
           created_at?: string
           id?: string
@@ -285,6 +288,44 @@ export type Database = {
           },
         ]
       }
+      stock_updates: {
+        Row: {
+          change_amount: number
+          change_type: string
+          created_at: string | null
+          id: string
+          new_stock: number
+          previous_stock: number
+          product_id: string
+        }
+        Insert: {
+          change_amount: number
+          change_type: string
+          created_at?: string | null
+          id?: string
+          new_stock: number
+          previous_stock: number
+          product_id: string
+        }
+        Update: {
+          change_amount?: number
+          change_type?: string
+          created_at?: string | null
+          id?: string
+          new_stock?: number
+          previous_stock?: number
+          product_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_updates_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_settings: {
         Row: {
           account_activity_alerts: boolean
@@ -330,6 +371,10 @@ export type Database = {
     }
     Functions: {
       decrease_product_stock: {
+        Args: { product_id: string; quantity: number }
+        Returns: undefined
+      }
+      increase_product_stock: {
         Args: { product_id: string; quantity: number }
         Returns: undefined
       }

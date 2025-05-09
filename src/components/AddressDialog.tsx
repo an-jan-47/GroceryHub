@@ -38,6 +38,7 @@ export const AddressDialog = ({ open, onOpenChange, addressToEdit }: AddressDial
   const [isSubmitting, setIsSubmitting] = useState(false);
   const queryClient = useQueryClient();
 
+  // Reset form when dialog opens/closes or addressToEdit changes
   useEffect(() => {
     if (addressToEdit) {
       setFormData({
@@ -47,7 +48,7 @@ export const AddressDialog = ({ open, onOpenChange, addressToEdit }: AddressDial
         city: addressToEdit.city,
         state: addressToEdit.state,
         pincode: addressToEdit.pincode,
-        address_type: addressToEdit.address_type,
+        address_type: addressToEdit.address_type || 'home', // Ensure a default value
         is_default: addressToEdit.is_default || false
       });
     } else {
@@ -70,13 +71,13 @@ export const AddressDialog = ({ open, onOpenChange, addressToEdit }: AddressDial
     mutationFn: createAddress,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['addresses'] });
-      toast('Address added successfully', { position: 'bottom-center' });
+      toast('Address added successfully');
       onOpenChange(false);
+      setIsSubmitting(false);
     },
     onError: (error) => {
       toast('Failed to add address', {
         description: error.message,
-        position: 'bottom-center'
       });
       setIsSubmitting(false);
     }
@@ -88,13 +89,13 @@ export const AddressDialog = ({ open, onOpenChange, addressToEdit }: AddressDial
       updateAddress(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['addresses'] });
-      toast('Address updated successfully', { position: 'bottom-center' });
+      toast('Address updated successfully');
       onOpenChange(false);
+      setIsSubmitting(false);
     },
     onError: (error) => {
       toast('Failed to update address', {
         description: error.message,
-        position: 'bottom-center'
       });
       setIsSubmitting(false);
     }
@@ -226,18 +227,18 @@ export const AddressDialog = ({ open, onOpenChange, addressToEdit }: AddressDial
             <RadioGroup 
               value={formData.address_type}
               onValueChange={handleAddressTypeChange}
-              className="flex space-x-2"
+              className="flex flex-wrap space-x-2"
             >
-              <div className="flex items-center space-x-2 border rounded-md p-2 flex-1 cursor-pointer hover:bg-gray-50">
-                <RadioGroupItem value="home" id="home" className="data-[state=checked]:border-blue-600 data-[state=checked]:text-blue-600" />
+              <div className="flex items-center space-x-2 border rounded-md p-2 flex-1 cursor-pointer hover:bg-gray-50 mb-2 sm:mb-0">
+                <RadioGroupItem value="home" id="home" />
                 <Label htmlFor="home" className="cursor-pointer flex items-center">
                   <Home className="w-4 h-4 mr-1" />
                   Home
                 </Label>
               </div>
               
-              <div className="flex items-center space-x-2 border rounded-md p-2 flex-1 cursor-pointer hover:bg-gray-50">
-                <RadioGroupItem value="work" id="work" className="data-[state=checked]:border-blue-600 data-[state=checked]:text-blue-600" />
+              <div className="flex items-center space-x-2 border rounded-md p-2 flex-1 cursor-pointer hover:bg-gray-50 mb-2 sm:mb-0">
+                <RadioGroupItem value="work" id="work" />
                 <Label htmlFor="work" className="cursor-pointer flex items-center">
                   <Briefcase className="w-4 h-4 mr-1" />
                   Work
@@ -245,7 +246,7 @@ export const AddressDialog = ({ open, onOpenChange, addressToEdit }: AddressDial
               </div>
               
               <div className="flex items-center space-x-2 border rounded-md p-2 flex-1 cursor-pointer hover:bg-gray-50">
-                <RadioGroupItem value="other" id="other" className="data-[state=checked]:border-blue-600 data-[state=checked]:text-blue-600" />
+                <RadioGroupItem value="other" id="other" />
                 <Label htmlFor="other" className="cursor-pointer flex items-center">
                   <MapPin className="w-4 h-4 mr-1" />
                   Other
@@ -268,6 +269,7 @@ export const AddressDialog = ({ open, onOpenChange, addressToEdit }: AddressDial
               variant="outline" 
               type="button" 
               onClick={() => onOpenChange(false)}
+              disabled={isSubmitting}
             >
               Cancel
             </Button>

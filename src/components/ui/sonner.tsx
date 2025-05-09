@@ -1,6 +1,6 @@
 
 import { useTheme } from "next-themes"
-import { Toaster as Sonner, toast } from "sonner"
+import { Toaster as Sonner } from "sonner"
 
 type ToasterProps = React.ComponentProps<typeof Sonner>
 
@@ -30,17 +30,39 @@ const Toaster = ({ ...props }: ToasterProps) => {
   )
 }
 
-// Override toast function to apply consistent positioning
-const showToast = toast;
+// Create a deduplication mechanism with a map of active toasts
+let activeToasts = new Map();
 
 // Create a custom toast function that applies consistent styling and positioning
-const customToast = (message: string, options?: any) => {
-  return showToast(message, {
+// and prevents duplicate toasts
+const showToast = (message: string, options?: any) => {
+  // Create a key from the message and description (if any)
+  const key = `${message}-${options?.description || ''}`;
+  
+  // If this toast is already active, don't show it again
+  if (activeToasts.has(key)) {
+    return;
+  }
+  
+  // Add the toast to active toasts
+  activeToasts.set(key, true);
+  
+  // Show the toast with the Sonner library
+  const toastId = Sonner.toast(message, {
     position: "bottom-center",
     duration: 2000,
     ...options,
+    onDismiss: () => {
+      // Remove from active toasts when dismissed
+      activeToasts.delete(key);
+      // Call the original onDismiss if provided
+      if (options?.onDismiss) options.onDismiss();
+    }
   });
+  
+  // Return the toast ID for potential programmatic dismissal
+  return toastId;
 };
 
 // Export the modified toast function
-export { Toaster, customToast as toast }
+export { Toaster, showToast as toast }
