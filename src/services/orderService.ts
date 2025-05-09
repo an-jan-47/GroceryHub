@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { decrementProductStock, updatePopularProduct } from "./productService";
+import { decrementProductStock, updateProductStock, updatePopularProduct } from "./productService";
 
 export interface OrderItem {
   product_id: string;
@@ -178,21 +178,68 @@ export const getOrderById = async (orderId: string) => {
   }
 };
 
-// Cancel an order
+// Cancel an order and restore product stock
 export const cancelOrder = async (orderId: string) => {
-  const { data, error } = await supabase
-    .from('orders')
-    .update({ status: 'Cancelled' })
-    .eq('id', orderId)
-    .select()
-    .single();
+  try {
+    // First, get the order items to know what products to restore stock for
+    const { data: orderItems, error: itemsError } = await supabase
+      .from('order_items')
+      .select(`
+        product_id,
+        quantity
+      `)
+      .eq('order_id', orderId);
 
-  if (error) {
-    console.error(`Error cancelling order ${orderId}:`, error);
+    if (itemsError) {
+      console.error(`Error fetching items for order ${orderId}:`, itemsError);
+      throw itemsError;
+    }
+
+    // Update order status to Cancelled
+    const { data, error } = await supabase
+      .from('orders')
+      .update({ status: 'Cancelled' })
+      .eq('id', orderId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error(`Error cancelling order ${orderId}:`, error);
+      throw error;
+    }
+
+    // Restore stock for each product
+    if (orderItems && orderItems.length > 0) {
+      for (const item of orderItems) {
+        try {
+          // First get current stock
+          const { data: product, error: productError } = await supabase
+            .from('products')
+            .select('stock')
+            .eq('id', item.product_id)
+            .single();
+
+          if (productError) {
+            console.error(`Error fetching product ${item.product_id}:`, productError);
+            continue;
+          }
+
+          // Update product stock by adding back the ordered quantity
+          const newStock = product.stock + item.quantity;
+          await updateProductStock(item.product_id, newStock);
+          
+        } catch (err) {
+          console.error(`Error restoring stock for product ${item.product_id}:`, err);
+          // We don't want to fail the order cancellation if stock restoration fails
+        }
+      }
+    }
+
+    return data;
+  } catch (error) {
+    console.error(`Error in cancelOrder for ${orderId}:`, error);
     throw error;
   }
-
-  return data;
 };
 
 // Return an order

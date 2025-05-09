@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
@@ -11,7 +12,7 @@ import BottomNavigation from '@/components/BottomNavigation';
 import { useToast } from '@/hooks/use-toast';
 import type { CarouselApi } from '@/components/ui/carousel';
 import { useQuery } from '@tanstack/react-query';
-import { getProducts, getPopularProducts, Product } from '@/services/productService';
+import { getProducts, getPopularProducts, searchProducts, Product } from '@/services/productService';
 import PopularProducts from '@/components/PopularProducts';
 
 // For categories and banners we'll keep the hardcoded data for now
@@ -35,6 +36,7 @@ const HomePage = () => {
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<Product[]>([]);
   const navigate = useNavigate();
   
   // Fetch products from Supabase
@@ -45,6 +47,32 @@ const HomePage = () => {
     queryKey: ['featuredProducts'],
     queryFn: getProducts
   });
+
+  // Handle search
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      try {
+        const results = await searchProducts(searchQuery);
+        if (results && results.length > 0) {
+          navigate(`/search?query=${encodeURIComponent(searchQuery.trim())}`);
+        } else {
+          // If no results, show toast but stay on page
+          toast({
+            title: "No products found",
+            description: "Try a different search term"
+          });
+        }
+      } catch (error) {
+        console.error('Search error:', error);
+        toast({
+          title: "Search failed",
+          description: "Something went wrong, please try again",
+          variant: "destructive"
+        });
+      }
+    }
+  };
 
   // Auto rotate banner carousel
   useEffect(() => {
@@ -75,6 +103,15 @@ const HomePage = () => {
   }, [carouselApi]);
   
   const handleAddToCart = (product: Product) => {
+    // Don't allow adding if out of stock
+    if (product.stock <= 0) {
+      toast({
+        title: "Out of stock",
+        description: `${product.name} is currently unavailable`,
+      });
+      return;
+    }
+    
     const existingItem = cartItems.find(item => item.id === product.id);
     if (existingItem) {
       updateQuantity(product.id, existingItem.quantity + 1);
@@ -97,13 +134,6 @@ const HomePage = () => {
   const getProductQuantityInCart = (productId: string) => {
     const item = cartItems.find(item => item.id === productId);
     return item ? item.quantity : 0;
-  };
-  
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate(`/search?query=${encodeURIComponent(searchQuery.trim())}`);
-    }
   };
   
   // Get featured products - first 4 items or fewer if less available
@@ -229,6 +259,11 @@ const HomePage = () => {
                           Sale
                         </div>
                       )}
+                      {product.stock <= 0 && (
+                        <div className="absolute top-2 left-2 bg-gray-800 text-white text-xs px-2 py-1 rounded-full">
+                          Out of Stock
+                        </div>
+                      )}
                     </div>
                   </Link>
                   <CardContent className="p-3">
@@ -256,6 +291,7 @@ const HomePage = () => {
                         <button
                           onClick={() => updateQuantity(product.id, getProductQuantityInCart(product.id) - 1)}
                           className="p-2 text-gray-600 hover:text-brand-blue"
+                          disabled={product.stock <= 0}
                         >
                           <Minus className="w-4 h-4" />
                         </button>
@@ -263,6 +299,7 @@ const HomePage = () => {
                         <button
                           onClick={() => updateQuantity(product.id, getProductQuantityInCart(product.id) + 1)}
                           className="p-2 text-gray-600 hover:text-brand-blue"
+                          disabled={product.stock <= 0 || getProductQuantityInCart(product.id) >= product.stock}
                         >
                           <Plus className="w-4 h-4" />
                         </button>
@@ -273,9 +310,16 @@ const HomePage = () => {
                         variant="outline"
                         size="sm"
                         className="w-full border-brand-blue text-brand-blue hover:bg-brand-blue hover:text-white"
+                        disabled={product.stock <= 0}
                       >
-                        <ShoppingCart className="mr-2 h-4 w-4" />
-                        Add to Cart
+                        {product.stock <= 0 ? (
+                          "Out of Stock"
+                        ) : (
+                          <>
+                            <ShoppingCart className="mr-2 h-4 w-4" />
+                            Add to Cart
+                          </>
+                        )}
                       </Button>
                     )}
                   </CardFooter>

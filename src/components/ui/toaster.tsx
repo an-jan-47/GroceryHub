@@ -28,7 +28,8 @@ export function Toaster() {
           </Toast>
         )
       })}
-      <ToastViewport className="bottom-0 right-0 flex flex-col p-4 gap-2 w-full max-w-[320px] m-0" />
+      {/* Position toasts just above the bottom navigation, centered horizontally */}
+      <ToastViewport className="bottom-16 flex flex-col p-4 gap-2 w-full max-w-[320px] m-0 left-1/2 transform -translate-x-1/2" />
     </ToastProvider>
   )
 }

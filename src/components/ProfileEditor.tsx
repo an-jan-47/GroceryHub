@@ -90,13 +90,13 @@ const ProfileEditor = () => {
   }
   
   return (
-    <Card className="w-full max-w-md mx-auto">
-      <CardHeader>
-        <CardTitle>Edit Profile</CardTitle>
+    <Card className="w-full shadow-none border-0 sm:border sm:shadow-sm">
+      <CardHeader className="px-4 py-3 sm:p-6">
+        <CardTitle className="text-lg sm:text-xl">Edit Profile</CardTitle>
         <CardDescription>Update your personal information</CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit}>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 px-4 sm:p-6">
           <div className="space-y-2">
             <Label htmlFor="name">Full Name</Label>
             <Input 
@@ -104,6 +104,7 @@ const ProfileEditor = () => {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Enter your full name"
+              className="bg-gray-50 focus:bg-white"
             />
           </div>
           
@@ -114,12 +115,18 @@ const ProfileEditor = () => {
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="Enter your phone number"
+              type="tel"
+              className="bg-gray-50 focus:bg-white"
             />
           </div>
         </CardContent>
         
-        <CardFooter>
-          <Button type="submit" disabled={isSaving} className="w-full">
+        <CardFooter className="px-4 py-3 sm:p-6">
+          <Button 
+            type="submit" 
+            disabled={isSaving}
+            className="w-full sm:w-auto"
+          >
             {isSaving ? 'Saving...' : 'Save Changes'}
           </Button>
         </CardFooter>

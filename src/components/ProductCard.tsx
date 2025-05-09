@@ -1,11 +1,12 @@
 
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingCart, Star } from 'lucide-react';
+import { ShoppingCart, Star, Plus, Minus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/hooks/useCart';
 import { Product } from '@/services/productService';
 import { cn } from '@/lib/utils';
+import { toast } from '@/components/ui/sonner';
 
 interface ProductCardProps {
   product: Product;
@@ -14,12 +15,21 @@ interface ProductCardProps {
 }
 
 const ProductCard = ({ product, className, showBuyNow = false }: ProductCardProps) => {
-  const { addToCart } = useCart();
+  const { addToCart, cartItems, updateQuantity } = useCart();
   const navigate = useNavigate();
   
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    
+    if (product.stock <= 0) {
+      toast("Out of stock", {
+        description: `${product.name} is currently unavailable`,
+        position: "bottom-center"
+      });
+      return;
+    }
+    
     addToCart({
       id: product.id,
       name: product.name,
@@ -29,11 +39,24 @@ const ProductCard = ({ product, className, showBuyNow = false }: ProductCardProp
       quantity: 1,
       stock: product.stock
     });
+    
+    toast("Added to cart", {
+      description: `${product.name} added to cart`,
+      position: "bottom-center"
+    });
   };
   
   const handleBuyNow = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    
+    if (product.stock <= 0) {
+      toast("Out of stock", {
+        description: `${product.name} is currently unavailable`,
+        position: "bottom-center"
+      });
+      return;
+    }
     
     // Add to cart first
     addToCart({
@@ -49,6 +72,14 @@ const ProductCard = ({ product, className, showBuyNow = false }: ProductCardProp
     // Navigate to cart
     navigate('/cart');
   };
+  
+  // Get quantity in cart
+  const getQuantityInCart = () => {
+    const item = cartItems.find(item => item.id === product.id);
+    return item ? item.quantity : 0;
+  };
+  
+  const quantityInCart = getQuantityInCart();
   
   // Calculate discount percentage if there's a sale price
   const discountPercentage = product.sale_price 
@@ -66,6 +97,11 @@ const ProductCard = ({ product, className, showBuyNow = false }: ProductCardProp
         {product.sale_price && (
           <div className="absolute top-2 right-2 bg-red-500 text-white text-xs font-medium px-2 py-1 rounded-full">
             {discountPercentage}% OFF
+          </div>
+        )}
+        {product.stock <= 0 && (
+          <div className="absolute top-2 left-2 bg-gray-800 text-white text-xs font-medium px-2 py-1 rounded-full">
+            Out of Stock
           </div>
         )}
       </Link>
@@ -99,31 +135,60 @@ const ProductCard = ({ product, className, showBuyNow = false }: ProductCardProp
             <span className="font-bold">${product.price.toFixed(2)}</span>
           )}
         </div>
-        <div className={`mt-2 ${showBuyNow ? 'grid grid-cols-2 gap-2' : ''}`}>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleAddToCart}
-            disabled={product.stock <= 0}
-            className={`${showBuyNow ? 'w-full' : 'w-full'} border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white`}
-          >
-            {product.stock <= 0 ? 'Out of Stock' : (
-              <>
-                <ShoppingCart className="h-3.5 w-3.5 mr-1" />
-                Add to Cart
-              </>
-            )}
-          </Button>
-          
-          {showBuyNow && (
-            <Button
-              size="sm"
-              onClick={handleBuyNow}
-              disabled={product.stock <= 0}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-            >
-              Buy Now
-            </Button>
+        
+        <div className={`mt-2 ${showBuyNow && quantityInCart === 0 ? 'grid grid-cols-2 gap-2' : ''}`}>
+          {quantityInCart > 0 ? (
+            <div className="w-full flex items-center border rounded-md">
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  updateQuantity(product.id, quantityInCart - 1);
+                }}
+                className="p-2 text-gray-600 hover:text-blue-500"
+              >
+                <Minus className="h-3.5 w-3.5" />
+              </button>
+              <span className="flex-1 text-center">{quantityInCart}</span>
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  updateQuantity(product.id, quantityInCart + 1);
+                }}
+                className="p-2 text-gray-600 hover:text-blue-500"
+                disabled={product.stock <= 0 || quantityInCart >= product.stock}
+              >
+                <Plus className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ) : (
+            <>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleAddToCart}
+                disabled={product.stock <= 0}
+                className={`${showBuyNow ? 'w-full' : 'w-full'} border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white`}
+              >
+                {product.stock <= 0 ? 'Out of Stock' : (
+                  <>
+                    <ShoppingCart className="h-3.5 w-3.5 mr-1" />
+                    Add to Cart
+                  </>
+                )}
+              </Button>
+              
+              {showBuyNow && product.stock > 0 && (
+                <Button
+                  size="sm"
+                  onClick={handleBuyNow}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  Buy Now
+                </Button>
+              )}
+            </>
           )}
         </div>
       </div>
