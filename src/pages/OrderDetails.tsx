@@ -71,12 +71,16 @@ const OrderDetails = () => {
     };
   }, [id, queryClient, isSubscribed]);
   
-  const formatDate = (dateString) => {
-    const options = { year: 'numeric', month: 'long', day: 'numeric' };
+  const formatDate = (dateString: string) => {
+    const options: Intl.DateTimeFormatOptions = { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    };
     return new Date(dateString).toLocaleDateString(undefined, options);
   };
   
-  const getStatusBadge = (status) => {
+  const getStatusBadge = (status: string) => {
     switch (status) {
       case 'Processing':
         return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">Processing</Badge>;
@@ -166,9 +170,9 @@ const OrderDetails = () => {
             <Clock className="h-4 w-4 mr-2" />
             <span>
               {order.status === 'Delivered' 
-                ? 'Delivered on ' + formatDate(order.delivery_date || order.order_date) 
+                ? 'Delivered on ' + formatDate(order.order_date) 
                 : order.status === 'Shipped'
-                ? 'Shipped on ' + formatDate(order.shipped_date || order.order_date)
+                ? 'Shipped on ' + formatDate(order.order_date)
                 : 'Ordered on ' + formatDate(order.order_date)}
             </span>
           </div>
@@ -247,12 +251,12 @@ const OrderDetails = () => {
             
             <div className="flex justify-between text-sm">
               <span className="text-gray-500">Delivery Fee</span>
-              <span>{formatCurrency(order.delivery_fee || 0)}</span>
+              <span>{formatCurrency(0)}</span>
             </div>
             
             <div className="flex justify-between text-sm">
               <span className="text-gray-500">Tax</span>
-              <span>{formatCurrency(order.tax || 0)}</span>
+              <span>{formatCurrency(0)}</span>
             </div>
             
             <Separator className="my-2" />

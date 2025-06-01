@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ChevronLeft, MapPin, CreditCard } from 'lucide-react';
@@ -86,21 +87,12 @@ const PaymentMethodsPage = () => {
       if (!addressId || !user) throw new Error('No address or user found');
       if (!cartItems || cartItems.length === 0) throw new Error('Cart is empty');
       
-      // Create a plain JSON string directly
-      const addressJson = `{"name":"${address?.name || ''}","phone":"${address?.phone || ''}","address":"${address?.address || ''}","city":"${address?.city || ''}","state":"${address?.state || ''}","pincode":"${address?.pincode || ''}"}`;
-      
-      // Create a simpler structure for the order with properly formatted address details
+      // Create a simpler structure for the order
       return createOrder({
         addressId: addressId,
         userId: user.id,
         paymentMethod: paymentData.paymentMethod,
         totalAmount: totalAmount,
-        // Use the plain JSON string
-        addressDetails: addressJson,
-        // Add Razorpay payment details if available
-        razorpayPaymentId: paymentData.razorpayPaymentId,
-        razorpayOrderId: paymentData.razorpayOrderId,
-        razorpaySignature: paymentData.razorpaySignature,
         products: cartItems.map(item => ({
           productId: item.id,
           name: item.name,
@@ -195,8 +187,7 @@ const PaymentMethodsPage = () => {
       razorpay.on('payment.failed', function(response: any) {
         setIsProcessingPayment(false);
         toast('Payment failed', {
-          description: response.error.description || 'Please try again or use another payment method',
-          variant: 'destructive'
+          description: response.error.description || 'Please try again or use another payment method'
         });
       });
       

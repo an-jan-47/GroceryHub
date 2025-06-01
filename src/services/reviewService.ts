@@ -16,7 +16,7 @@ export const getProductReviews = async (productId: string): Promise<Review[]> =>
 
   return data?.map(review => ({
     ...review,
-    created_at: review.date || review.created_at || new Date().toISOString()
+    created_at: review.date || new Date().toISOString()
   })) || [];
 };
 
@@ -40,7 +40,7 @@ export const getUserReviews = async (userId: string): Promise<Review[]> => {
 
   return data?.map(review => ({
     ...review,
-    created_at: review.date || review.created_at || new Date().toISOString()
+    created_at: review.date || new Date().toISOString()
   })) || [];
 };
 
@@ -65,6 +65,6 @@ export const createReview = async (review: Omit<Review, 'id' | 'created_at'>): P
 
   return {
     ...data,
-    created_at: data.date || data.created_at || new Date().toISOString()
+    created_at: data.date || new Date().toISOString()
   };
 };
