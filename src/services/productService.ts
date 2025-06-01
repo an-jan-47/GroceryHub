@@ -13,7 +13,10 @@ export const getProducts = async (): Promise<Product[]> => {
     return [];
   }
 
-  return data || [];
+  return data?.map(product => ({
+    ...product,
+    features: Array.isArray(product.features) ? product.features : []
+  })) || [];
 };
 
 export const getProduct = async (id: string): Promise<Product | null> => {
@@ -28,7 +31,10 @@ export const getProduct = async (id: string): Promise<Product | null> => {
     return null;
   }
 
-  return data;
+  return data ? {
+    ...data,
+    features: Array.isArray(data.features) ? data.features : []
+  } : null;
 };
 
 export const getProductsByCategory = async (category: string): Promise<Product[]> => {
@@ -43,7 +49,10 @@ export const getProductsByCategory = async (category: string): Promise<Product[]
     return [];
   }
 
-  return data || [];
+  return data?.map(product => ({
+    ...product,
+    features: Array.isArray(product.features) ? product.features : []
+  })) || [];
 };
 
 export const searchProducts = async (query: string): Promise<Product[]> => {
@@ -58,7 +67,10 @@ export const searchProducts = async (query: string): Promise<Product[]> => {
     return [];
   }
 
-  return data || [];
+  return data?.map(product => ({
+    ...product,
+    features: Array.isArray(product.features) ? product.features : []
+  })) || [];
 };
 
 export const getPopularProducts = async (): Promise<Product[]> => {
@@ -77,7 +89,10 @@ export const getPopularProducts = async (): Promise<Product[]> => {
     return [];
   }
 
-  return data?.map(item => item.products).filter(Boolean) || [];
+  return data?.map(item => ({
+    ...item.products,
+    features: Array.isArray(item.products?.features) ? item.products.features : []
+  })).filter(Boolean) || [];
 };
 
 export const getFeaturedProducts = async (): Promise<Product[]> => {
@@ -93,7 +108,10 @@ export const getFeaturedProducts = async (): Promise<Product[]> => {
     return [];
   }
 
-  return data || [];
+  return data?.map(product => ({
+    ...product,
+    features: Array.isArray(product.features) ? product.features : []
+  })) || [];
 };
 
 export const getSimilarProducts = async (productId: string, category: string, brand: string): Promise<Product[]> => {
@@ -110,5 +128,45 @@ export const getSimilarProducts = async (productId: string, category: string, br
     return [];
   }
 
-  return data || [];
+  return data?.map(product => ({
+    ...product,
+    features: Array.isArray(product.features) ? product.features : []
+  })) || [];
 };
+
+export const getProductCount = async (): Promise<number> => {
+  const { count, error } = await supabase
+    .from('products')
+    .select('*', { count: 'exact', head: true });
+
+  if (error) {
+    console.error('Error fetching product count:', error);
+    return 0;
+  }
+
+  return count || 0;
+};
+
+export const subscribeToProductChanges = (callback: (products: Product[]) => void) => {
+  // Initial fetch
+  getProducts().then(callback);
+
+  // Set up real-time subscription
+  const subscription = supabase
+    .channel('products_changes')
+    .on('postgres_changes', 
+      { event: '*', schema: 'public', table: 'products' }, 
+      () => {
+        getProducts().then(callback);
+      }
+    )
+    .subscribe();
+
+  // Return unsubscribe function
+  return () => {
+    subscription.unsubscribe();
+  };
+};
+
+// Export Product type for components
+export type { Product };

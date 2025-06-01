@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { getProducts, getProductCount, subscribeToProductChanges, Product } from '@/services/productService';
 import ProductCard from '@/components/ProductCard';
@@ -7,7 +8,7 @@ interface ProductsGridProps {
   limit?: number;
   title?: string;
   showCount?: boolean;
-  customProducts?: Product[]; // New prop for custom products
+  customProducts?: Product[];
 }
 
 const ProductsGrid = ({ category, limit, title = 'Products', showCount = true, customProducts }: ProductsGridProps) => {
