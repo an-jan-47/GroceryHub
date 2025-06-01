@@ -1,9 +1,10 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import LoadingScreen from "./components/LoadingScreen";
 
 // Pages
 import Index from "./pages/Index";
@@ -28,6 +29,8 @@ import AboutUs from "./pages/AboutUs";
 import { CartProvider } from "./hooks/useCart";
 import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
+import OrderCompletedGuard from "./components/OrderCompletedGuard";
+import ErrorBoundary from './components/ErrorBoundary';
 
 // Services initialization
 import { initializeApp, setupPerformanceMonitoring } from "./utils/appInitializer";
@@ -53,14 +56,30 @@ const queryClient = new QueryClient({
   }
 });
 
+// Add this import
+import WriteReview from "./pages/WriteReview";
+
 const App = () => {
+  const [isLoading, setIsLoading] = useState(true);
+  
   useEffect(() => {
     // Initialize application services
     initializeApp();
     
     // Set up performance monitoring
     setupPerformanceMonitoring();
+    
+    // Simulate loading time (you can remove this in production)
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 2000);
+    
+    return () => clearTimeout(timer);
   }, []);
+  
+  if (isLoading) {
+    return <LoadingScreen />;
+  }
   
   return (
     <QueryClientProvider client={queryClient}>
@@ -74,8 +93,22 @@ const App = () => {
                 <Route path="/" element={<Index />} />
                 <Route path="/product/:productId" element={<ProductDetail />} />
                 <Route path="/cart" element={<Cart />} />
-                <Route path="/address" element={<ProtectedRoute><Address /></ProtectedRoute>} />
-                <Route path="/payment" element={<ProtectedRoute><Payment /></ProtectedRoute>} />
+                <Route path="/address" element={
+                  <ProtectedRoute>
+                    <OrderCompletedGuard>
+                      <Address />
+                    </OrderCompletedGuard>
+                  </ProtectedRoute>
+                } />
+                <Route path="/payment" element={
+                  <ProtectedRoute>
+                    <OrderCompletedGuard>
+                      <ErrorBoundary>
+                        <Payment />
+                      </ErrorBoundary>
+                    </OrderCompletedGuard>
+                  </ProtectedRoute>
+                } />
                 <Route path="/order-confirmation" element={<ProtectedRoute><OrderConfirmation /></ProtectedRoute>} />
                 <Route path="/explore" element={<Explore />} />
                 <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
@@ -92,6 +125,9 @@ const App = () => {
                 <Route path="/about-us" element={<AboutUs />} />
                 
                 <Route path="*" element={<NotFound />} />
+                
+                {/* Add this route inside the Routes component */}
+                <Route path="/write-review/:productId" element={<ProtectedRoute><WriteReview /></ProtectedRoute>} />
               </Routes>
             </BrowserRouter>
           </TooltipProvider>

@@ -1,249 +1,143 @@
 
-import { useState } from 'react';
-import { Link, useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, Package, ShoppingBag, Calendar, MapPin, ArrowLeft } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Link, useParams } from 'react-router-dom';
+import { ChevronLeft, Package, MapPin, Clock, CreditCard, Truck, CheckCircle, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { toast } from '@/components/ui/sonner';
+import { Badge } from '@/components/ui/badge';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
-import { getOrderById, updateOrderStatus, cancelOrder, OrderStatus } from '@/services/orderService';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getAddressById } from '@/services/addressService';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { useLoadingStates } from '@/hooks/useLoadingStates';
-import { trackError } from '@/utils/errorTracking';
+import { getOrderById } from '@/services/orderService';
+import { formatCurrency } from '@/utils/formatters';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 const OrderDetails = () => {
-  const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
+  const { id } = useParams();
   const queryClient = useQueryClient();
-  const { loadingStates, withLoading } = useLoadingStates({ cancelOrder: false });
+  const [isSubscribed, setIsSubscribed] = useState(false);
   
-  const [optimisticStatus, setOptimisticStatus] = useState<OrderStatus | null>(null);
-  
-  // Fetch order details
-  const { 
-    data, 
-    isLoading: isLoadingOrder, 
-    error: orderError 
-  } = useQuery({
+  // Use React Query for data fetching and caching
+  const { data: orderData, isLoading } = useQuery({
     queryKey: ['order', id],
-    queryFn: () => getOrderById(id!),
-    enabled: !!id,
-    retry: 1,
-    meta: {
-      onError: (error: any) => {
-        trackError(error, { orderId: id });
-        toast("Error loading order", {
-          description: "Could not load order details. Please try again later."
-        });
-      }
-    }
-  });
-  
-  // Extract order and items for easier access
-  const order = data?.order;
-  const items = data?.items || [];
-  
-  // Fetch address details if order is loaded
-  const { 
-    data: address, 
-    isLoading: isLoadingAddress 
-  } = useQuery({
-    queryKey: ['address', order?.address_id],
-    queryFn: () => getAddressById(order!.address_id),
-    enabled: !!order?.address_id,
-  });
-  
-  // Cancel order mutation
-  const cancelOrderMutation = useMutation({
-    mutationFn: (orderId: string) => cancelOrder(orderId),
-    onMutate: async (orderId) => {
-      // Cancel any outgoing refetches
-      await queryClient.cancelQueries({ queryKey: ['order', orderId] });
+    queryFn: async () => {
+      if (!id) throw new Error('No order ID provided');
       
-      // Snapshot the previous value
-      const previousData = queryClient.getQueryData(['order', orderId]);
+      // First get the basic order data
+      const data = await getOrderById(id);
       
-      // Optimistically update to the new value
-      if (previousData && order) {
-        queryClient.setQueryData(['order', orderId], {
-          order: { ...order, status: 'Cancelled' },
-          items
-        });
-        
-        // Store optimistic status
-        setOptimisticStatus('Cancelled');
+      // Then fetch the latest status directly from the database
+      const { data: statusData, error } = await supabase
+        .from('orders')
+        .select('status')
+        .eq('id', id)
+        .single();
+      
+      if (!error && statusData) {
+        // Update the order status with the latest from the database
+        data.order.status = statusData.status;
       }
       
-      return { previousData };
+      return data;
     },
-    onError: (error, orderId, context) => {
-      // If the mutation fails, use the context returned from onMutate to roll back
-      if (context?.previousData) {
-        queryClient.setQueryData(['order', orderId], context.previousData);
-      }
-      
-      setOptimisticStatus(null);
-      trackError(error, { action: 'cancelOrder', orderId });
-      toast("Error cancelling order", {
-        description: "Could not cancel your order. Please try again later."
-      });
-    },
-    onSuccess: () => {
-      toast("Order cancelled", {
-        description: "Your order has been successfully cancelled."
-      });
-      
-      // Invalidate related queries
-      queryClient.invalidateQueries({ queryKey: ['orders'] });
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['order', id] });
-    }
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
   
-  const handleCancelOrder = withLoading('cancelOrder', async () => {
-    if (!id) return;
+  // Set up real-time subscription to order updates
+  useEffect(() => {
+    if (!id || isSubscribed) return;
     
-    // Show confirmation dialog
-    if (confirm('Are you sure you want to cancel this order? This action cannot be undone.')) {
-      cancelOrderMutation.mutate(id);
-    }
-  });
+    // Subscribe to changes on this specific order
+    const subscription = supabase
+      .channel(`order-${id}`)
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'orders',
+        filter: `id=eq.${id}`
+      }, (payload) => {
+        console.log('Order updated:', payload);
+        // Invalidate the query to trigger a refetch
+        queryClient.invalidateQueries({ queryKey: ['order', id] });
+      })
+      .subscribe();
+    
+    setIsSubscribed(true);
+    
+    // Clean up subscription on unmount
+    return () => {
+      subscription.unsubscribe();
+      setIsSubscribed(false);
+    };
+  }, [id, queryClient, isSubscribed]);
   
-  // Format date to a readable string
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric' 
-    });
+  const formatDate = (dateString) => {
+    const options = { year: 'numeric', month: 'long', day: 'numeric' };
+    return new Date(dateString).toLocaleDateString(undefined, options);
   };
   
-  // Determine order status (use optimistic status if available)
-  const orderStatus = optimisticStatus || (order?.status || 'Processing');
-  
-  // Get status color
-  const getStatusColor = (status: string) => {
+  const getStatusBadge = (status) => {
     switch (status) {
-      case 'Delivered':
-        return 'bg-green-100 text-green-800';
       case 'Processing':
-        return 'bg-blue-100 text-blue-800';
+        return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">Processing</Badge>;
       case 'Shipped':
-        return 'bg-purple-100 text-purple-800';
+        return <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">Shipped</Badge>;
+      case 'Delivered':
+        return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Delivered</Badge>;
       case 'Cancelled':
-        return 'bg-red-100 text-red-800';
+        return <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">Cancelled</Badge>;
       default:
-        return 'bg-gray-100 text-gray-800';
+        return <Badge variant="outline">{status}</Badge>;
     }
   };
   
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'Delivered':
-        return <Package className="w-4 h-4" />;
-      case 'Processing':
-        return <Package className="w-4 h-4" />;
-      case 'Shipped':
-        return <Package className="w-4 h-4" />;
-      case 'Cancelled':
-        return <Package className="w-4 h-4" />;
-      default:
-        return <Package className="w-4 h-4" />;
-    }
-  };
-  
-  if (orderError) {
+  if (isLoading) {
     return (
-      <div className="pb-20">
+      <div className="pb-20 bg-gray-50 min-h-screen">
         <Header />
-        
-        <main className="container px-4 py-4 mx-auto">
+        <main className="container px-4 py-4 mx-auto max-w-3xl">
+          <div className="flex justify-center py-8">
+            <div className="animate-spin h-8 w-8 border-4 border-blue-500 rounded-full border-t-transparent"></div>
+          </div>
+        </main>
+        <BottomNavigation />
+      </div>
+    );
+  }
+  
+  if (!orderData || !orderData.order) {
+    return (
+      <div className="pb-20 bg-gray-50 min-h-screen">
+        <Header />
+        <main className="container px-4 py-4 mx-auto max-w-3xl">
           <div className="py-3 flex items-center">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => navigate(-1)}
-              className="flex items-center text-gray-500"
-            >
-              <ArrowLeft className="w-4 h-4 mr-1" /> Back
-            </Button>
+            <Link to="/order-history" className="flex items-center text-gray-500">
+              <ChevronLeft className="w-5 h-5 mr-1" />
+              <span>Back to Orders</span>
+            </Link>
           </div>
           
-          <Alert variant="destructive" className="mt-4">
-            <AlertTitle>Error</AlertTitle>
-            <AlertDescription>
-              We couldn't load the order details. Please try again later or contact customer support.
-            </AlertDescription>
-          </Alert>
-          
-          <div className="flex justify-center mt-8">
-            <Button onClick={() => navigate('/order-history')}>
-              Back to Orders
+          <div className="bg-white rounded-lg shadow-sm p-8 text-center">
+            <AlertCircle className="h-12 w-12 mx-auto text-red-500 mb-4" />
+            <h3 className="text-lg font-medium mb-2">Order not found</h3>
+            <p className="text-gray-500 mb-6">The order you're looking for doesn't exist or you don't have permission to view it.</p>
+            <Button asChild>
+              <Link to="/order-history">View All Orders</Link>
             </Button>
           </div>
         </main>
-        
         <BottomNavigation />
       </div>
     );
   }
   
-  if (isLoadingOrder || !order) {
-    return (
-      <div className="pb-20">
-        <Header />
-        
-        <main className="container px-4 py-4 mx-auto">
-          <div className="py-3 flex items-start">
-            <div className="w-full">
-              <div className="h-6 bg-gray-200 rounded animate-pulse mb-4 w-32"></div>
-              
-              <div className="h-8 bg-gray-200 rounded animate-pulse mb-6 w-48"></div>
-              
-              <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-6">
-                <div className="p-4 border-b">
-                  <div className="h-6 bg-gray-200 rounded animate-pulse w-24 mb-2"></div>
-                  <div className="h-4 bg-gray-200 rounded animate-pulse w-48"></div>
-                </div>
-                
-                <div className="p-4">
-                  <div className="space-y-3">
-                    {[1, 2, 3, 4].map((i) => (
-                      <div key={i} className="flex justify-between">
-                        <div className="h-4 bg-gray-200 rounded animate-pulse w-20"></div>
-                        <div className="h-4 bg-gray-200 rounded animate-pulse w-24"></div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-              
-              <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-6">
-                <div className="animate-pulse p-4">
-                  <div className="h-6 bg-gray-200 rounded w-32 mb-4"></div>
-                  <div className="h-24 bg-gray-200 rounded"></div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </main>
-        
-        <BottomNavigation />
-      </div>
-    );
-  }
+  const { order, items } = orderData;
   
   return (
-    <div className="pb-20">
+    <div className="pb-20 bg-gray-50 min-h-screen">
       <Header />
       
-      <main className="container px-4 py-4 mx-auto">
+      <main className="container px-4 py-4 mx-auto max-w-3xl">
         <div className="py-3 flex items-center">
           <Link to="/order-history" className="flex items-center text-gray-500">
             <ChevronLeft className="w-5 h-5 mr-1" />
@@ -253,162 +147,134 @@ const OrderDetails = () => {
         
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl font-bold">Order Details</h1>
-          <Badge variant="outline" className={`${getStatusColor(orderStatus)} flex items-center space-x-1`}>
-            <Package className="w-3.5 h-3.5 mr-1" />
-            <span>{orderStatus}</span>
-          </Badge>
+          {getStatusBadge(order.status)}
         </div>
         
-        <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-6">
-          <div className="p-4 border-b">
-            <h2 className="font-semibold">Order Information</h2>
-          </div>
-          
-          <div className="p-4">
-            <div className="space-y-3">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Order ID</span>
-                <span className="font-medium">{order.id}</span>
-              </div>
-              
-              <div className="flex justify-between">
-                <span className="text-gray-600">Date Placed</span>
-                <span>{formatDate(order.order_date)}</span>
-              </div>
-              
-              <div className="flex justify-between">
-                <span className="text-gray-600">Payment Method</span>
-                <span>{order.payment_method}</span>
-              </div>
-              
-              <div className="flex justify-between">
-                <span className="text-gray-600">Total Amount</span>
-                <span className="font-semibold">${order.total_amount.toFixed(2)}</span>
-              </div>
+        <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
+          <div className="flex justify-between items-start mb-4">
+            <div>
+              <p className="text-sm text-gray-500">Order ID</p>
+              <p className="font-medium">{order.id}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-sm text-gray-500">Order Date</p>
+              <p className="font-medium">{formatDate(order.order_date)}</p>
             </div>
           </div>
-        </div>
-        
-        <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-6">
-          <div className="p-4 border-b">
-            <h2 className="font-semibold">Items</h2>
+          
+          <div className="flex items-center text-sm text-gray-600 mb-2">
+            <Clock className="h-4 w-4 mr-2" />
+            <span>
+              {order.status === 'Delivered' 
+                ? 'Delivered on ' + formatDate(order.delivery_date || order.order_date) 
+                : order.status === 'Shipped'
+                ? 'Shipped on ' + formatDate(order.shipped_date || order.order_date)
+                : 'Ordered on ' + formatDate(order.order_date)}
+            </span>
           </div>
           
-          <div className="divide-y">
-            {items.map((item) => (
-              <div key={item.id} className="p-4 flex items-center">
-                <Link to={`/product/${item.product_id}`} className="flex-shrink-0 w-16 h-16">
-                  {item.product && (
-                    <img 
-                      src={item.product.images && item.product.images.length > 0 ? item.product.images[0] : '/placeholder.svg'} 
-                      alt={item.product.name || 'Product'} 
-                      className="w-full h-full object-cover rounded-md"
-                    />
-                  )}
-                </Link>
-                <div className="ml-4 flex-grow">
-                  <Link to={`/product/${item.product_id}`} className="font-medium text-gray-800 hover:text-brand-blue">
-                    {item.product ? item.product.name : 'Product'}
-                  </Link>
-                  <div className="mt-1 flex justify-between">
-                    <span className="text-sm text-gray-500">Qty: {item.quantity}</span>
-                    <span className="font-medium">${item.price.toFixed(2)}</span>
+          <div className="flex items-center text-sm text-gray-600">
+            <CreditCard className="h-4 w-4 mr-2" />
+            <span>
+              {order.payment_method === 'cod' 
+                ? 'Cash on Delivery' 
+                : order.payment_method.charAt(0).toUpperCase() + order.payment_method.slice(1)}
+            </span>
+          </div>
+        </div>
+        
+        <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
+          <h2 className="font-semibold mb-3">Delivery Address</h2>
+          
+          {order.address ? (
+            <div className="flex items-start">
+              <MapPin className="h-5 w-5 text-gray-400 mr-2 mt-0.5" />
+              <div>
+                <p className="font-medium">{order.address.name}</p>
+                <p className="text-sm text-gray-600">{order.address.phone}</p>
+                <p className="text-sm text-gray-600">
+                  {order.address.address}, {order.address.city}, {order.address.state} {order.address.pincode}
+                </p>
+              </div>
+            </div>
+          ) : (
+            <p className="text-gray-500">Address information not available</p>
+          )}
+        </div>
+        
+        <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
+          <h2 className="font-semibold mb-3">Order Items</h2>
+          
+          {items && items.length > 0 ? (
+            <div className="space-y-4">
+              {items.map((item) => (
+                <div key={item.id} className="flex items-center">
+                  <div className="h-16 w-16 bg-gray-100 rounded flex items-center justify-center mr-3">
+                    {item.product && item.product.images && item.product.images[0] ? (
+                      <img 
+                        src={item.product.images[0]} 
+                        alt={item.product.name} 
+                        className="h-full w-full object-contain p-1"
+                      />
+                    ) : (
+                      <Package className="h-8 w-8 text-gray-400" />
+                    )}
+                  </div>
+                  
+                  <div className="flex-1">
+                    <p className="font-medium">
+                      {item.product ? item.product.name : `Product ${item.product_id.substring(0, 8)}`}
+                    </p>
+                    <div className="flex justify-between mt-1">
+                      <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
+                      <p className="font-medium">{formatCurrency(item.price)}</p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-gray-500">No items found for this order</p>
+          )}
           
-          <div className="p-4 bg-gray-50">
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Subtotal</span>
-                <span>${(order.total_amount * 0.9).toFixed(2)}</span>
-              </div>
-              
-              <div className="flex justify-between">
-                <span className="text-gray-600">Tax</span>
-                <span>${(order.total_amount * 0.1).toFixed(2)}</span>
-              </div>
-              
-              <Separator className="my-2" />
-              
-              <div className="flex justify-between font-semibold">
-                <span>Total</span>
-                <span>${order.total_amount.toFixed(2)}</span>
-              </div>
+          <Separator className="my-4" />
+          
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500">Subtotal</span>
+              <span>{formatCurrency(items.reduce((sum, item) => sum + (item.price * item.quantity), 0))}</span>
+            </div>
+            
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500">Delivery Fee</span>
+              <span>{formatCurrency(order.delivery_fee || 0)}</span>
+            </div>
+            
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500">Tax</span>
+              <span>{formatCurrency(order.tax || 0)}</span>
+            </div>
+            
+            <Separator className="my-2" />
+            
+            <div className="flex justify-between font-bold">
+              <span>Total</span>
+              <span>{formatCurrency(order.total_amount)}</span>
             </div>
           </div>
         </div>
         
-        {isLoadingAddress ? (
-          <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-6 p-4">
-            <div className="animate-pulse">
-              <div className="h-5 bg-gray-200 rounded w-32 mb-4"></div>
-              <div className="h-4 bg-gray-200 rounded w-48 mb-2"></div>
-              <div className="h-4 bg-gray-200 rounded w-56"></div>
-            </div>
-          </div>
-        ) : address ? (
-          <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-6">
-            <div className="p-4 border-b">
-              <h2 className="font-semibold">Shipping Address</h2>
-            </div>
-            
-            <div className="p-4">
-              <div className="flex items-start">
-                <MapPin className="text-gray-500 mr-3 mt-0.5" />
-                <div>
-                  <p className="font-medium">{address.name} • {address.phone}</p>
-                  <p className="text-gray-600">
-                    {address.address}, {address.city}, {address.state} {address.pincode}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        ) : null}
-        
-        {orderStatus !== 'Cancelled' && orderStatus !== 'Delivered' && (
-          <div className="mt-6">
-            <Button 
-              variant="outline" 
-              className="w-full text-red-600 border-red-200 hover:bg-red-50"
-              onClick={handleCancelOrder}
-              disabled={loadingStates.cancelOrder}
-            >
-              {loadingStates.cancelOrder ? 'Cancelling...' : 'Cancel Order'}
-            </Button>
+        {order.status === 'Delivered' && (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center">
+            <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
+            <p className="text-green-700">This order has been delivered successfully.</p>
           </div>
         )}
         
-        {orderStatus === 'Delivered' && (
-          <div className="mt-6 space-y-4">
-            <Button 
-              variant="default" 
-              className="w-full bg-brand-blue hover:bg-brand-darkBlue"
-              onClick={() => {
-                // This would typically navigate to a review form
-                toast("Review feature coming soon", {
-                  description: "The ability to leave product reviews will be available soon."
-                });
-              }}
-            >
-              Write a Review
-            </Button>
-            
-            <Button 
-              variant="outline" 
-              className="w-full"
-              onClick={() => {
-                // This would navigate to a return form or flow
-                toast("Return feature coming soon", {
-                  description: "The ability to return products will be available soon."
-                });
-              }}
-            >
-              Request Return
-            </Button>
+        {order.status === 'Shipped' && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center">
+            <Truck className="h-5 w-5 text-blue-500 mr-2" />
+            <p className="text-blue-700">Your order is on the way!</p>
           </div>
         )}
       </main>

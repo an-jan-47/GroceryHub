@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronLeft, Package, ShoppingBag, Search, ChevronRight, Calendar, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -8,12 +8,15 @@ import { Badge } from '@/components/ui/badge';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getUserOrders } from '@/services/orderService';
+import { supabase } from '@/integrations/supabase/client';
 
 const OrderHistory = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const [isSubscribed, setIsSubscribed] = useState(false);
   
   // Fetch orders from backend
   const { 
@@ -22,8 +25,37 @@ const OrderHistory = () => {
   } = useQuery({
     queryKey: ['orders', user?.id],
     queryFn: () => getUserOrders(user?.id),
-    enabled: !!user // Only fetch if user is authenticated
+    enabled: !!user, // Only fetch if user is authenticated
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
+
+  // Set up real-time subscription to order updates
+  useEffect(() => {
+    if (!user || isSubscribed) return;
+    
+    // Subscribe to changes on orders for this user
+    const subscription = supabase
+      .channel(`user-orders-${user.id}`)
+      .on('postgres_changes', {
+        event: '*', // Listen for all events (INSERT, UPDATE, DELETE)
+        schema: 'public',
+        table: 'orders',
+        filter: `user_id=eq.${user.id}`
+      }, (payload) => {
+        console.log('Orders updated:', payload);
+        // Invalidate the query to trigger a refetch
+        queryClient.invalidateQueries({ queryKey: ['orders', user.id] });
+      })
+      .subscribe();
+    
+    setIsSubscribed(true);
+    
+    // Clean up subscription on unmount
+    return () => {
+      subscription.unsubscribe();
+      setIsSubscribed(false);
+    };
+  }, [user, queryClient, isSubscribed]);
 
   // Filter orders by ID
   const filteredOrders = orders ? orders.filter(order => 
@@ -140,9 +172,7 @@ const OrderHistory = () => {
                         <Calendar className="w-3.5 h-3.5 inline mr-1" />
                         <span>{formatDate(order.order_date)}</span>
                         <span>•</span>
-                        <span>{order.products_name?.length || 0} item(s)</span>
-                        <span>•</span>
-                        <span>${order.total_amount.toFixed(2)}</span>
+                        <span>₹{order.total_amount.toFixed(2)}</span>
                       </div>
                     </div>
                     <Badge variant="outline" className={`${getStatusColor(order.status)} flex items-center space-x-1`}>
@@ -156,9 +186,6 @@ const OrderHistory = () => {
                 <div className="p-4">
                   <div className="flex items-center space-x-4">
                     <div className="flex-grow overflow-hidden">
-                      <div className="text-sm font-medium truncate">
-                        {order.products_name && order.products_name.length > 0 ? order.products_name[0] : 'No items'}{order.products_name && order.products_name.length > 1 ? ' and more' : ''}
-                      </div>
                       <div className="text-xs text-gray-500 mt-1">
                         Payment: {order.payment_method}
                       </div>

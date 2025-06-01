@@ -44,16 +44,19 @@ export const useUserSettings = () => {
         throw error;
       }
       
-      // If user has settings, use them
+      // If user has settings, use them with validation
       if (data) {
-        setSettings({
-          marketing_emails: data.marketing_emails || false,
-          product_updates: data.product_updates ?? true,
-          order_notifications: data.order_notifications ?? true,
-          personalized_recommendations: data.personalized_recommendations ?? true,
-          data_sharing: data.data_sharing || false,
-          account_activity_alerts: data.account_activity_alerts ?? true
-        });
+        // Validate boolean fields
+        const validatedSettings = {
+          marketing_emails: Boolean(data.marketing_emails),
+          product_updates: Boolean(data.product_updates ?? true),
+          order_notifications: Boolean(data.order_notifications ?? true),
+          personalized_recommendations: Boolean(data.personalized_recommendations ?? true),
+          data_sharing: Boolean(data.data_sharing),
+          account_activity_alerts: Boolean(data.account_activity_alerts ?? true)
+        };
+        
+        setSettings(validatedSettings);
       }
     } catch (error) {
       console.error('Error fetching privacy settings:', error);

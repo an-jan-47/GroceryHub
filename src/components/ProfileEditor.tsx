@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { toast } from '@/components/ui/sonner';
 import { User, Mail, Phone, Shield, Lock } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { sanitizeInput } from '@/services/securityService';
 
 interface Profile {
   id: string;
@@ -78,16 +79,28 @@ const ProfileEditor = () => {
     
     if (!user) return;
     
+    // Validate inputs
+    if (!name.trim()) {
+      toast("Name required", {
+        description: "Please enter your name"
+      });
+      return;
+    }
+    
     try {
       setSaveSuccess(false);
       setIsSaving(true);
+      
+      // Sanitize inputs
+      const sanitizedName = sanitizeInput(name);
+      const sanitizedPhone = sanitizeInput(phone);
       
       // Update both profiles table and auth user metadata
       const { error: profileError } = await supabase
         .from('profiles')
         .update({ 
-          name,
-          phone,
+          name: sanitizedName,
+          phone: sanitizedPhone,
           updated_at: new Date().toISOString()
         })
         .eq('id', user.id);
@@ -96,7 +109,7 @@ const ProfileEditor = () => {
       
       // Update auth user metadata
       const { error: authError } = await supabase.auth.updateUser({
-        data: { name, phone }
+        data: { name: sanitizedName, phone: sanitizedPhone }
       });
       
       if (authError) throw authError;
@@ -108,7 +121,7 @@ const ProfileEditor = () => {
       setSaveSuccess(true);
       
       // Update local profile state
-      setProfile(prev => prev ? { ...prev, name, phone } : null);
+      setProfile(prev => prev ? { ...prev, name: sanitizedName, phone: sanitizedPhone } : null);
       
     } catch (error) {
       console.error('Error updating profile:', error);

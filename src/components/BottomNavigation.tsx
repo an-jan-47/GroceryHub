@@ -7,9 +7,10 @@ import { useAuth } from '@/contexts/AuthContext';
 
 const BottomNavigation = () => {
   const location = useLocation();
-  const { cartItems } = useCart();
+  const { cartItems, totalItems } = useCart();
   const { user } = useAuth();
-  const cartItemsCount = cartItems.length;
+  // Use totalItems instead of cartItems.length
+  const cartItemsCount = totalItems;
   
   const isActive = (path: string) => location.pathname === path;
 

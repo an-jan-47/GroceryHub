@@ -9,8 +9,11 @@ import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
 import { useToast } from '@/hooks/use-toast';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
-import { getProductById, getProductReviews, getSimilarProducts, Product, Review } from '@/services/productService';
+import { getProductById, getSimilarProducts, Product } from '@/services/productService';
+import { getProductReviews, Review } from '@/services/reviewService';
 import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/contexts/AuthContext';
+import { useUserProductPurchases } from '@/hooks/useUserProductPurchases';
 
 const ProductDetail = () => {
   const { productId } = useParams<{ productId: string; }>();
@@ -19,6 +22,7 @@ const ProductDetail = () => {
   const { addToCart, updateQuantity, cartItems } = useCart();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   // Fetch product details
   const { data: product, isLoading: isLoadingProduct, error: productError } = useQuery({
@@ -26,6 +30,11 @@ const ProductDetail = () => {
     queryFn: () => getProductById(productId!),
     enabled: !!productId
   });
+
+  // Check if user has purchased this product
+  const { hasUserPurchased, isLoading: isCheckingPurchase } = useUserProductPurchases(
+    productId ? [productId] : []
+  );
 
   // Fetch product reviews
   const { data: reviews, isLoading: isLoadingReviews } = useQuery({
@@ -191,8 +200,8 @@ const ProductDetail = () => {
               <div className="mb-5">
                 {product.sale_price ? <div>
                     <div className="flex items-baseline">
-                      <span className="text-2xl font-bold text-green-600">${product.sale_price.toFixed(2)}</span>
-                      <span className="ml-3 text-gray-500 line-through text-base">${product.price.toFixed(2)}</span>
+                      <span className="text-2xl font-bold text-green-600">₹{product.sale_price.toFixed(2)}</span>
+                      <span className="ml-3 text-gray-500 line-through text-base">₹{product.price.toFixed(2)}</span>
                       <span className="ml-2 bg-red-100 text-red-700 px-2 py-0.5 rounded-sm text-xs font-medium">
                         {discountPercentage}% OFF
                       </span>
@@ -211,19 +220,12 @@ const ProductDetail = () => {
                 </div>
                 
                 <div className="flex items-center">
-                  <Shield className="w-5 h-5 mr-2 text-green-600" />
-                  <div>
-                    <p className="font-medium text-sm">1 Year Warranty</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center">
                   <Check className="w-5 h-5 mr-2 text-green-600" />
                   <p className="text-sm">7-day easy return policy</p>
                 </div>
               </div>
               
-              {/* Quantity - IMPROVED ALIGNMENT */}
+              {/* Quantity */}
               <div className="mb-6">
                 <div className="flex items-center">
                   <span className="text-gray-700 font-medium w-24">Quantity</span>
@@ -310,80 +312,105 @@ const ProductDetail = () => {
                     </div>
                     <p className="text-sm text-gray-500">{product.review_count} global ratings</p>
                   </div>
-                  <Button variant="outline" size="sm">Write a Review</Button>
+                  {user && hasUserPurchased && product && (
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => navigate(`/write-review/${product.id}`)}
+                    >
+                      Write a Review
+                    </Button>
+                  )}
                 </div>
                 
                 {isLoadingReviews ? <div className="py-4 text-center">
                     <div className="w-8 h-8 border-2 border-t-blue-500 border-blue-200 rounded-full animate-spin mx-auto"></div>
                     <p className="mt-2 text-sm text-gray-500">Loading reviews...</p>
-                  </div> : reviews && reviews.length > 0 ? reviews.map((review: Review) => <div key={review.id} className="border-b border-gray-100 pb-4">
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium">{review.user_name}</span>
-                        <span className="text-xs text-gray-500">
-                          {new Date(review.date).toLocaleDateString()}
-                        </span>
-                      </div>
-                      <div className="flex py-1">
-                        {renderStars(review.rating)}
-                      </div>
-                      <p className="text-gray-700">{review.comment}</p>
-                    </div>) : <p className="text-center py-4 text-gray-500">No reviews yet for this product.</p>}
-              </div>
-            </TabsContent>
-          </Tabs>
-        </div>
-        
-        {/* Similar Products */}
-        <div className="mb-4">
-          <h2 className="text-lg font-bold mb-3 px-1">Similar Products</h2>
-          {isLoadingSimilar ? <div className="py-8 text-center">
-              <div className="w-8 h-8 border-2 border-t-blue-500 border-blue-200 rounded-full animate-spin mx-auto"></div>
-              <p className="mt-2 text-sm text-gray-500">Loading similar products...</p>
-            </div> : similarProducts && similarProducts.length > 0 ? <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {similarProducts.map((item: Product) => <div key={item.id} className="bg-white border rounded-lg overflow-hidden shadow-sm">
-                  <Link to={`/product/${item.id}`} className="block relative pt-[100%]">
-                    <img src={item.images[0]} alt={item.name} className="absolute inset-0 w-full h-full object-contain p-2" />
-                  </Link>
-                  <div className="p-3">
-                    <Link to={`/product/${item.id}`}>
-                      <h3 className="font-medium text-sm line-clamp-2 h-10">{item.name}</h3>
-                      <div className="flex items-center mt-1">
-                        <div className="flex">
-                          {renderStars(item.rating)}
+                  </div> : reviews && reviews.length > 0 ? (
+                    reviews.map((review: Review) => (
+                      <div key={review.id} className="border-b border-gray-100 pb-4">
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium">{review.user_name}</span>
+                          <span className="text-xs text-gray-500">
+                            {new Date(review.created_at).toLocaleDateString()}
+                          </span>
                         </div>
+                        <div className="flex py-1">
+                          {renderStars(review.rating)}
+                        </div>
+                        <p className="text-gray-700">{review.comment}</p>
                       </div>
-                    </Link>
-                    <div className="mt-2 flex items-center justify-between">
-                      <span className="font-bold">
-                        ${(item.sale_price || item.price).toFixed(2)}
-                      </span>
-                      <Button variant="outline" size="sm" onClick={() => {
-                  addToCart({
-                    ...item,
-                    quantity: 1
-                  });
-                  toast({
-                    title: "Added to cart",
-                    description: `${item.name} has been added to your cart`
-                  });
-                }} className="h-8 px-2 border-gray-300">
-                        <ShoppingCart className="h-4 w-4" />
+                    ))
+                  ) : (
+                    <p className="text-center py-4 text-gray-500">No reviews yet for this product.</p>
+                  )}
+                  
+                  {user && hasUserPurchased && product && !reviews?.some(r => r.user_id === user.id) && (
+                    <div className="mt-6 text-center">
+                      <Button 
+                        onClick={() => navigate(`/write-review/${product.id}`)}
+                        variant="outline"
+                      >
+                        Write a Review
                       </Button>
                     </div>
-                  </div>
-                </div>)}
-            </div> : <p className="text-center py-4 text-gray-500">No similar products found.</p>}
-        </div>
+                  )}
+                </div>
+              </TabsContent>
+            </Tabs>
+          </div>
+          
+          {/* Similar Products */}
+          <div className="mb-4">
+            <h2 className="text-lg font-bold mb-3 px-1">Similar Products</h2>
+            {isLoadingSimilar ? <div className="py-8 text-center">
+                <div className="w-8 h-8 border-2 border-t-blue-500 border-blue-200 rounded-full animate-spin mx-auto"></div>
+                <p className="mt-2 text-sm text-gray-500">Loading similar products...</p>
+              </div> : similarProducts && similarProducts.length > 0 ? <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {similarProducts.map((item: Product) => <div key={item.id} className="bg-white border rounded-lg overflow-hidden shadow-sm">
+                    <Link to={`/product/${item.id}`} className="block relative pt-[100%]">
+                      <img src={item.images[0]} alt={item.name} className="absolute inset-0 w-full h-full object-contain p-2" />
+                    </Link>
+                    <div className="p-3">
+                      <Link to={`/product/${item.id}`}>
+                        <h3 className="font-medium text-sm line-clamp-2 h-10">{item.name}</h3>
+                        <div className="flex items-center mt-1">
+                          <div className="flex">
+                            {renderStars(item.rating)}
+                          </div>
+                        </div>
+                      </Link>
+                      <div className="mt-2 flex items-center justify-between">
+                        <span className="font-bold">
+                          ${(item.sale_price || item.price).toFixed(2)}
+                        </span>
+                        <Button variant="outline" size="sm" onClick={() => {
+                    addToCart({
+                      ...item,
+                      quantity: 1
+                    });
+                    toast({
+                      title: "Added to cart",
+                      description: `${item.name} has been added to your cart`
+                    });
+                  }} className="h-8 px-2 border-gray-300">
+                            <ShoppingCart className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>)}
+              </div> : <p className="text-center py-4 text-gray-500">No similar products found.</p>}
+          </div>
+          
+          {/* Ad Space */}
+          <div className="bg-gray-100 h-20 rounded-lg flex items-center justify-center">
+            <p className="text-gray-500">Ad Space</p>
+          </div>
+        </main>
         
-        {/* Ad Space */}
-        <div className="bg-gray-100 h-20 rounded-lg flex items-center justify-center">
-          <p className="text-gray-500">Ad Space</p>
-        </div>
-      </main>
-      
-      <BottomNavigation />
-    </div>
-  );
+        <BottomNavigation />
+      </div>
+    );
 };
 
 export default ProductDetail;

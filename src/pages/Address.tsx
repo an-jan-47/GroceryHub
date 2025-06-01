@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ChevronLeft, Plus, MapPin, Home, Briefcase, Edit, Trash2, Truck, AlertCircle, Check, Shield } from 'lucide-react';
@@ -24,8 +23,10 @@ const AddressPage = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const { checkAuthForCheckout } = useAuthCheck();
-  const isCheckout = searchParams.get('checkout') === 'true';
-
+  
+  // Fix: Make isCheckout true by default or check for any truthy value
+  const isCheckout = searchParams.get('checkout') !== 'false' && searchParams.get('checkout') !== null;
+  
   // Fetch addresses from backend
   const { data: addresses = [], isLoading: isLoadingAddresses } = useQuery({
     queryKey: ['addresses'],
@@ -247,18 +248,17 @@ const AddressPage = () => {
                 ))}
               </RadioGroup>
               
-              {isCheckout && (
-                <div className="mt-6 flex justify-end">
-                  <Button 
-                    onClick={handleContinue}
-                    className="bg-orange-500 hover:bg-orange-600"
-                    disabled={!selectedAddress || addresses.length === 0}
-                    size="lg"
-                  >
-                    Deliver to this Address
-                  </Button>
-                </div>
-              )}
+              {/* Always show the continue button if we have addresses */}
+              <div className="mt-6 flex justify-end">
+                <Button 
+                  onClick={handleContinue}
+                  className="bg-orange-500 hover:bg-orange-600"
+                  disabled={!selectedAddress || addresses.length === 0}
+                  size="lg"
+                >
+                  Deliver to this Address
+                </Button>
+              </div>
             </div>
           ) : null}
         </div>

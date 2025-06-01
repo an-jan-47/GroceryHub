@@ -30,11 +30,29 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [cartItems, setCartItems] = useState<CartItem[]>(() => {
     const savedCart = localStorage.getItem('cart');
-    return savedCart ? JSON.parse(savedCart) : [];
+    try {
+      // Validate cart data before using it
+      const parsedCart = savedCart ? JSON.parse(savedCart) : [];
+      if (!Array.isArray(parsedCart)) {
+        throw new Error('Invalid cart data');
+      }
+      return parsedCart;
+    } catch (e) {
+      // If there's any error parsing, reset the cart
+      localStorage.removeItem('cart');
+      return [];
+    }
   });
   
   useEffect(() => {
-    localStorage.setItem('cart', JSON.stringify(cartItems));
+    try {
+      localStorage.setItem('cart', JSON.stringify(cartItems));
+    } catch (e) {
+      console.error('Error saving cart:', e);
+      toast("Error saving cart", {
+        description: "There was a problem saving your cart data"
+      });
+    }
   }, [cartItems]);
   
   const addToCart = (product: CartItem) => {

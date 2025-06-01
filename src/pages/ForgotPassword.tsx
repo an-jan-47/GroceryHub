@@ -12,7 +12,9 @@ const ForgotPassword = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const navigate = useNavigate();
-
+  const [attemptCount, setAttemptCount] = useState(0);
+  const [lastAttemptTime, setLastAttemptTime] = useState(0);
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -22,11 +24,20 @@ const ForgotPassword = () => {
       });
       return;
     }
+    
+    // Simple rate limiting
+    const now = Date.now();
+    if (attemptCount >= 3 && (now - lastAttemptTime) < 60000) {
+      toast('Too many attempts', {
+        description: 'Please wait a minute before trying again',
+      });
+      return;
+    }
 
     setIsSubmitting(true);
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: window.location.origin + '/login',
+        redirectTo: window.location.origin + '/reset-password',
       });
 
       if (error) throw error;
@@ -35,11 +46,19 @@ const ForgotPassword = () => {
       toast('Reset link sent', {
         description: 'Check your email for password reset instructions',
       });
+      
+      // Update rate limiting state
+      setAttemptCount(prev => prev + 1);
+      setLastAttemptTime(now);
     } catch (error: any) {
       console.error('Reset password error:', error);
       toast('Error', {
         description: error.message || 'Failed to send reset instructions',
       });
+      
+      // Still count failed attempts
+      setAttemptCount(prev => prev + 1);
+      setLastAttemptTime(now);
     } finally {
       setIsSubmitting(false);
     }

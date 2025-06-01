@@ -69,52 +69,75 @@ export const placeOrder = async (orderDetails: OrderDetails) => {
 };
 
 // Create order function specifically for Payment.tsx
-export const createOrder = async (userId: string, orderData: {
+export const createOrder = async (orderData: {
   addressId: string;
-  products: { id: string; name: string; price: number; quantity: number }[];
+  userId: string;
   paymentMethod: string;
+  totalAmount: number;
+  products: Array<{
+    productId: string;
+    name: string;
+    price: number;
+    quantity: number;
+  }>;
 }) => {
   try {
-    // Validate stock availability before placing the order
-    for (const product of orderData.products) {
-      const { data: stockData } = await supabase
-        .from('products')
-        .select('stock')
-        .eq('id', product.id)
-        .single();
+    // Make sure products array exists before proceeding
+    if (!orderData || !orderData.products || !Array.isArray(orderData.products)) {
+      throw new Error('Invalid order data: products array is missing or invalid');
+    }
+
+    // Create the order in the database
+    const { data: order, error: orderError } = await supabase
+      .from('orders')
+      .insert({
+        user_id: orderData.userId,
+        address_id: orderData.addressId,
+        payment_method: orderData.paymentMethod,
+        total_amount: orderData.totalAmount,
+        status: 'Processing',
+        order_date: new Date().toISOString()
+      })
+      .select('id')
+      .single();
+
+    if (orderError) throw orderError;
+    
+    const orderId = order.id;
+    
+    // Create order items
+    const orderItems = orderData.products.map(product => ({
+      order_id: orderId,
+      product_id: product.productId,
+      price: product.price,
+      quantity: product.quantity
+    }));
+    
+    const { error: itemsError } = await supabase
+      .from('order_items')
+      .insert(orderItems);
       
-      if (!stockData || stockData.stock < product.quantity) {
-        throw new Error(`Not enough stock available for ${product.name}`);
+    if (itemsError) throw itemsError;
+    
+    // Update product stock quantities
+    for (const product of orderData.products) {
+      try {
+        // Call the database function to decrease stock
+        const { error: stockError } = await supabase.rpc('decrease_product_stock', {
+          product_id: product.productId,
+          quantity: product.quantity
+        });
+
+        if (stockError) {
+          console.error(`Error updating stock for product ${product.productId}:`, stockError);
+          toast(`Stock update error: ${stockError.message}`);
+        }
+      } catch (err) {
+        console.error(`Error updating product ${product.productId}:`, err);
       }
     }
     
-    // Calculate total amount
-    const totalAmount = orderData.products.reduce((total, product) => {
-      return total + (product.price * product.quantity);
-    }, 0);
-
-    // Prepare order details
-    const orderDetails: OrderDetails = {
-      user_id: userId,
-      address_id: orderData.addressId,
-      payment_method: orderData.paymentMethod,
-      total_amount: totalAmount,
-      products_name: orderData.products.map(p => p.name),
-      items: orderData.products.map(p => ({
-        product_id: p.id,
-        quantity: p.quantity,
-        price: p.price
-      }))
-    };
-
-    // Place the order
-    const order = await placeOrder(orderDetails);
-    
-    return {
-      orderId: order.id,
-      totalAmount: order.total_amount,
-      status: order.status
-    };
+    return { success: true, orderId };
   } catch (error) {
     console.error('Error in createOrder:', error);
     throw error;
@@ -345,4 +368,41 @@ export const isAddressUsedInOrders = async (addressId: string) => {
   }
   
   return count > 0;
+};
+
+
+/**
+ * Subscribe to real-time updates for a specific order
+ * @param orderId The ID of the order to subscribe to
+ * @param callback Function to call when the order is updated
+ * @returns A subscription object that can be used to unsubscribe
+ */
+export const subscribeToOrderUpdates = (orderId: string, callback: (payload: any) => void) => {
+  return supabase
+    .channel(`order-${orderId}`)
+    .on('postgres_changes', {
+      event: 'UPDATE',
+      schema: 'public',
+      table: 'orders',
+      filter: `id=eq.${orderId}`
+    }, callback)
+    .subscribe();
+};
+
+/**
+ * Subscribe to real-time updates for all orders of a user
+ * @param userId The ID of the user
+ * @param callback Function to call when any of the user's orders are updated
+ * @returns A subscription object that can be used to unsubscribe
+ */
+export const subscribeToUserOrdersUpdates = (userId: string, callback: (payload: any) => void) => {
+  return supabase
+    .channel(`user-orders-${userId}`)
+    .on('postgres_changes', {
+      event: '*', // Listen for all events (INSERT, UPDATE, DELETE)
+      schema: 'public',
+      table: 'orders',
+      filter: `user_id=eq.${userId}`
+    }, callback)
+    .subscribe();
 };

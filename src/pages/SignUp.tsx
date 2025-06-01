@@ -1,10 +1,11 @@
-
+import { toast } from '@/components/ui/sonner';
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
+
 
 const SignUpPage = () => {
   const [formData, setFormData] = useState({
@@ -42,8 +43,36 @@ const SignUpPage = () => {
       return;
     }
     
-    if (formData.password.length < 6) {
-      setFormError("Password must be at least 6 characters");
+    // Enhanced password validation
+    const validatePasswordStrength = (password: string): { isValid: boolean; feedback: string } => {
+      const minLength = 8;
+      const hasUpperCase = /[A-Z]/.test(password);
+      const hasLowerCase = /[a-z]/.test(password);
+      const hasNumbers = /\d/.test(password);
+      const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+
+      if (password.length < minLength) {
+        return { isValid: false, feedback: "Password must be at least 8 characters long" };
+      }
+      if (!hasUpperCase) {
+        return { isValid: false, feedback: "Password must contain at least one uppercase letter" };
+      }
+      if (!hasLowerCase) {
+        return { isValid: false, feedback: "Password must contain at least one lowercase letter" };
+      }
+      if (!hasNumbers) {
+        return { isValid: false, feedback: "Password must contain at least one number" };
+      }
+      if (!hasSpecialChar) {
+        return { isValid: false, feedback: "Password must contain at least one special character" };
+      }
+
+      return { isValid: true, feedback: "" };
+    };
+
+    const { isValid, feedback } = validatePasswordStrength(formData.password);
+    if (!isValid) {
+      setFormError(feedback);
       return;
     }
     
@@ -161,7 +190,7 @@ const SignUpPage = () => {
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
-              <p className="text-xs text-gray-500 mt-1">Password must be at least 6 characters</p>
+              <p className="text-xs text-gray-500 mt-1">Password must be at least 8 characters with uppercase, lowercase, numbers, and special characters</p>
             </div>
             
             <Button 

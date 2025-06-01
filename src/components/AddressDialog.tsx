@@ -17,6 +17,7 @@ import { Home, Briefcase, MapPin } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createAddress, updateAddress, Address } from '@/services/addressService';
 import { Switch } from '@/components/ui/switch';
+import { sanitizeInput } from '@/services/securityService';
 
 interface AddressDialogProps {
   open: boolean;
@@ -119,15 +120,27 @@ export const AddressDialog = ({ open, onOpenChange, addressToEdit }: AddressDial
     setIsSubmitting(true);
 
     try {
+      // Sanitize user inputs before submission
+      const sanitizedData = {
+        name: sanitizeInput(formData.name),
+        phone: sanitizeInput(formData.phone),
+        address: sanitizeInput(formData.address),
+        city: sanitizeInput(formData.city),
+        state: sanitizeInput(formData.state),
+        pincode: sanitizeInput(formData.pincode),
+        address_type: formData.address_type,
+        is_default: formData.is_default
+      };
+      
       if (addressToEdit) {
         // Update existing address
         await updateAddressMutation.mutateAsync({
           id: addressToEdit.id,
-          data: formData
+          data: sanitizedData
         });
       } else {
         // Create new address
-        await createAddressMutation.mutateAsync(formData);
+        await createAddressMutation.mutateAsync(sanitizedData);
       }
     } catch (error) {
       // Error handling is done in mutation callbacks

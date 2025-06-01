@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { User, Package, CreditCard, LogOut, Heart, Settings, Lock, ShieldCheck, Info, Edit } from 'lucide-react';
+import { User, Package, LogOut, Heart, Settings, Lock, ShieldCheck, Info, Edit } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
@@ -61,33 +61,14 @@ const Profile = () => {
       <main className="container mx-auto px-4 py-6">
         {/* Profile Header */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <div className="h-16 w-16 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 mr-4">
-                <User className="h-8 w-8" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold">{userName}</h1>
-                <p className="text-gray-500">{userEmail}</p>
-              </div>
+          <div className="flex items-center">
+            <div className="h-16 w-16 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 mr-4">
+              <User className="h-8 w-8" />
             </div>
-            
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="flex items-center">
-                  <Edit className="h-4 w-4 mr-1" /> Edit Profile
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                  <DialogTitle>Edit Profile</DialogTitle>
-                  <DialogDescription>
-                    Update your personal information
-                  </DialogDescription>
-                </DialogHeader>
-                <ProfileEditor />
-              </DialogContent>
-            </Dialog>
+            <div>
+              <h1 className="text-xl font-bold">{userName}</h1>
+              <p className="text-gray-500">{userEmail}</p>
+            </div>
           </div>
         </div>
         
@@ -121,13 +102,26 @@ const Profile = () => {
           <h2 className="text-lg font-bold mb-4">Account Settings</h2>
           
           <div className="grid grid-cols-1 gap-2">
-            <Link to="/address" className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-md">
-              <div className="flex items-center">
-                <CreditCard className="h-5 w-5 text-green-600 mr-3" />
-                <span>My Addresses</span>
-              </div>
-              <span className="text-gray-400">→</span>
-            </Link>
+            <Dialog>
+              <DialogTrigger asChild>
+                <div className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-md cursor-pointer">
+                  <div className="flex items-center">
+                    <Edit className="h-5 w-5 text-green-600 mr-3" />
+                    <span>Edit Profile</span>
+                  </div>
+                  <span className="text-gray-400">→</span>
+                </div>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Edit Profile</DialogTitle>
+                  <DialogDescription>
+                    Update your personal information
+                  </DialogDescription>
+                </DialogHeader>
+                <ProfileEditor />
+              </DialogContent>
+            </Dialog>
             
             <Separator />
             

@@ -1,4 +1,5 @@
 import { toast } from '@/components/ui/sonner';
+import { v4 as uuidv4 } from 'uuid';
 
 /**
  * Service for handling security concerns in the application
@@ -20,6 +21,7 @@ interface SecurityLog {
  * @param message Event description
  * @param details Additional details
  */
+// Use sessionStorage for security-critical items instead of localStorage
 export const logSecurityEvent = (type: string, message: string, details?: any): void => {
   try {
     const log: SecurityLog = {
@@ -30,7 +32,7 @@ export const logSecurityEvent = (type: string, message: string, details?: any): 
     };
     
     let logs: SecurityLog[] = [];
-    const storedLogs = localStorage.getItem(SECURITY_LOG_KEY);
+    const storedLogs = sessionStorage.getItem(SECURITY_LOG_KEY);
     
     if (storedLogs) {
       logs = JSON.parse(storedLogs);
@@ -43,7 +45,7 @@ export const logSecurityEvent = (type: string, message: string, details?: any): 
       logs = logs.slice(logs.length - 50);
     }
     
-    localStorage.setItem(SECURITY_LOG_KEY, JSON.stringify(logs));
+    sessionStorage.setItem(SECURITY_LOG_KEY, JSON.stringify(logs));
     
     // In a production environment, critical security events should be sent to a server
     if (type === 'critical') {
@@ -77,14 +79,12 @@ export const sanitizeInput = (input: string): string => {
  * @returns Boolean indicating if the token is valid
  */
 export const validateCsrfToken = (token: string): boolean => {
-  const storedToken = localStorage.getItem('csrf_token');
+  const storedToken = sessionStorage.getItem('csrfToken');
   
-  if (!storedToken || token !== storedToken) {
-    logSecurityEvent('csrf', 'Invalid CSRF token', { token });
-    return false;
-  }
+  // Clear the token after validation (one-time use)
+  sessionStorage.removeItem('csrfToken');
   
-  return true;
+  return storedToken === token;
 };
 
 /**
@@ -92,11 +92,9 @@ export const validateCsrfToken = (token: string): boolean => {
  * @returns New CSRF token
  */
 export const generateCsrfToken = (): string => {
-  const array = new Uint8Array(16);
-  window.crypto.getRandomValues(array);
-  const token = Array.from(array).map(b => b.toString(16).padStart(2, '0')).join('');
-  
-  localStorage.setItem('csrf_token', token);
+  const token = uuidv4();
+  // Store token in sessionStorage
+  sessionStorage.setItem('csrfToken', token);
   return token;
 };
 
@@ -231,4 +229,12 @@ export const initializeSecurity = (): void => {
       console.error('Error setting CSP meta tag:', error);
     }
   });
+};
+
+/**
+ * Generate a nonce for script tags
+ * @returns A unique nonce value
+ */
+export const generateNonce = (): string => {
+  return uuidv4();
 };
