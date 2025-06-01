@@ -20,6 +20,11 @@ export const getProducts = async (): Promise<Product[]> => {
 };
 
 export const getProduct = async (id: string): Promise<Product | null> => {
+  if (!id) {
+    console.error('Product ID is required');
+    return null;
+  }
+
   const { data, error } = await supabase
     .from('products')
     .select('*')
@@ -85,17 +90,20 @@ export const getPopularProducts = async (): Promise<Product[]> => {
       products (*)
     `)
     .order('total_orders', { ascending: false })
-    .limit(10);
+    .limit(8);
 
   if (error) {
     console.error('Error fetching popular products:', error);
     return [];
   }
 
-  return data?.map(item => ({
-    ...item.products,
-    features: Array.isArray(item.products?.features) ? item.products.features.map(f => String(f)) : []
-  })).filter(Boolean) || [];
+  return data?.map(item => {
+    if (!item.products) return null;
+    return {
+      ...item.products,
+      features: Array.isArray(item.products?.features) ? item.products.features.map(f => String(f)) : []
+    };
+  }).filter(Boolean) || [];
 };
 
 export const getFeaturedProducts = async (): Promise<Product[]> => {

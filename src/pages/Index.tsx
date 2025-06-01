@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
@@ -205,7 +204,7 @@ const HomePage = () => {
                 <ProductCard 
                   key={product.id} 
                   product={product}
-                  showBuyNow={true}
+                  showBuyNow={false}
                 />
               ))}
             </div>

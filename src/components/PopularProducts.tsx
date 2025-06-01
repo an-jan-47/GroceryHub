@@ -2,23 +2,13 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { getProducts } from '@/services/productService';
+import { getPopularProducts } from '@/services/productService';
 import ProductCard from '@/components/ProductCard';
 
 const PopularProducts = () => {
   const { data: products, isLoading } = useQuery({
     queryKey: ['popularProducts'],
-    queryFn: async () => {
-      const allProducts = await getProducts();
-      // Sort by rating and review count to get popular products
-      return allProducts
-        .sort((a, b) => {
-          const scoreA = a.rating * a.review_count;
-          const scoreB = b.rating * b.review_count;
-          return scoreB - scoreA;
-        })
-        .slice(0, 8);
-    }
+    queryFn: getPopularProducts
   });
 
   if (isLoading) {
@@ -53,7 +43,7 @@ const PopularProducts = () => {
           <ProductCard 
             key={product.id} 
             product={product}
-            showBuyNow={true}
+            showBuyNow={false}
           />
         ))}
       </div>

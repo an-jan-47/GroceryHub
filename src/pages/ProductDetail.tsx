@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ChevronLeft, ShoppingCart, Star, Plus, Minus, Share2, Heart } from 'lucide-react';
@@ -20,10 +19,16 @@ const ProductDetailPage = () => {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
   // Fetch product details
-  const { data: product, isLoading } = useQuery({
+  const { data: product, isLoading, error } = useQuery({
     queryKey: ['product', id],
-    queryFn: () => getProduct(id!),
-    enabled: !!id
+    queryFn: () => {
+      if (!id) {
+        throw new Error('Product ID is required');
+      }
+      return getProduct(id);
+    },
+    enabled: !!id,
+    retry: 1
   });
 
   // Fetch all products for similar products
@@ -107,6 +112,23 @@ const ProductDetailPage = () => {
     }
   };
 
+  if (error) {
+    console.error('Error loading product:', error);
+    return (
+      <div className="pb-20">
+        <Header />
+        <div className="container px-4 py-4 mx-auto text-center">
+          <h1 className="text-2xl font-bold">Error loading product</h1>
+          <p className="text-gray-600 mb-4">There was an error loading the product details.</p>
+          <Button onClick={() => navigate('/')} className="mt-4">
+            Go Home
+          </Button>
+        </div>
+        <BottomNavigation />
+      </div>
+    );
+  }
+
   if (isLoading) {
     return (
       <div className="pb-20">
@@ -130,6 +152,7 @@ const ProductDetailPage = () => {
         <Header />
         <div className="container px-4 py-4 mx-auto text-center">
           <h1 className="text-2xl font-bold">Product not found</h1>
+          <p className="text-gray-600 mb-4">The product you're looking for doesn't exist or has been removed.</p>
           <Button onClick={() => navigate('/')} className="mt-4">
             Go Home
           </Button>
@@ -294,7 +317,7 @@ const ProductDetailPage = () => {
                 <ProductCard 
                   key={similarProduct.id} 
                   product={similarProduct}
-                  showBuyNow={true}
+                  showBuyNow={false}
                 />
               ))}
             </div>

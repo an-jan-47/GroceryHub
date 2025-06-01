@@ -120,6 +120,7 @@ export const createOrder = async (orderData: {
         payment_method: orderData.paymentMethod,
         total_amount: orderData.totalAmount,
         status: 'Processing',
+        products_name: orderData.products.map(p => p.name),
         order_date: new Date().toISOString()
       })
       .select('id')
