@@ -15,7 +15,7 @@ export const getProducts = async (): Promise<Product[]> => {
 
   return data?.map(product => ({
     ...product,
-    features: Array.isArray(product.features) ? product.features : []
+    features: Array.isArray(product.features) ? product.features.map(f => String(f)) : []
   })) || [];
 };
 
@@ -33,9 +33,12 @@ export const getProduct = async (id: string): Promise<Product | null> => {
 
   return data ? {
     ...data,
-    features: Array.isArray(data.features) ? data.features : []
+    features: Array.isArray(data.features) ? data.features.map(f => String(f)) : []
   } : null;
 };
+
+// Alias for compatibility
+export const getProductById = getProduct;
 
 export const getProductsByCategory = async (category: string): Promise<Product[]> => {
   const { data, error } = await supabase
@@ -51,7 +54,7 @@ export const getProductsByCategory = async (category: string): Promise<Product[]
 
   return data?.map(product => ({
     ...product,
-    features: Array.isArray(product.features) ? product.features : []
+    features: Array.isArray(product.features) ? product.features.map(f => String(f)) : []
   })) || [];
 };
 
@@ -69,7 +72,7 @@ export const searchProducts = async (query: string): Promise<Product[]> => {
 
   return data?.map(product => ({
     ...product,
-    features: Array.isArray(product.features) ? product.features : []
+    features: Array.isArray(product.features) ? product.features.map(f => String(f)) : []
   })) || [];
 };
 
@@ -91,7 +94,7 @@ export const getPopularProducts = async (): Promise<Product[]> => {
 
   return data?.map(item => ({
     ...item.products,
-    features: Array.isArray(item.products?.features) ? item.products.features : []
+    features: Array.isArray(item.products?.features) ? item.products.features.map(f => String(f)) : []
   })).filter(Boolean) || [];
 };
 
@@ -110,7 +113,7 @@ export const getFeaturedProducts = async (): Promise<Product[]> => {
 
   return data?.map(product => ({
     ...product,
-    features: Array.isArray(product.features) ? product.features : []
+    features: Array.isArray(product.features) ? product.features.map(f => String(f)) : []
   })) || [];
 };
 
@@ -130,7 +133,7 @@ export const getSimilarProducts = async (productId: string, category: string, br
 
   return data?.map(product => ({
     ...product,
-    features: Array.isArray(product.features) ? product.features : []
+    features: Array.isArray(product.features) ? product.features.map(f => String(f)) : []
   })) || [];
 };
 
