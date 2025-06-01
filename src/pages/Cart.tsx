@@ -8,14 +8,13 @@ import { Separator } from '@/components/ui/separator';
 import { useCart } from '@/hooks/useCart';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from '@/components/ui/sonner';
 import { useAuthCheck } from '@/hooks/useAuthCheck';
 
 const CartPage = () => {
   const [couponCode, setCouponCode] = useState('');
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
   const { cartItems, removeFromCart, updateQuantity, cartTotal } = useCart();
-  const { toast } = useToast();
   const navigate = useNavigate();
   const { checkAuthForCheckout } = useAuthCheck();
   
@@ -30,15 +29,12 @@ const CartPage = () => {
     setTimeout(() => {
       setIsApplyingCoupon(false);
       if (couponCode.toLowerCase() === 'discount10') {
-        toast({
-          title: "Coupon applied!",
+        toast("Coupon applied!", {
           description: "10% discount has been applied to your order.",
         });
       } else {
-        toast({
-          title: "Invalid coupon",
+        toast("Invalid coupon", {
           description: "The coupon code you entered is invalid or expired.",
-          variant: "destructive",
         });
       }
     }, 1000);
@@ -46,10 +42,8 @@ const CartPage = () => {
   
   const handleCheckout = () => {
     if (cartItems.length === 0) {
-      toast({
-        title: "Cart is empty",
+      toast("Cart is empty", {
         description: "Add items to your cart before proceeding to checkout.",
-        variant: "destructive",
       });
       return;
     }
@@ -103,9 +97,9 @@ const CartPage = () => {
                       {item.name}
                     </Link>
                     <div className="mt-1">
-                      {item.sale_price ? (
+                      {item.salePrice ? (
                         <div className="flex items-center">
-                          <span className="font-bold text-brand-blue">₹{item.sale_price.toFixed(2)}</span>
+                          <span className="font-bold text-brand-blue">₹{item.salePrice.toFixed(2)}</span>
                           <span className="text-xs text-gray-500 line-through ml-1">₹{item.price.toFixed(2)}</span>
                         </div>
                       ) : (

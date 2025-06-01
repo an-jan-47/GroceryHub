@@ -39,8 +39,6 @@ const ProductCard = ({ product, className, showBuyNow = false }: ProductCardProp
       quantity: 1,
       stock: product.stock
     });
-    
-    // Note: Removed duplicate toast here as addToCart already shows one
   };
   
   const handleBuyNow = (e: React.MouseEvent) => {

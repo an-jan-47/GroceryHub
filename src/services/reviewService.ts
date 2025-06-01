@@ -1,105 +1,70 @@
-import { supabase } from '@/integrations/supabase/client';
 
-export interface Review {
-  id: string;
-  product_id: string;
-  user_id: string;
-  user_name: string;
-  rating: number;
-  comment?: string;
-  created_at: string;
-}
+import { supabase } from '@/integrations/supabase/client';
+import { Review } from '@/types';
 
 export const getProductReviews = async (productId: string): Promise<Review[]> => {
-  try {
-    const { data, error } = await supabase
-      .from('reviews')
-      .select('*')
-      .eq('product_id', productId)
-      .order('created_at', { ascending: false });
-      
-    if (error) throw error;
-    
-    return data || [];
-  } catch (error) {
+  const { data, error } = await supabase
+    .from('reviews')
+    .select('*')
+    .eq('product_id', productId)
+    .order('date', { ascending: false });
+
+  if (error) {
     console.error('Error fetching reviews:', error);
     return [];
   }
+
+  return data?.map(review => ({
+    ...review,
+    created_at: review.date || review.created_at || new Date().toISOString()
+  })) || [];
 };
 
 export const getUserReviews = async (userId: string): Promise<Review[]> => {
-  try {
-    const { data, error } = await supabase
-      .from('reviews')
-      .select(`
-        *,
-        products:product_id (
-          name,
-          images
-        )
-      `)
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
-      
-    if (error) throw error;
-    
-    return data || [];
-  } catch (error) {
+  const { data, error } = await supabase
+    .from('reviews')
+    .select(`
+      *,
+      products (
+        name,
+        images
+      )
+    `)
+    .eq('user_id', userId)
+    .order('date', { ascending: false });
+
+  if (error) {
     console.error('Error fetching user reviews:', error);
     return [];
   }
+
+  return data?.map(review => ({
+    ...review,
+    created_at: review.date || review.created_at || new Date().toISOString()
+  })) || [];
 };
 
-export const createReview = async (reviewData: Omit<Review, 'id' | 'created_at'>) => {
-  try {
-    const { data, error } = await supabase
-      .from('reviews')
-      .insert(reviewData)
-      .select()
-      .single();
-      
-    if (error) throw error;
-    
-    return data;
-  } catch (error) {
+export const createReview = async (review: Omit<Review, 'id' | 'created_at'>): Promise<Review | null> => {
+  const { data, error } = await supabase
+    .from('reviews')
+    .insert({
+      product_id: review.product_id,
+      user_id: review.user_id,
+      user_name: review.user_name,
+      rating: review.rating,
+      comment: review.comment || '',
+      date: new Date().toISOString()
+    })
+    .select()
+    .single();
+
+  if (error) {
     console.error('Error creating review:', error);
-    throw error;
+    return null;
   }
-};
 
-export const updateReview = async (
-  reviewId: string, 
-  reviewData: Partial<Omit<Review, 'id' | 'created_at'>>
-) => {
-  try {
-    const { data, error } = await supabase
-      .from('reviews')
-      .update(reviewData)
-      .eq('id', reviewId)
-      .select()
-      .single();
-      
-    if (error) throw error;
-    
-    return data;
-  } catch (error) {
-    console.error('Error updating review:', error);
-    throw error;
-  }
-};
-
-export const deleteReview = async (reviewId: string) => {
-  try {
-    const { error } = await supabase
-      .from('reviews')
-      .delete()
-      .eq('id', reviewId);
-      
-    if (error) throw error;
-    
-    return true;
-  } catch (error) {
-    console.error('Error deleting review:', error);
-    throw error;
-  }
+  return {
+    ...data,
+    created_at: data.date || data.created_at || new Date().toISOString()
+  };
 };
