@@ -92,7 +92,7 @@ export const placeOrder = async (orderDetails: OrderDetails) => {
   }
 };
 
-// Create order function specifically for Payment.tsx
+// Create order function specifically for Payment.tsx - FIXED VERSION
 export const createOrder = async (orderData: {
   addressId: string;
   userId: string;
@@ -106,12 +106,14 @@ export const createOrder = async (orderData: {
   }>;
 }) => {
   try {
+    console.log('Creating order with data:', orderData);
+    
     // Make sure products array exists before proceeding
     if (!orderData || !orderData.products || !Array.isArray(orderData.products)) {
       throw new Error('Invalid order data: products array is missing or invalid');
     }
 
-    // Create the order in the database
+    // Create the order in the database without address_details initially
     const { data: order, error: orderError } = await supabase
       .from('orders')
       .insert({
@@ -126,13 +128,17 @@ export const createOrder = async (orderData: {
       .select('id')
       .single();
 
-    if (orderError) throw orderError;
+    if (orderError) {
+      console.error('Order creation error:', orderError);
+      throw orderError;
+    }
     
     if (!order) {
       throw new Error('Failed to create order');
     }
     
     const orderId = order.id;
+    console.log('Order created with ID:', orderId);
     
     // Create order items
     const orderItems = orderData.products.map(product => ({
@@ -142,15 +148,24 @@ export const createOrder = async (orderData: {
       quantity: product.quantity
     }));
     
+    console.log('Creating order items:', orderItems);
+    
     const { error: itemsError } = await supabase
       .from('order_items')
       .insert(orderItems);
       
-    if (itemsError) throw itemsError;
+    if (itemsError) {
+      console.error('Order items creation error:', itemsError);
+      throw itemsError;
+    }
+    
+    console.log('Order items created successfully');
     
     // Update product stock quantities
     for (const product of orderData.products) {
       try {
+        console.log(`Updating stock for product ${product.productId}, reducing by ${product.quantity}`);
+        
         // Call the database function to decrease stock
         const { error: stockError } = await supabase.rpc('decrease_product_stock', {
           product_id: product.productId,
@@ -160,12 +175,15 @@ export const createOrder = async (orderData: {
         if (stockError) {
           console.error(`Error updating stock for product ${product.productId}:`, stockError);
           toast(`Stock update error: ${stockError.message}`);
+        } else {
+          console.log(`Stock updated successfully for product ${product.productId}`);
         }
       } catch (err) {
         console.error(`Error updating product ${product.productId}:`, err);
       }
     }
     
+    console.log('Order creation completed successfully');
     return { success: true, orderId };
   } catch (error) {
     console.error('Error in createOrder:', error);

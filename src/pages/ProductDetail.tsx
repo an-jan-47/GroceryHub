@@ -18,18 +18,24 @@ const ProductDetailPage = () => {
   const { addToCart, cartItems, updateQuantity } = useCart();
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
+  console.log('ProductDetail - Product ID from params:', id);
+
   // Fetch product details
   const { data: product, isLoading, error } = useQuery({
     queryKey: ['product', id],
     queryFn: () => {
       if (!id) {
+        console.error('No product ID provided');
         throw new Error('Product ID is required');
       }
+      console.log('Fetching product with ID:', id);
       return getProduct(id);
     },
     enabled: !!id,
     retry: 1
   });
+
+  console.log('Product query result:', { product, isLoading, error });
 
   // Fetch all products for similar products
   const { data: allProducts } = useQuery({
@@ -62,31 +68,6 @@ const ProductDetailPage = () => {
       quantity: 1,
       stock: product.stock
     });
-  };
-
-  const handleBuyNow = () => {
-    if (!product) return;
-    
-    if (product.stock <= 0) {
-      toast("Out of stock", {
-        description: `${product.name} is currently unavailable`
-      });
-      return;
-    }
-
-    // Add to cart first
-    addToCart({
-      id: product.id,
-      name: product.name,
-      price: product.price,
-      salePrice: product.sale_price,
-      images: product.images,
-      quantity: 1,
-      stock: product.stock
-    });
-
-    // Navigate to address selection
-    navigate('/address');
   };
 
   const getQuantityInCart = () => {
@@ -147,6 +128,7 @@ const ProductDetailPage = () => {
   }
 
   if (!product) {
+    console.error('Product is null after loading');
     return (
       <div className="pb-20">
         <Header />
@@ -358,7 +340,7 @@ const ProductDetailPage = () => {
             
             {product.stock > 0 && (
               <Button 
-                onClick={handleBuyNow}
+                onClick={() => navigate('/address')}
                 className="flex-1 bg-brand-blue hover:bg-brand-darkBlue"
               >
                 Buy Now

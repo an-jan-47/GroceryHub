@@ -3,6 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Product } from '@/types';
 
 export const getProducts = async (): Promise<Product[]> => {
+  console.log('Fetching all products...');
+  
   const { data, error } = await supabase
     .from('products')
     .select('*')
@@ -13,6 +15,8 @@ export const getProducts = async (): Promise<Product[]> => {
     return [];
   }
 
+  console.log('Products fetched:', data?.length || 0);
+
   return data?.map(product => ({
     ...product,
     features: Array.isArray(product.features) ? product.features.map(f => String(f)) : []
@@ -20,6 +24,8 @@ export const getProducts = async (): Promise<Product[]> => {
 };
 
 export const getProduct = async (id: string): Promise<Product | null> => {
+  console.log('Fetching product with ID:', id);
+  
   if (!id) {
     console.error('Product ID is required');
     return null;
@@ -36,6 +42,8 @@ export const getProduct = async (id: string): Promise<Product | null> => {
     return null;
   }
 
+  console.log('Product fetched:', data);
+
   return data ? {
     ...data,
     features: Array.isArray(data.features) ? data.features.map(f => String(f)) : []
@@ -46,6 +54,8 @@ export const getProduct = async (id: string): Promise<Product | null> => {
 export const getProductById = getProduct;
 
 export const getProductsByCategory = async (category: string): Promise<Product[]> => {
+  console.log('Fetching products by category:', category);
+  
   const { data, error } = await supabase
     .from('products')
     .select('*')
@@ -64,6 +74,8 @@ export const getProductsByCategory = async (category: string): Promise<Product[]
 };
 
 export const searchProducts = async (query: string): Promise<Product[]> => {
+  console.log('Searching products with query:', query);
+  
   const { data, error } = await supabase
     .from('products')
     .select('*')
@@ -82,6 +94,8 @@ export const searchProducts = async (query: string): Promise<Product[]> => {
 };
 
 export const getPopularProducts = async (): Promise<Product[]> => {
+  console.log('Fetching popular products...');
+  
   const { data, error } = await supabase
     .from('popular_products')
     .select(`
@@ -97,6 +111,8 @@ export const getPopularProducts = async (): Promise<Product[]> => {
     return [];
   }
 
+  console.log('Popular products data:', data);
+
   return data?.map(item => {
     if (!item.products) return null;
     return {
@@ -107,6 +123,8 @@ export const getPopularProducts = async (): Promise<Product[]> => {
 };
 
 export const getFeaturedProducts = async (): Promise<Product[]> => {
+  console.log('Fetching featured products...');
+  
   const { data, error } = await supabase
     .from('products')
     .select('*')
@@ -126,6 +144,8 @@ export const getFeaturedProducts = async (): Promise<Product[]> => {
 };
 
 export const getSimilarProducts = async (productId: string, category: string, brand: string): Promise<Product[]> => {
+  console.log('Fetching similar products for:', { productId, category, brand });
+  
   const { data, error } = await supabase
     .from('products')
     .select('*')
