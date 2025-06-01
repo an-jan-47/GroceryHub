@@ -40,10 +40,7 @@ const ProductCard = ({ product, className, showBuyNow = false }: ProductCardProp
       stock: product.stock
     });
     
-    toast("Added to cart", {
-      description: `${product.name} added to cart`,
-      position: "bottom-center"
-    });
+    // Note: Removed duplicate toast here as addToCart already shows one
   };
   
   const handleBuyNow = (e: React.MouseEvent) => {
@@ -69,8 +66,8 @@ const ProductCard = ({ product, className, showBuyNow = false }: ProductCardProp
       stock: product.stock
     });
     
-    // Navigate to cart
-    navigate('/cart');
+    // Navigate to address selection for buy now
+    navigate('/address');
   };
   
   // Get quantity in cart

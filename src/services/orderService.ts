@@ -24,23 +24,47 @@ export const placeOrder = async (orderDetails: OrderDetails) => {
   const { user_id, address_id, payment_method, total_amount, products_name, items } = orderDetails;
 
   try {
-    // Start a transaction for order creation using RPC call to ensure atomicity
-    const { data: order, error: orderError } = await supabase.rpc('create_order_with_items', {
-      p_user_id: user_id,
-      p_address_id: address_id,
-      p_payment_method: payment_method,
-      p_total_amount: total_amount,
-      p_products_name: products_name,
-      p_items: items.map(item => ({
-        product_id: item.product_id,
-        quantity: item.quantity,
-        price: item.price
-      }))
-    });
+    // Create the order in the database
+    const { data: order, error: orderError } = await supabase
+      .from('orders')
+      .insert({
+        user_id,
+        address_id,
+        payment_method,
+        total_amount,
+        status: 'Processing',
+        products_name,
+        order_date: new Date().toISOString()
+      })
+      .select('id')
+      .single();
 
     if (orderError) {
       console.error('Error creating order:', orderError);
       throw orderError;
+    }
+
+    if (!order) {
+      throw new Error('Failed to create order');
+    }
+
+    const orderId = order.id;
+    
+    // Create order items
+    const orderItems = items.map(item => ({
+      order_id: orderId,
+      product_id: item.product_id,
+      price: item.price,
+      quantity: item.quantity
+    }));
+    
+    const { error: itemsError } = await supabase
+      .from('order_items')
+      .insert(orderItems);
+      
+    if (itemsError) {
+      console.error('Error creating order items:', itemsError);
+      throw itemsError;
     }
 
     // Update product stock and popular products
@@ -61,7 +85,7 @@ export const placeOrder = async (orderDetails: OrderDetails) => {
       }
     }
 
-    return order;
+    return { order, orderId };
   } catch (error) {
     console.error('Error placing order:', error);
     throw error;
@@ -102,6 +126,10 @@ export const createOrder = async (orderData: {
       .single();
 
     if (orderError) throw orderError;
+    
+    if (!order) {
+      throw new Error('Failed to create order');
+    }
     
     const orderId = order.id;
     

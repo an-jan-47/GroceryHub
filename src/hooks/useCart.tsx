@@ -22,7 +22,7 @@ interface CartContextType {
   updateQuantity: (productId: string, quantity: number) => void;
   totalItems: number;
   subtotal: number;
-  cartTotal: number; // Added cartTotal property
+  cartTotal: number;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -31,14 +31,12 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [cartItems, setCartItems] = useState<CartItem[]>(() => {
     const savedCart = localStorage.getItem('cart');
     try {
-      // Validate cart data before using it
       const parsedCart = savedCart ? JSON.parse(savedCart) : [];
       if (!Array.isArray(parsedCart)) {
         throw new Error('Invalid cart data');
       }
       return parsedCart;
     } catch (e) {
-      // If there's any error parsing, reset the cart
       localStorage.removeItem('cart');
       return [];
     }
@@ -60,7 +58,6 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       product.quantity = 1;
     }
     
-    // Check if we have stock information and validate
     if (product.stock !== undefined && product.stock <= 0) {
       toast("Out of stock", {
         description: `${product.name} is currently out of stock`,
@@ -74,11 +71,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const existingItemIndex = prevItems.findIndex(item => item.id === product.id);
       
       if (existingItemIndex >= 0) {
-        // If the item already exists in cart, add to the quantity
         const updatedItems = [...prevItems];
         const newQuantity = updatedItems[existingItemIndex].quantity + product.quantity;
         
-        // Stock check
         if (product.stock !== undefined && newQuantity > product.stock) {
           toast("Limited stock", {
             description: `Only ${product.stock} units available`,
@@ -92,7 +87,6 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         return updatedItems;
       } else {
-        // If it's a new item, add it to cart
         return [...prevItems, { ...product }];
       }
     });
@@ -120,21 +114,22 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (itemIndex >= 0) {
         const item = prevItems[itemIndex];
         
-        // If quantity is zero or less, remove the item
         if (quantity <= 0) {
           const newItems = [...prevItems];
           newItems.splice(itemIndex, 1);
           
-          toast("Removed", {
-            description: `${item.name} removed from cart`,
-            duration: 2000,
-            position: "bottom-center"
-          });
+          // Only show toast if user explicitly removes item, not for automatic updates
+          if (quantity === 0) {
+            toast("Removed", {
+              description: `${item.name} removed from cart`,
+              duration: 2000,
+              position: "bottom-center"
+            });
+          }
           
           return newItems;
         }
         
-        // Check against stock if available
         if (item.stock !== undefined && quantity > item.stock) {
           toast("Limited stock", {
             description: `Only ${item.stock} units available`,
@@ -147,7 +142,6 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return newItems;
         }
         
-        // Update quantity
         const newItems = [...prevItems];
         newItems[itemIndex] = { ...item, quantity };
         return newItems;
@@ -173,7 +167,6 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return total + itemPrice * item.quantity;
   }, 0);
   
-  // Set cartTotal to be equal to subtotal for now
   const cartTotal = subtotal;
   
   return (
@@ -186,7 +179,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updateQuantity,
         totalItems,
         subtotal,
-        cartTotal // Added cartTotal to the provider
+        cartTotal
       }}
     >
       {children}

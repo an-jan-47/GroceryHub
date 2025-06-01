@@ -57,6 +57,66 @@ export type Database = {
         }
         Relationships: []
       }
+      order_details: {
+        Row: {
+          address_details: Json | null
+          created_at: string
+          customer_name: string | null
+          id: string
+          order_id: string
+          price: number
+          product_id: string
+          product_image: string | null
+          product_name: string
+          quantity: number
+          total_amount: number
+          user_id: string
+        }
+        Insert: {
+          address_details?: Json | null
+          created_at?: string
+          customer_name?: string | null
+          id?: string
+          order_id: string
+          price: number
+          product_id: string
+          product_image?: string | null
+          product_name: string
+          quantity: number
+          total_amount: number
+          user_id: string
+        }
+        Update: {
+          address_details?: Json | null
+          created_at?: string
+          customer_name?: string | null
+          id?: string
+          order_id?: string
+          price?: number
+          product_id?: string
+          product_image?: string | null
+          product_name?: string
+          quantity?: number
+          total_amount?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_details_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_details_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_items: {
         Row: {
           created_at: string
@@ -106,6 +166,7 @@ export type Database = {
           id: string
           order_date: string
           payment_method: string
+          payment_status: string | null
           products_name: string[] | null
           status: string
           total_amount: number
@@ -118,6 +179,7 @@ export type Database = {
           id?: string
           order_date?: string
           payment_method: string
+          payment_status?: string | null
           products_name?: string[] | null
           status?: string
           total_amount: number
@@ -130,6 +192,7 @@ export type Database = {
           id?: string
           order_date?: string
           payment_method?: string
+          payment_status?: string | null
           products_name?: string[] | null
           status?: string
           total_amount?: number
@@ -142,6 +205,50 @@ export type Database = {
             columns: ["address_id"]
             isOneToOne: false
             referencedRelation: "addresses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payments: {
+        Row: {
+          amount: number
+          created_at: string | null
+          currency: string
+          id: string
+          order_id: string | null
+          payment_id: string
+          payment_method: string
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          currency?: string
+          id?: string
+          order_id?: string | null
+          payment_id: string
+          payment_method: string
+          status: string
+          updated_at?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          currency?: string
+          id?: string
+          order_id?: string | null
+          payment_id?: string
+          payment_method?: string
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
             referencedColumns: ["id"]
           },
         ]
@@ -226,6 +333,36 @@ export type Database = {
         }
         Relationships: []
       }
+      profile_settings: {
+        Row: {
+          created_at: string
+          id: string
+          language: string
+          notifications_enabled: boolean
+          theme: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          language?: string
+          notifications_enabled?: boolean
+          theme?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          language?: string
+          notifications_enabled?: boolean
+          theme?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -278,15 +415,7 @@ export type Database = {
           user_id?: string | null
           user_name?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "reviews_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "products"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       stock_updates: {
         Row: {
@@ -316,15 +445,31 @@ export type Database = {
           previous_stock?: number
           product_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "stock_updates_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "products"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       user_settings: {
         Row: {

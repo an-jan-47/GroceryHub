@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
@@ -9,11 +8,10 @@ import { ShoppingCart, Star, Plus, Minus, Search } from 'lucide-react';
 import { useCart } from '@/hooks/useCart';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from '@/components/ui/sonner';
 import type { CarouselApi } from '@/components/ui/carousel';
 import { useQuery } from '@tanstack/react-query';
-import { getProducts, getPopularProducts, searchProducts, Product } from '@/services/productService';
-import PopularProducts from '@/components/PopularProducts';
+import { getProducts, searchProducts, Product } from '@/services/productService';
 
 // For categories and banners we'll keep the hardcoded data for now
 const CATEGORIES = [
@@ -32,11 +30,9 @@ const BANNERS = [
 
 const HomePage = () => {
   const { addToCart, cartItems, updateQuantity } = useCart();
-  const { toast } = useToast();
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<Product[]>([]);
   const navigate = useNavigate();
   
   // Fetch products from Supabase
@@ -44,7 +40,7 @@ const HomePage = () => {
     data: products, 
     isLoading: isLoadingProducts 
   } = useQuery({
-    queryKey: ['featuredProducts'],
+    queryKey: ['allProducts'],
     queryFn: getProducts
   });
 
@@ -58,17 +54,14 @@ const HomePage = () => {
           navigate(`/search?query=${encodeURIComponent(searchQuery.trim())}`);
         } else {
           // If no results, show toast but stay on page
-          toast({
-            title: "No products found",
+          toast("No products found", {
             description: "Try a different search term"
           });
         }
       } catch (error) {
         console.error('Search error:', error);
-        toast({
-          title: "Search failed",
-          description: "Something went wrong, please try again",
-          variant: "destructive"
+        toast("Search failed", {
+          description: "Something went wrong, please try again"
         });
       }
     }
@@ -105,8 +98,7 @@ const HomePage = () => {
   const handleAddToCart = (product: Product) => {
     // Don't allow adding if out of stock
     if (product.stock <= 0) {
-      toast({
-        title: "Out of stock",
+      toast("Out of stock", {
         description: `${product.name} is currently unavailable`,
       });
       return;
@@ -115,8 +107,7 @@ const HomePage = () => {
     const existingItem = cartItems.find(item => item.id === product.id);
     if (existingItem) {
       updateQuantity(product.id, existingItem.quantity + 1);
-      toast({
-        title: "Updated cart quantity",
+      toast("Updated cart quantity", {
         description: `${product.name} quantity updated to ${existingItem.quantity + 1}`,
       });
     } else {
@@ -124,8 +115,7 @@ const HomePage = () => {
         ...product,
         quantity: 1,
       });
-      toast({
-        title: "Added to cart",
+      toast("Added to cart", {
         description: `${product.name} has been added to your cart`,
       });
     }
@@ -136,8 +126,8 @@ const HomePage = () => {
     return item ? item.quantity : 0;
   };
   
-  // Get featured products - first 4 items or fewer if less available
-  const featuredProducts = products ? products.slice(0, 4) : [];
+  // Get featured products - first 8 items or fewer if less available
+  const featuredProducts = products ? products.slice(0, 8) : [];
   
   return (
     <div className="pb-20">
@@ -194,9 +184,6 @@ const HomePage = () => {
           </div>
         </Carousel>
         
-        {/* Popular Products Section */}
-        <PopularProducts />
-        
         {/* Google Ads Section */}
         <div className="bg-gray-100 h-20 rounded-lg flex items-center justify-center">
           <p className="text-gray-500">Ad Space</p>
@@ -231,11 +218,11 @@ const HomePage = () => {
           </div>
         </section>
         
-        {/* Most Popular Products */}
+        {/* All Products Section */}
         <section>
           <div className="flex justify-between items-center mb-3">
-            <h2 className="text-lg font-semibold">Most Popular</h2>
-            <Link to="/explore" className="text-brand-blue text-sm">See all</Link>
+            <h2 className="text-lg font-semibold">Featured Products</h2>
+            <Link to="/explore" className="text-brand-blue text-sm">View All Products</Link>
           </div>
           
           {isLoadingProducts ? (

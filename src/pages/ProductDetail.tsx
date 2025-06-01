@@ -1,15 +1,14 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ChevronLeft, Heart, ShoppingCart, Star, Plus, Minus, Truck, Share2, Clock, Shield, Check } from 'lucide-react';
+import { ChevronLeft, Heart, ShoppingCart, Star, Plus, Minus, Truck, Share2, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useCart } from '@/hooks/useCart';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from '@/components/ui/sonner';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
-import { getProductById, getSimilarProducts, Product } from '@/services/productService';
+import { getProductById, getSimilarProducts, Product, getProducts } from '@/services/productService';
 import { getProductReviews, Review } from '@/services/reviewService';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
@@ -20,7 +19,6 @@ const ProductDetail = () => {
   const [quantity, setQuantity] = useState(1);
   const [isWishlisted, setIsWishlisted] = useState(false);
   const { addToCart, updateQuantity, cartItems } = useCart();
-  const { toast } = useToast();
   const navigate = useNavigate();
   const { user } = useAuth();
 
@@ -43,10 +41,27 @@ const ProductDetail = () => {
     enabled: !!productId
   });
 
-  // Fetch similar products based on category
+  // Fetch similar products based on brand and category
   const { data: similarProducts, isLoading: isLoadingSimilar } = useQuery({
-    queryKey: ['similarProducts', product?.category, productId],
-    queryFn: () => getSimilarProducts(product!.category, productId!),
+    queryKey: ['similarProducts', product?.brand, product?.category, productId],
+    queryFn: async () => {
+      if (!product) return [];
+      
+      // Get all products
+      const allProducts = await getProducts();
+      
+      // Filter products by similar brand and category, excluding current product
+      const similar = allProducts.filter(p => 
+        p.id !== productId && 
+        (p.brand === product.brand || p.category === product.category)
+      );
+      
+      // Prioritize same brand, then same category
+      const sameBrand = similar.filter(p => p.brand === product.brand);
+      const sameCategory = similar.filter(p => p.category === product.category && p.brand !== product.brand);
+      
+      return [...sameBrand, ...sameCategory].slice(0, 8);
+    },
     enabled: !!product
   });
 
@@ -59,25 +74,34 @@ const ProductDetail = () => {
 
     if (productInCart) {
       updateQuantity(product.id, productInCart.quantity + quantity);
-      toast({
-        title: "Updated cart quantity",
-        description: `${product.name} (${productInCart.quantity + quantity}) has been updated in your cart`
-      });
     } else {
       addToCart({
         ...product,
         quantity
       });
-      toast({
-        title: "Added to cart",
-        description: `${product.name} (${quantity}) has been added to your cart`
+    }
+  };
+
+  const handleBuyNow = () => {
+    if (!product) return;
+    
+    // Add to cart first
+    if (productInCart) {
+      updateQuantity(product.id, productInCart.quantity + quantity);
+    } else {
+      addToCart({
+        ...product,
+        quantity
       });
     }
+    
+    // Navigate to address selection page
+    navigate('/address');
   };
 
   const handleQuantityChange = (change: number) => {
     const newQuantity = quantity + change;
-    if (newQuantity >= 1) {
+    if (newQuantity >= 1 && newQuantity <= (product?.stock || 0)) {
       setQuantity(newQuantity);
     }
   };
@@ -85,8 +109,7 @@ const ProductDetail = () => {
   const handleToggleWishlist = () => {
     setIsWishlisted(!isWishlisted);
     if (!product) return;
-    toast({
-      title: isWishlisted ? "Removed from wishlist" : "Added to wishlist",
+    toast(isWishlisted ? "Removed from wishlist" : "Added to wishlist", {
       description: `${product.name} has been ${isWishlisted ? "removed from" : "added to"} your wishlist`
     });
   };
@@ -161,14 +184,14 @@ const ProductDetail = () => {
                   </button>)}
               </div>
               
-              {/* Action Buttons */}
+              {/* Mobile Action Buttons */}
               <div className="grid grid-cols-2 gap-3 mt-4 md:hidden">
-                <Button onClick={handleAddToCart} variant="outline" className="bg-white border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white h-14">
+                <Button onClick={handleAddToCart} variant="outline" className="bg-white border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white h-14" disabled={product.stock <= 0}>
                   <ShoppingCart className="mr-2 h-5 w-5" />
-                  ADD TO CART
+                  {product.stock <= 0 ? 'OUT OF STOCK' : 'ADD TO CART'}
                 </Button>
-                <Button className="bg-orange-500 hover:bg-orange-600 h-14">
-                  BUY NOW
+                <Button onClick={handleBuyNow} className="bg-orange-500 hover:bg-orange-600 h-14" disabled={product.stock <= 0}>
+                  {product.stock <= 0 ? 'OUT OF STOCK' : 'BUY NOW'}
                 </Button>
               </div>
             </div>
@@ -240,7 +263,8 @@ const ProductDetail = () => {
                     <span className="px-6 py-1 font-medium text-sm">{quantity}</span>
                     <button 
                       onClick={() => handleQuantityChange(1)} 
-                      className="p-2 text-gray-600 hover:text-orange-500 border-l border-gray-300"
+                      disabled={quantity >= (product.stock || 0)}
+                      className="p-2 text-gray-600 hover:text-orange-500 disabled:opacity-50 border-l border-gray-300"
                     >
                       <Plus className="w-4 h-4" />
                     </button>
@@ -255,12 +279,12 @@ const ProductDetail = () => {
               
               {/* Desktop Action Buttons */}
               <div className="hidden md:grid grid-cols-2 gap-3">
-                <Button onClick={handleAddToCart} variant="outline" className="bg-white border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white h-14 text-base">
+                <Button onClick={handleAddToCart} variant="outline" className="bg-white border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white h-14 text-base" disabled={product.stock <= 0}>
                   <ShoppingCart className="mr-2 h-5 w-5" />
-                  ADD TO CART
+                  {product.stock <= 0 ? 'OUT OF STOCK' : 'ADD TO CART'}
                 </Button>
-                <Button className="bg-orange-500 hover:bg-orange-600 h-14 text-base">
-                  BUY NOW
+                <Button onClick={handleBuyNow} className="bg-orange-500 hover:bg-orange-600 h-14 text-base" disabled={product.stock <= 0}>
+                  {product.stock <= 0 ? 'OUT OF STOCK' : 'BUY NOW'}
                 </Button>
               </div>
               
@@ -362,44 +386,44 @@ const ProductDetail = () => {
           
           {/* Similar Products */}
           <div className="mb-4">
-            <h2 className="text-lg font-bold mb-3 px-1">Similar Products</h2>
+            <div className="flex justify-between items-center mb-3">
+              <h2 className="text-lg font-bold">Similar Products</h2>
+              <Link to="/explore" className="text-blue-600 text-sm hover:underline">View All Products</Link>
+            </div>
             {isLoadingSimilar ? <div className="py-8 text-center">
                 <div className="w-8 h-8 border-2 border-t-blue-500 border-blue-200 rounded-full animate-spin mx-auto"></div>
                 <p className="mt-2 text-sm text-gray-500">Loading similar products...</p>
               </div> : similarProducts && similarProducts.length > 0 ? <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {similarProducts.map((item: Product) => <div key={item.id} className="bg-white border rounded-lg overflow-hidden shadow-sm">
-                    <Link to={`/product/${item.id}`} className="block relative pt-[100%]">
-                      <img src={item.images[0]} alt={item.name} className="absolute inset-0 w-full h-full object-contain p-2" />
-                    </Link>
-                    <div className="p-3">
-                      <Link to={`/product/${item.id}`}>
-                        <h3 className="font-medium text-sm line-clamp-2 h-10">{item.name}</h3>
-                        <div className="flex items-center mt-1">
-                          <div className="flex">
-                            {renderStars(item.rating)}
-                          </div>
-                        </div>
-                      </Link>
-                      <div className="mt-2 flex items-center justify-between">
-                        <span className="font-bold">
-                          ${(item.sale_price || item.price).toFixed(2)}
-                        </span>
-                        <Button variant="outline" size="sm" onClick={() => {
-                    addToCart({
-                      ...item,
-                      quantity: 1
-                    });
-                    toast({
-                      title: "Added to cart",
-                      description: `${item.name} has been added to your cart`
-                    });
-                  }} className="h-8 px-2 border-gray-300">
-                            <ShoppingCart className="h-4 w-4" />
-                          </Button>
+              {similarProducts.map((item: Product) => <div key={item.id} className="bg-white border rounded-lg overflow-hidden shadow-sm">
+                  <Link to={`/product/${item.id}`} className="block relative pt-[100%]">
+                    <img src={item.images[0]} alt={item.name} className="absolute inset-0 w-full h-full object-contain p-2" />
+                  </Link>
+                  <div className="p-3">
+                    <Link to={`/product/${item.id}`}>
+                      <h3 className="font-medium text-sm line-clamp-2 h-10">{item.name}</h3>
+                      <p className="text-xs text-gray-500">{item.brand}</p>
+                      <div className="flex items-center mt-1">
+                        <div className="flex">
+                          {renderStars(item.rating)}
                         </div>
                       </div>
-                    </div>)}
-              </div> : <p className="text-center py-4 text-gray-500">No similar products found.</p>}
+                    </Link>
+                    <div className="mt-2 flex items-center justify-between">
+                      <span className="font-bold">
+                        ${(item.sale_price || item.price).toFixed(2)}
+                      </span>
+                      <Button variant="outline" size="sm" onClick={() => {
+                  addToCart({
+                    ...item,
+                    quantity: 1
+                  });
+                }} className="h-8 px-2 border-gray-300" disabled={item.stock <= 0}>
+                          <ShoppingCart className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>)}
+            </div> : <p className="text-center py-4 text-gray-500">No similar products found.</p>}
           </div>
           
           {/* Ad Space */}
