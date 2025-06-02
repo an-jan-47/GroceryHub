@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from '@/components/ui/sonner';
 import type { OrderStatus } from "@/types";
@@ -15,6 +14,9 @@ export interface OrderDetails {
   address_id: string;
   payment_method: string;
   total_amount: number;
+  platform_fees?: number;
+  discount_amount?: number;
+  applied_coupon_id?: string;
   products_name: string[];
   items: OrderItem[];
 }
@@ -92,12 +94,15 @@ export const placeOrder = async (orderDetails: OrderDetails) => {
   }
 };
 
-// Create order function specifically for Payment.tsx - FIXED VERSION
+// Create order function specifically for Payment.tsx - UPDATED VERSION
 export const createOrder = async (orderData: {
   addressId: string;
   userId: string;
   paymentMethod: string;
   totalAmount: number;
+  platformFees?: number;
+  discountAmount?: number;
+  appliedCouponId?: string;
   products: Array<{
     productId: string;
     name: string;
@@ -108,12 +113,11 @@ export const createOrder = async (orderData: {
   try {
     console.log('Creating order with data:', orderData);
     
-    // Make sure products array exists before proceeding
     if (!orderData || !orderData.products || !Array.isArray(orderData.products)) {
       throw new Error('Invalid order data: products array is missing or invalid');
     }
 
-    // Create the order in the database - removed address_details to fix the JSONB issue
+    // Create the order in the database with new fields
     const { data: order, error: orderError } = await supabase
       .from('orders')
       .insert({
@@ -121,6 +125,9 @@ export const createOrder = async (orderData: {
         address_id: orderData.addressId,
         payment_method: orderData.paymentMethod,
         total_amount: orderData.totalAmount,
+        platform_fees: orderData.platformFees || 5.00,
+        discount_amount: orderData.discountAmount || 0.00,
+        applied_coupon_id: orderData.appliedCouponId || null,
         status: 'Processing',
         products_name: orderData.products.map(p => p.name),
         order_date: new Date().toISOString()
@@ -166,7 +173,6 @@ export const createOrder = async (orderData: {
       try {
         console.log(`Updating stock for product ${product.productId}, reducing by ${product.quantity}`);
         
-        // Call the database function to decrease stock
         const { error: stockError } = await supabase.rpc('decrease_product_stock', {
           product_id: product.productId,
           quantity: product.quantity

@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -25,6 +24,7 @@ import OrderDetails from "./pages/OrderDetails";
 import ChangePassword from "./pages/ChangePassword";
 import PrivacySettings from "./pages/PrivacySettings";
 import AboutUs from "./pages/AboutUs";
+import Coupons from "./pages/Coupons";
 
 // Providers
 import { CartProvider } from "./hooks/useCart";
@@ -130,6 +130,8 @@ const App = () => {
                 <Route path="/change-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
                 <Route path="/privacy-settings" element={<ProtectedRoute><PrivacySettings /></ProtectedRoute>} />
                 <Route path="/about-us" element={<AboutUs />} />
+                
+                <Route path="/coupons" element={<Coupons />} />
                 
                 <Route path="*" element={<NotFound />} />
                 

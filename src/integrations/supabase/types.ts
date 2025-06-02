@@ -126,6 +126,48 @@ export type Database = {
         }
         Relationships: []
       }
+      coupon_usage: {
+        Row: {
+          coupon_id: string
+          discount_amount: number
+          id: string
+          order_id: string | null
+          used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          coupon_id: string
+          discount_amount: number
+          id?: string
+          order_id?: string | null
+          used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          coupon_id?: string
+          discount_amount?: number
+          id?: string
+          order_id?: string | null
+          used_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coupon_usage_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "coupons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coupon_usage_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       coupons: {
         Row: {
           applicable_categories: string[] | null
@@ -291,11 +333,14 @@ export type Database = {
       orders: {
         Row: {
           address_id: string
+          applied_coupon_id: string | null
           created_at: string
+          discount_amount: number | null
           id: string
           order_date: string
           payment_method: string
           payment_status: string | null
+          platform_fees: number | null
           products_name: string[] | null
           status: string
           total_amount: number
@@ -304,11 +349,14 @@ export type Database = {
         }
         Insert: {
           address_id: string
+          applied_coupon_id?: string | null
           created_at?: string
+          discount_amount?: number | null
           id?: string
           order_date?: string
           payment_method: string
           payment_status?: string | null
+          platform_fees?: number | null
           products_name?: string[] | null
           status?: string
           total_amount: number
@@ -317,11 +365,14 @@ export type Database = {
         }
         Update: {
           address_id?: string
+          applied_coupon_id?: string | null
           created_at?: string
+          discount_amount?: number | null
           id?: string
           order_date?: string
           payment_method?: string
           payment_status?: string | null
+          platform_fees?: number | null
           products_name?: string[] | null
           status?: string
           total_amount?: number
@@ -334,6 +385,13 @@ export type Database = {
             columns: ["address_id"]
             isOneToOne: false
             referencedRelation: "addresses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_applied_coupon_id_fkey"
+            columns: ["applied_coupon_id"]
+            isOneToOne: false
+            referencedRelation: "coupons"
             referencedColumns: ["id"]
           },
         ]

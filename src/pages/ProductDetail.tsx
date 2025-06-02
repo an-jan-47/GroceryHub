@@ -10,51 +10,39 @@ import { Button } from '@/components/ui/button';
 import { useCart } from '@/hooks/useCart';
 import { useWishlist } from '@/hooks/useWishlist';
 import { toast } from '@/components/ui/sonner';
-import { ChevronLeft, ShoppingCart, Star, Plus, Minus, Share2, Heart } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import ProductCard from '@/components/ProductCard';
 import StarRating from '@/components/StarRating';
+import ProductDetailImage from '@/components/ProductDetailImage';
+import ProductDetailInfo from '@/components/ProductDetailInfo';
+import ProductDetailActions from '@/components/ProductDetailActions';
 
 const ProductDetailPage = () => {
   const { productId } = useParams();
   const navigate = useNavigate();
-  const { addToCart, cartItems, updateQuantity } = useCart();
+  const { addToCart } = useCart();
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
-  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [isFavorite, setIsFavorite] = useState(false);
-
-  console.log('ProductDetail - Product ID from params:', productId);
 
   // Fetch product details
   const { data: product, isLoading, error, isError } = useQuery({
     queryKey: ['product', productId],
     queryFn: () => {
       if (!productId) {
-        console.error('No product ID provided');
         throw new Error('Product ID is required');
       }
-      console.log('Fetching product with ID:', productId);
       return getProduct(productId);
     },
     enabled: !!productId,
     retry: 1
   });
 
-  console.log('Product query result:', { product, isLoading, error });
-
   // Fetch product reviews
   const { data: reviews = [] } = useQuery({
     queryKey: ['reviews', productId],
     queryFn: () => productId ? getProductReviews(productId) : [],
     enabled: !!productId
-  });
-
-  // Fetch all products for similar products
-  const { data: allProducts } = useQuery({
-    queryKey: ['allProducts'],
-    queryFn: getProducts
   });
 
   // Fetch related products
@@ -67,11 +55,6 @@ const ProductDetailPage = () => {
       .slice(0, 4)
   });
 
-  // Calculate discount percentage
-  const discountPercentage = product?.sale_price && product?.price 
-    ? Math.round(((product.price - product.sale_price) / product.price) * 100)
-    : null;
-  
   // Check if product is in wishlist on component mount
   useEffect(() => {
     if (productId) {
@@ -149,40 +132,8 @@ const ProductDetailPage = () => {
       setIsFavorite(true);
     }
   };
-  
-  // Share product function
-  const shareProduct = async () => {
-    if (!product) return;
-    
-    const shareData = {
-      title: product.name,
-      text: `Check out ${product.name} on GroceryHub!`,
-      url: window.location.href,
-    };
-    
-    try {
-      if (navigator.share) {
-        await navigator.share(shareData);
-        toast('Shared successfully', {
-          description: 'Product has been shared',
-        });
-      } else {
-        // Fallback for browsers that don't support the Web Share API
-        navigator.clipboard.writeText(window.location.href);
-        toast('Link copied', {
-          description: 'Product link copied to clipboard',
-        });
-      }
-    } catch (error) {
-      console.error('Error sharing:', error);
-      toast('Sharing failed', {
-        description: 'Could not share the product',
-      });
-    }
-  };
 
   if (error) {
-    console.error('Error loading product:', error);
     return (
       <div className="pb-20">
         <Header />
@@ -233,118 +184,30 @@ const ProductDetailPage = () => {
     <div className="pb-20">
       <Header />
       <main className="container px-4 py-2 mx-auto">
-        {/* Product image */}
-        <div className="mb-4 rounded-lg overflow-hidden bg-white relative">
-          <img 
-            src={product.images?.[0] || '/placeholder.svg'} 
-            alt={product.name} 
-            className="w-full h-64 object-contain"
-          />
-          
-          {/* Action buttons for wishlist and share */}
-          <div className="absolute top-2 right-2 flex space-x-2">
-            <Button 
-              variant="outline" 
-              size="icon" 
-              className={`rounded-full bg-white ${isFavorite ? 'text-red-500' : 'text-gray-500'}`}
-              onClick={toggleWishlist}
-            >
-              <Heart className={`h-5 w-5 ${isFavorite ? 'fill-current' : ''}`} />
-            </Button>
-            <Button 
-              variant="outline" 
-              size="icon" 
-              className="rounded-full bg-white text-gray-500"
-              onClick={shareProduct}
-            >
-              <Share2 className="h-5 w-5" />
-            </Button>
-          </div>
-          
-          {/* Discount badge */}
-          {discountPercentage && (
-            <div className="absolute top-2 left-2 bg-red-500 text-white text-xs font-medium px-2 py-1 rounded-full">
-              {discountPercentage}% OFF
-            </div>
-          )}
-        </div>
+        {/* Product Image Component */}
+        <ProductDetailImage 
+          product={product}
+          isFavorite={isFavorite}
+          onToggleWishlist={toggleWishlist}
+        />
         
-        {/* Product info */}
-        <div className="mb-4">
-          <div className="flex justify-between items-start">
-            <h1 className="text-xl font-bold">{product.name}</h1>
-          </div>
-          
-          <div className="flex items-center mt-1">
-            <div className="flex items-center">
-              <StarRating rating={product.rating} size="sm" />
-            </div>
-            <span className="mx-2 text-gray-300">|</span>
-            <span className="text-sm text-gray-600">{product.review_count} reviews</span>
-          </div>
-          
-          <div className="flex items-center justify-between mt-2">
-            <div>
-              <span className="text-2xl font-bold text-blue-600">₹{product.sale_price || product.price}</span>
-              {product.sale_price && (
-                <span className="ml-2 text-base line-through text-gray-500">₹{product.price}</span>
-              )}
-            </div>
-            
-            {/* Quantity selector moved next to price */}
-            <div className="flex items-center border rounded-md">
-              <button 
-                onClick={decrementQuantity}
-                className="px-3 py-1 text-lg"
-                disabled={quantity <= 1}
-              >
-                -
-              </button>
-              <span className="px-3 py-1">{quantity}</span>
-              <button 
-                onClick={incrementQuantity}
-                className="px-3 py-1 text-lg"
-              >
-                +
-              </button>
-            </div>
-          </div>
-          
-          {/* Brand and category */}
-          <div className="flex flex-wrap gap-2 mt-2">
-            <Badge variant="outline" className="text-xs">{product.brand}</Badge>
-            <Badge variant="outline" className="text-xs">{product.category}</Badge>
-          </div>
-        </div>
+        {/* Product Info Component */}
+        <ProductDetailInfo 
+          product={product}
+          quantity={quantity}
+          onIncrementQuantity={incrementQuantity}
+          onDecrementQuantity={decrementQuantity}
+        />
         
         <Separator className="my-4" />
         
-        {/* Description */}
-        <div className="mb-6">
-          <h2 className="font-semibold mb-2">Description</h2>
-          <p className="text-gray-600 text-sm">{product.description}</p>
-        </div>
-        
-        {/* Action buttons */}
-        <div className="grid grid-cols-2 gap-3 mb-6">
-          <Button 
-            variant="outline" 
-            onClick={handleAddToCart}
-            disabled={product.stock <= 0}
-            className="border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white"
-          >
-            <ShoppingCart className="w-4 h-4 mr-2" />
-            Add to Cart
-          </Button>
-          
-          <Button 
-            onClick={handleBuyNow}
-            disabled={product.stock <= 0}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            Buy Now
-          </Button>
-        </div>
+        {/* Action Buttons Component */}
+        <ProductDetailActions 
+          product={product}
+          quantity={quantity}
+          onAddToCart={handleAddToCart}
+          onBuyNow={handleBuyNow}
+        />
         
         {/* Reviews section */}
         <div className="mb-6">

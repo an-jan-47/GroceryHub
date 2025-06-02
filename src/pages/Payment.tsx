@@ -16,12 +16,10 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { useAuthCheck } from '@/hooks/useAuthCheck';
 import { useAuth } from '@/contexts/AuthContext';
 
-// Add the formatCurrency function
 const formatCurrency = (amount: number): string => {
   return `₹${amount.toFixed(2)}`;
 };
 
-// Declare Razorpay as a global variable
 declare global {
   interface Window {
     Razorpay: any;
@@ -37,6 +35,20 @@ const PaymentMethodsPage = () => {
   const { checkAuthForCheckout } = useAuthCheck();
   const { user } = useAuth();
   const [paymentMethod, setPaymentMethod] = useState('cod');
+  const [appliedCouponData, setAppliedCouponData] = useState<any>(null);
+  
+  // Load applied coupon data from localStorage
+  useEffect(() => {
+    const storedCouponData = localStorage.getItem('appliedCoupon');
+    if (storedCouponData) {
+      try {
+        setAppliedCouponData(JSON.parse(storedCouponData));
+      } catch (error) {
+        console.error('Error parsing coupon data:', error);
+        localStorage.removeItem('appliedCoupon');
+      }
+    }
+  }, []);
   
   // Check if user is authenticated
   useEffect(() => {
@@ -75,11 +87,13 @@ const PaymentMethodsPage = () => {
     enabled: !!addressId
   });
   
-  // Calculate costs
-  const deliveryCharge = cartTotal > 50 ? 0 : 5;
-  const taxRate = 0.08;
-  const tax = cartTotal * taxRate;
-  const totalAmount = cartTotal + deliveryCharge + tax;
+  // Calculate costs with platform fees and coupon discount
+  const platformFees = 5.00;
+  const taxRate = 0.18; // 18% GST
+  const subtotal = cartTotal;
+  const tax = subtotal * taxRate;
+  const discountAmount = appliedCouponData?.discountAmount || 0;
+  const totalAmount = subtotal + platformFees + tax - discountAmount;
   
   // Create order mutation
   const createOrderMutation = useMutation({
@@ -87,12 +101,14 @@ const PaymentMethodsPage = () => {
       if (!addressId || !user) throw new Error('No address or user found');
       if (!cartItems || cartItems.length === 0) throw new Error('Cart is empty');
       
-      // Create a simpler structure for the order
       return createOrder({
         addressId: addressId,
         userId: user.id,
         paymentMethod: paymentData.paymentMethod,
         totalAmount: totalAmount,
+        platformFees: platformFees,
+        discountAmount: discountAmount,
+        appliedCouponId: appliedCouponData?.coupon?.id || null,
         products: cartItems.map(item => ({
           productId: item.id,
           name: item.name,
@@ -105,8 +121,9 @@ const PaymentMethodsPage = () => {
       // Store order ID for confirmation page
       localStorage.setItem('lastOrderId', orderId!);
       
-      // Clear the cart
+      // Clear the cart and applied coupon
       clearCart();
+      localStorage.removeItem('appliedCoupon');
       
       // Navigate to confirmation
       navigate('/order-confirmation');
@@ -131,18 +148,14 @@ const PaymentMethodsPage = () => {
     }
     
     try {
-      // In a real implementation, you would make an API call to your backend to create a Razorpay order
-      // and get the order_id. For this example, we'll simulate it.
-      
-      // Simulated API response with order_id
       const orderResponse = {
         id: 'order_' + Math.random().toString(36).substring(2, 15),
-        amount: Math.round(totalAmount * 100), // Razorpay expects amount in paise
+        amount: Math.round(totalAmount * 100),
         currency: 'INR'
       };
       
       const options = {
-        key: 'rzp_test_YOUR_KEY_ID', // Replace with your actual Razorpay key
+        key: 'rzp_test_YOUR_KEY_ID',
         amount: orderResponse.amount,
         currency: 'INR',
         name: 'GroceryHub',
@@ -160,7 +173,6 @@ const PaymentMethodsPage = () => {
           color: '#3B82F6'
         },
         handler: function(response: any) {
-          // This function is called when payment is successful
           const paymentData = {
             paymentMethod: 'razorpay',
             razorpayPaymentId: response.razorpay_payment_id,
@@ -168,7 +180,6 @@ const PaymentMethodsPage = () => {
             razorpaySignature: response.razorpay_signature
           };
           
-          // Create order with payment details
           createOrderMutation.mutate(paymentData);
         },
         modal: {
@@ -183,7 +194,6 @@ const PaymentMethodsPage = () => {
       
       const razorpay = new window.Razorpay(options);
       
-      // Add event listeners for payment errors
       razorpay.on('payment.failed', function(response: any) {
         setIsProcessingPayment(false);
         toast('Payment failed', {
@@ -219,7 +229,6 @@ const PaymentMethodsPage = () => {
     if (paymentMethod === 'razorpay') {
       initiateRazorpayPayment();
     } else {
-      // COD payment
       createOrderMutation.mutate({ paymentMethod: 'cod' });
     }
   };
@@ -301,22 +310,29 @@ const PaymentMethodsPage = () => {
             <div className="space-y-2">
               <div className="flex justify-between">
                 <span className="text-gray-600">Subtotal</span>
-                <span>₹{cartTotal.toFixed(2)}</span>
+                <span>₹{subtotal.toFixed(2)}</span>
               </div>
               
               <div className="flex justify-between">
-                <span className="text-gray-600">Shipping</span>
-                <span>{deliveryCharge === 0 ? 'Free' : `₹${deliveryCharge.toFixed(2)}`}</span>
+                <span className="text-gray-600">Platform Fees</span>
+                <span>₹{platformFees.toFixed(2)}</span>
               </div>
               
               <div className="flex justify-between">
-                <span className="text-gray-600">Tax ({(taxRate * 100).toFixed()}%)</span>
+                <span className="text-gray-600">Tax (18% GST)</span>
                 <span>₹{tax.toFixed(2)}</span>
               </div>
               
+              {discountAmount > 0 && (
+                <div className="flex justify-between text-green-600">
+                  <span>Coupon Discount ({appliedCouponData?.coupon?.code})</span>
+                  <span>-₹{discountAmount.toFixed(2)}</span>
+                </div>
+              )}
+              
               <Separator className="my-2" />
               
-              <div className="flex justify-between font-semibold">
+              <div className="flex justify-between font-semibold text-lg">
                 <span>Total</span>
                 <span>₹{totalAmount.toFixed(2)}</span>
               </div>
