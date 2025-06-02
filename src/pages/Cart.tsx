@@ -30,11 +30,18 @@ const CartPage = () => {
     checkAuthForCheckout
   } = useAuthCheck();
 
-  // Calculate costs
+  // Calculate costs with corrected tax logic
   const platformFees = 5.00;
   const taxRate = 0.18; // 18% GST
+  
+  // Subtotal is the cart total without any additional charges
   const subtotal = cartTotal;
-  const tax = subtotal * taxRate;
+  
+  // Tax is calculated on subtotal + platform fees (before discount)
+  const taxableAmount = subtotal + platformFees;
+  const tax = taxableAmount * taxRate;
+  
+  // Final total calculation
   const totalBeforeDiscount = subtotal + platformFees + tax;
   const finalTotal = totalBeforeDiscount - discountAmount;
 
@@ -193,11 +200,11 @@ const CartPage = () => {
               
               {/* Applied Coupon Display */}
               {appliedCoupon && (
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
                   <div className="flex justify-between items-center">
                     <div>
-                      <span className="font-semibold text-green-800">Coupon Applied: {appliedCoupon.code}</span>
-                      <p className="text-sm text-green-600">You saved ₹{discountAmount.toFixed(2)}</p>
+                      <span className="font-semibold text-blue-800">Coupon Applied: {appliedCoupon.code}</span>
+                      <p className="text-sm text-blue-600">You saved ₹{discountAmount.toFixed(2)}</p>
                     </div>
                     <Button 
                       variant="outline" 

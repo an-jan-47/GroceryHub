@@ -38,20 +38,20 @@ const CouponRecommendations = ({ onApplyCoupon, cartTotal }: CouponRecommendatio
   }
 
   return (
-    <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-4 mb-4 border border-green-200">
+    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 mb-4 border border-blue-200">
       <div className="flex items-center mb-3">
-        <Gift className="w-5 h-5 text-green-600 mr-2" />
-        <h3 className="font-semibold text-green-800">Available Offers</h3>
+        <Gift className="w-5 h-5 text-blue-600 mr-2" />
+        <h3 className="font-semibold text-blue-800">Available Offers</h3>
       </div>
       
       <div className="space-y-2 mb-3">
         {eligibleCoupons.map((coupon) => (
-          <div key={coupon.id} className="bg-white rounded-lg p-3 border border-green-200">
+          <div key={coupon.id} className="bg-white rounded-lg p-3 border border-blue-200">
             <div className="flex justify-between items-start">
               <div className="flex-1">
                 <div className="flex items-center mb-1">
-                  <Tag className="w-4 h-4 text-green-600 mr-1" />
-                  <span className="font-mono font-bold text-green-700">{coupon.code}</span>
+                  <Tag className="w-4 h-4 text-blue-600 mr-1" />
+                  <span className="font-mono font-bold text-blue-700">{coupon.code}</span>
                 </div>
                 <p className="text-sm text-gray-600 mb-2">{coupon.description}</p>
                 <div className="flex items-center space-x-2">
@@ -68,7 +68,7 @@ const CouponRecommendations = ({ onApplyCoupon, cartTotal }: CouponRecommendatio
               <Button 
                 size="sm" 
                 onClick={() => onApplyCoupon(coupon)}
-                className="ml-2 bg-green-600 hover:bg-green-700"
+                className="ml-2 bg-blue-600 hover:bg-blue-700"
               >
                 Apply
               </Button>
@@ -81,7 +81,7 @@ const CouponRecommendations = ({ onApplyCoupon, cartTotal }: CouponRecommendatio
         variant="outline" 
         size="sm" 
         onClick={() => navigate('/coupons')}
-        className="w-full border-green-300 text-green-700 hover:bg-green-50"
+        className="w-full border-blue-300 text-blue-700 hover:bg-blue-50"
       >
         View All Coupons
       </Button>

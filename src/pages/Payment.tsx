@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ChevronLeft, MapPin, CreditCard } from 'lucide-react';
@@ -87,13 +86,23 @@ const PaymentMethodsPage = () => {
     enabled: !!addressId
   });
   
-  // Calculate costs with platform fees and coupon discount
+  // Calculate costs with corrected tax logic - matching Cart component
   const platformFees = 5.00;
   const taxRate = 0.18; // 18% GST
+  
+  // Subtotal is the cart total without any additional charges
   const subtotal = cartTotal;
-  const tax = subtotal * taxRate;
+  
+  // Tax is calculated on subtotal + platform fees (before discount)
+  const taxableAmount = subtotal + platformFees;
+  const tax = taxableAmount * taxRate;
+  
+  // Discount amount from applied coupon
   const discountAmount = appliedCouponData?.discountAmount || 0;
-  const totalAmount = subtotal + platformFees + tax - discountAmount;
+  
+  // Final total calculation
+  const totalBeforeDiscount = subtotal + platformFees + tax;
+  const totalAmount = totalBeforeDiscount - discountAmount;
   
   // Create order mutation
   const createOrderMutation = useMutation({

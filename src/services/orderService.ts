@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from '@/components/ui/sonner';
 import type { OrderStatus } from "@/types";
@@ -117,7 +118,7 @@ export const createOrder = async (orderData: {
       throw new Error('Invalid order data: products array is missing or invalid');
     }
 
-    // Create the order in the database with new fields
+    // Create the order in the database with corrected structure
     const { data: order, error: orderError } = await supabase
       .from('orders')
       .insert({
