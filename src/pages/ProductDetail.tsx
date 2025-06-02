@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -19,32 +20,31 @@ const ProductDetailPage = () => {
   const { productId } = useParams();
   const navigate = useNavigate();
   const { addToCart, cartItems, updateQuantity } = useCart();
-  const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
-  const [quantity, setQuantity] = useState(1);
-  const [activeImage, setActiveImage] = useState(0);
-  const [isFavorite, setIsFavorite] = useState(false);
-  
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+
+  console.log('ProductDetail - Product ID from params:', id);
+
   // Fetch product details
-  const { data: product, isLoading, error, isError } = useQuery({
-    queryKey: ['product', productId],
+  const { data: product, isLoading, error } = useQuery({
+    queryKey: ['product', id],
     queryFn: () => {
-      if (!productId) {
+      if (!id) {
+        console.error('No product ID provided');
         throw new Error('Product ID is required');
       }
-      return getProduct(productId);
+      console.log('Fetching product with ID:', id);
+      return getProduct(id);
     },
-    enabled: !!productId,
-    retry: 1,
-    onError: (err) => {
-      console.error('Error fetching product:', err);
-    }
+    enabled: !!id,
+    retry: 1
   });
 
-  // Fetch product reviews
-  const { data: reviews = [] } = useQuery({
-    queryKey: ['product-reviews', productId],
-    queryFn: () => getProductReviews(productId || ''),
-    enabled: !!productId
+  console.log('Product query result:', { product, isLoading, error });
+
+  // Fetch all products for similar products
+  const { data: allProducts } = useQuery({
+    queryKey: ['allProducts'],
+    queryFn: getProducts
   });
 
   // Fetch related products
@@ -165,13 +165,24 @@ const ProductDetailPage = () => {
       });
     }
   };
-  
-  // Calculate discount percentage if there's a sale price
-  const discountPercentage = product?.sale_price 
-    ? Math.round((1 - product.sale_price / product.price) * 100) 
-    : null;
-  
-  // Improved loading state
+
+  if (error) {
+    console.error('Error loading product:', error);
+    return (
+      <div className="pb-20">
+        <Header />
+        <div className="container px-4 py-4 mx-auto text-center">
+          <h1 className="text-2xl font-bold">Error loading product</h1>
+          <p className="text-gray-600 mb-4">There was an error loading the product details.</p>
+          <Button onClick={() => navigate('/')} className="mt-4">
+            Go Home
+          </Button>
+        </div>
+        <BottomNavigation />
+      </div>
+    );
+  }
+
   if (isLoading) {
     return (
       <div className="pb-20">
@@ -191,13 +202,13 @@ const ProductDetailPage = () => {
     return (
       <div className="pb-20">
         <Header />
-        <main className="container px-4 py-8 mx-auto text-center">
-          <h1 className="text-2xl font-bold mb-4">Product not found</h1>
-          <p className="text-gray-600 mb-6">The product you're looking for doesn't exist or has been removed.</p>
-          <Button onClick={() => navigate('/')} className="bg-blue-500 hover:bg-blue-600">
+        <div className="container px-4 py-4 mx-auto text-center">
+          <h1 className="text-2xl font-bold">Product not found</h1>
+          <p className="text-gray-600 mb-4">The product you're looking for doesn't exist or has been removed.</p>
+          <Button onClick={() => navigate('/')} className="mt-4">
             Go Home
           </Button>
-        </main>
+        </div>
         <BottomNavigation />
       </div>
     );

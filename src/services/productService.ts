@@ -15,7 +15,8 @@ export const getProducts = async (): Promise<Product[]> => {
     return [];
   }
 
-  console.log('Products fetched:', data?.length || 0);
+  console.log('Products fetched successfully:', data?.length || 0);
+  console.log('Raw products data:', data);
 
   return data?.map(product => ({
     ...product,
@@ -24,31 +25,30 @@ export const getProducts = async (): Promise<Product[]> => {
 };
 
 export const getProduct = async (id: string): Promise<Product | null> => {
-  try {
-    console.log('Fetching product with ID:', id);
-    
-    const { data, error } = await supabase
-      .from('products')
-      .select('*')
-      .eq('id', id)
-      .single();
-      
-    if (error) {
-      console.error('Supabase error:', error);
-      throw error;
-    }
-    
-    if (!data) {
-      console.error('No product found with ID:', id);
-      throw new Error('Product not found');
-    }
-    
-    console.log('Product data retrieved:', data);
-    return data;
-  } catch (error) {
-    console.error('Error in getProduct:', error);
-    throw error;
+  console.log('Fetching product with ID:', id);
+  
+  if (!id) {
+    console.error('Product ID is required');
+    return null;
   }
+
+  const { data, error } = await supabase
+    .from('products')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (error) {
+    console.error('Error fetching product:', error);
+    return null;
+  }
+
+  console.log('Product fetched:', data);
+
+  return data ? {
+    ...data,
+    features: Array.isArray(data.features) ? data.features.map(f => String(f)) : []
+  } : null;
 };
 
 // Alias for compatibility

@@ -113,7 +113,7 @@ export const createOrder = async (orderData: {
       throw new Error('Invalid order data: products array is missing or invalid');
     }
 
-    // Create the order in the database without address_details initially
+    // Create the order in the database - removed address_details to fix the JSONB issue
     const { data: order, error: orderError } = await supabase
       .from('orders')
       .insert({
