@@ -20,26 +20,36 @@ const ProductDetailPage = () => {
   const { productId } = useParams();
   const navigate = useNavigate();
   const { addToCart, cartItems, updateQuantity } = useCart();
+  const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [quantity, setQuantity] = useState(1);
+  const [isFavorite, setIsFavorite] = useState(false);
 
-  console.log('ProductDetail - Product ID from params:', id);
+  console.log('ProductDetail - Product ID from params:', productId);
 
   // Fetch product details
-  const { data: product, isLoading, error } = useQuery({
-    queryKey: ['product', id],
+  const { data: product, isLoading, error, isError } = useQuery({
+    queryKey: ['product', productId],
     queryFn: () => {
-      if (!id) {
+      if (!productId) {
         console.error('No product ID provided');
         throw new Error('Product ID is required');
       }
-      console.log('Fetching product with ID:', id);
-      return getProduct(id);
+      console.log('Fetching product with ID:', productId);
+      return getProduct(productId);
     },
-    enabled: !!id,
+    enabled: !!productId,
     retry: 1
   });
 
   console.log('Product query result:', { product, isLoading, error });
+
+  // Fetch product reviews
+  const { data: reviews = [] } = useQuery({
+    queryKey: ['reviews', productId],
+    queryFn: () => productId ? getProductReviews(productId) : [],
+    enabled: !!productId
+  });
 
   // Fetch all products for similar products
   const { data: allProducts } = useQuery({
@@ -56,6 +66,11 @@ const ProductDetailPage = () => {
       .filter(p => p.category === product?.category && p.id !== product?.id)
       .slice(0, 4)
   });
+
+  // Calculate discount percentage
+  const discountPercentage = product?.sale_price && product?.price 
+    ? Math.round(((product.price - product.sale_price) / product.price) * 100)
+    : null;
   
   // Check if product is in wishlist on component mount
   useEffect(() => {
@@ -345,7 +360,7 @@ const ProductDetailPage = () => {
                       <StarRating rating={review.rating} size="sm" />
                     </div>
                     <span className="text-xs text-gray-500">
-                      {new Date(review.created_at).toLocaleDateString()}
+                      {new Date(review.created_at || review.date).toLocaleDateString()}
                     </span>
                   </div>
                   <p className="text-sm mt-2 text-gray-700">{review.comment}</p>
