@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ChevronLeft, ShoppingCart, Star, Plus, Minus, Share2, Heart } from 'lucide-react';
@@ -19,28 +20,41 @@ const ProductDetailPage = () => {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
   console.log('ProductDetail - Product ID from params:', id);
+  console.log('ProductDetail - typeof id:', typeof id);
+
+  // Early validation of product ID
+  useEffect(() => {
+    if (!id || id === 'undefined' || id === 'null') {
+      console.error('Invalid product ID in URL:', id);
+      navigate('/', { replace: true });
+    }
+  }, [id, navigate]);
 
   // Fetch product details
-  const { data: product, isLoading, error } = useQuery({
+  const { data: product, isLoading, error, refetch } = useQuery({
     queryKey: ['product', id],
-    queryFn: () => {
-      if (!id) {
-        console.error('No product ID provided');
+    queryFn: async () => {
+      if (!id || id === 'undefined' || id === 'null') {
+        console.error('No valid product ID provided to queryFn');
         throw new Error('Product ID is required');
       }
-      console.log('Fetching product with ID:', id);
-      return getProduct(id);
+      console.log('Query function called with ID:', id);
+      const result = await getProduct(id);
+      console.log('Query function result:', result);
+      return result;
     },
-    enabled: !!id,
-    retry: 1
+    enabled: !!id && id !== 'undefined' && id !== 'null',
+    retry: false,
+    refetchOnWindowFocus: false
   });
 
-  console.log('Product query result:', { product, isLoading, error });
+  console.log('Product query state:', { product, isLoading, error });
 
   // Fetch all products for similar products
   const { data: allProducts } = useQuery({
     queryKey: ['allProducts'],
-    queryFn: getProducts
+    queryFn: getProducts,
+    refetchOnWindowFocus: false
   });
 
   // Get similar products based on brand and category
@@ -93,6 +107,12 @@ const ProductDetailPage = () => {
     }
   };
 
+  // Debug retry button
+  const handleRetry = () => {
+    console.log('Retrying product fetch...');
+    refetch();
+  };
+
   if (error) {
     console.error('Error loading product:', error);
     return (
@@ -101,9 +121,18 @@ const ProductDetailPage = () => {
         <div className="container px-4 py-4 mx-auto text-center">
           <h1 className="text-2xl font-bold">Error loading product</h1>
           <p className="text-gray-600 mb-4">There was an error loading the product details.</p>
-          <Button onClick={() => navigate('/')} className="mt-4">
-            Go Home
-          </Button>
+          <div className="space-y-2">
+            <Button onClick={handleRetry} variant="outline" className="mr-2">
+              Retry
+            </Button>
+            <Button onClick={() => navigate('/')} className="mt-4">
+              Go Home
+            </Button>
+          </div>
+          <div className="mt-4 text-sm text-gray-500">
+            <p>Product ID: {id}</p>
+            <p>Error: {error.message}</p>
+          </div>
         </div>
         <BottomNavigation />
       </div>
@@ -135,9 +164,17 @@ const ProductDetailPage = () => {
         <div className="container px-4 py-4 mx-auto text-center">
           <h1 className="text-2xl font-bold">Product not found</h1>
           <p className="text-gray-600 mb-4">The product you're looking for doesn't exist or has been removed.</p>
-          <Button onClick={() => navigate('/')} className="mt-4">
-            Go Home
-          </Button>
+          <div className="space-y-2">
+            <Button onClick={handleRetry} variant="outline" className="mr-2">
+              Retry
+            </Button>
+            <Button onClick={() => navigate('/')} className="mt-4">
+              Go Home
+            </Button>
+          </div>
+          <div className="mt-4 text-sm text-gray-500">
+            <p>Product ID: {id}</p>
+          </div>
         </div>
         <BottomNavigation />
       </div>
