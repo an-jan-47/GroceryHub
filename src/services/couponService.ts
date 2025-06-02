@@ -115,10 +115,11 @@ export const applyCoupon = async (couponId: string, orderId: string, discountAmo
     throw error;
   }
 
-  // Update coupon usage count
-  const { error: updateError } = await supabase.rpc('increment_coupon_usage', {
-    coupon_id: couponId
-  });
+  // Update coupon usage count using direct SQL update instead of RPC
+  const { error: updateError } = await supabase
+    .from('coupons')
+    .update({ usage_count: supabase.raw('usage_count + 1') })
+    .eq('id', couponId);
 
   if (updateError) {
     console.error('Error updating coupon usage count:', updateError);

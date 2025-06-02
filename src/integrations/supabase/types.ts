@@ -710,6 +710,10 @@ export type Database = {
         Args: { product_id: string; quantity: number }
         Returns: undefined
       }
+      increment_coupon_usage: {
+        Args: { coupon_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
