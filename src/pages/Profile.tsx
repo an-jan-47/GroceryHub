@@ -86,8 +86,11 @@ const Profile = () => {
             </Link>
             
             <Separator />
+            {/* Remove this duplicate opening Link tag */}
+            {/* <Link to="#" className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-md"> */}
             
-            <Link to="#" className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-md">
+            {/* Keep only this Link */}
+            <Link to="/wishlist" className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-md">
               <div className="flex items-center">
                 <Heart className="h-5 w-5 text-red-500 mr-3" />
                 <span>My Wishlist</span>
@@ -160,7 +163,7 @@ const Profile = () => {
             
             <Separator />
             
-            <Link to="#" className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-md">
+            <Link to="/wishlist" className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-md">
               <div className="flex items-center">
                 <Settings className="h-5 w-5 text-gray-600 mr-3" />
                 <span>Help & Support</span>

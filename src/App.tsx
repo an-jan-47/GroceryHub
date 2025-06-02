@@ -58,6 +58,11 @@ const queryClient = new QueryClient({
 
 // Add this import
 import WriteReview from "./pages/WriteReview";
+// Add this import at the top with other page imports
+import Wishlist from "./pages/Wishlist";
+
+// Then add this route inside the Routes component (around line 125)
+<Route path="/wishlist" element={<Wishlist />} />
 
 const App = () => {
   const [isLoading, setIsLoading] = useState(true);
@@ -92,6 +97,7 @@ const App = () => {
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/product/:productId" element={<ProductDetail />} />
+                {/* Make sure this matches the parameter name in useParams */}
                 <Route path="/cart" element={<Cart />} />
                 <Route path="/address" element={
                   <ProtectedRoute>
