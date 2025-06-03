@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from '@/components/ui/sonner';
 import type { OrderStatus } from "@/types";
@@ -131,7 +132,7 @@ export const createOrder = async (orderData: OrderData): Promise<{ success: bool
       throw new Error(`Address not found: ${addressError?.message || 'Unknown error'}`);
     }
     
-    // Create the order record
+    // Create the order record with correct column name
     const { data: order, error: orderError } = await supabase
       .from('orders')
       .insert({
@@ -141,7 +142,7 @@ export const createOrder = async (orderData: OrderData): Promise<{ success: bool
         total_amount: orderData.totalAmount,
         platform_fees: orderData.platformFees || 0,
         discount_amount: orderData.discountAmount || 0,
-        order_status: 'pending',
+        status: 'pending',  // Changed from order_status to status
         payment_status: orderData.paymentMethod === 'cod' ? 'pending' : 'completed'
       })
       .select()
