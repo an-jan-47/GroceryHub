@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from '@/components/ui/sonner';
 import type { OrderStatus } from "@/types";
@@ -20,6 +19,21 @@ export interface OrderDetails {
   appliedCoupon_id?: string;
   products_name: string[];
   items: OrderItem[];
+}
+
+export interface OrderData {
+  userId: string;
+  addressId: string;
+  paymentMethod: string;
+  totalAmount: number;
+  platformFees?: number;
+  discountAmount?: number;
+  products: {
+    productId: string;
+    name: string;
+    price: number;
+    quantity: number;
+  }[];
 }
 
 // Place an order
@@ -127,7 +141,6 @@ export const createOrder = async (orderData: OrderData): Promise<{ success: bool
         total_amount: orderData.totalAmount,
         platform_fees: orderData.platformFees || 0,
         discount_amount: orderData.discountAmount || 0,
-        // Remove coupon_id field
         order_status: 'pending',
         payment_status: orderData.paymentMethod === 'cod' ? 'pending' : 'completed'
       })
@@ -169,44 +182,11 @@ export const createOrder = async (orderData: OrderData): Promise<{ success: bool
     
     console.log('Order items created successfully');
     
-    // Create order details with properly formatted address_details
-    const cleanAddressData = {
-      name: addressData.name || '',
-      address: addressData.address || '',
-      city: addressData.city || '',
-      state: addressData.state || '',
-      pincode: addressData.pincode || '',
-      phone: addressData.phone || ''
-    };
-
-    const orderDetails = orderData.products.map(product => ({
-      order_id: orderId,
-      product_id: product.productId,
-      product_name: product.name,
-      price: product.price,
-      quantity: product.quantity,
-      total_amount: product.price * product.quantity,
-      user_id: orderData.userId,
-      address_details: cleanAddressData,  // Pass as object, let Supabase handle JSONB casting
-      customer_name: addressData.name
-    }));
+    // Create order details with properly formatted address_details using direct insertion
+    // The database trigger will handle the order_details population automatically
+    // So we don't need to manually insert into order_details here
     
-    console.log('Creating order details with address information');
-
-    // Insert order details with proper error handling and explicit JSONB casting
-    const { error: detailsError } = await supabase
-      .from('order_details')
-      .insert(orderDetails);
-      
-    if (detailsError) {
-      console.error('Order details creation error:', detailsError);
-      // Rollback both order and items since details failed
-      await supabase.from('order_items').delete().eq('order_id', orderId);
-      await supabase.from('orders').delete().eq('id', orderId);
-      throw detailsError;
-    }
-    
-    console.log('Order details created successfully');
+    console.log('Order details will be populated by database trigger');
     
     // Update product stock quantities
     for (const product of orderData.products) {
