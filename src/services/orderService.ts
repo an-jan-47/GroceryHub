@@ -17,7 +17,7 @@ export interface OrderDetails {
   total_amount: number;
   platform_fees?: number;
   discount_amount?: number;
-  applied_coupon_id?: string;
+  appliedCoupon_id?: string;
   products_name: string[];
   items: OrderItem[];
 }
@@ -96,29 +96,28 @@ export const placeOrder = async (orderDetails: OrderDetails) => {
 };
 
 // Create order function specifically for Payment.tsx - UPDATED VERSION
-export const createOrder = async (orderData: {
-  addressId: string;
-  userId: string;
-  paymentMethod: string;
-  totalAmount: number;
-  platformFees?: number;
-  discountAmount?: number;
-  appliedCouponId?: string;
-  products: Array<{
-    productId: string;
-    name: string;
-    price: number;
-    quantity: number;
-  }>;
-}) => {
+export const createOrder = async (orderData: OrderData): Promise<{ success: boolean; orderId?: string }> => {
   try {
     console.log('Creating order with data:', orderData);
     
-    if (!orderData || !orderData.products || !Array.isArray(orderData.products)) {
-      throw new Error('Invalid order data: products array is missing or invalid');
+    // Validate order data
+    if (!orderData.userId || !orderData.addressId || !orderData.products || orderData.products.length === 0) {
+      throw new Error('Invalid order data: missing required fields');
     }
-
-    // Create the order in the database with corrected structure
+    
+    // Fetch address data first to ensure it exists
+    const { data: addressData, error: addressError } = await supabase
+      .from('addresses')
+      .select('*')
+      .eq('id', orderData.addressId)
+      .single();
+      
+    if (addressError || !addressData) {
+      console.error('Error fetching address:', addressError);
+      throw new Error(`Address not found: ${addressError?.message || 'Unknown error'}`);
+    }
+    
+    // Create the order record
     const { data: order, error: orderError } = await supabase
       .from('orders')
       .insert({
@@ -126,16 +125,15 @@ export const createOrder = async (orderData: {
         address_id: orderData.addressId,
         payment_method: orderData.paymentMethod,
         total_amount: orderData.totalAmount,
-        platform_fees: orderData.platformFees || 5.00,
-        discount_amount: orderData.discountAmount || 0.00,
-        applied_coupon_id: orderData.appliedCouponId || null,
-        status: 'Processing',
-        products_name: orderData.products.map(p => p.name),
-        order_date: new Date().toISOString()
+        platform_fees: orderData.platformFees || 0,
+        discount_amount: orderData.discountAmount || 0,
+        // Remove coupon_id field
+        order_status: 'pending',
+        payment_status: orderData.paymentMethod === 'cod' ? 'pending' : 'completed'
       })
-      .select('id')
+      .select()
       .single();
-
+    
     if (orderError) {
       console.error('Order creation error:', orderError);
       throw orderError;
@@ -148,7 +146,7 @@ export const createOrder = async (orderData: {
     const orderId = order.id;
     console.log('Order created with ID:', orderId);
     
-    // Create order items
+    // Create order items with proper error handling
     const orderItems = orderData.products.map(product => ({
       order_id: orderId,
       product_id: product.productId,
@@ -164,10 +162,51 @@ export const createOrder = async (orderData: {
       
     if (itemsError) {
       console.error('Order items creation error:', itemsError);
+      // Rollback the order creation since items failed
+      await supabase.from('orders').delete().eq('id', orderId);
       throw itemsError;
     }
     
     console.log('Order items created successfully');
+    
+    // Create order details with properly formatted address_details
+    const cleanAddressData = {
+      name: addressData.name || '',
+      address: addressData.address || '',
+      city: addressData.city || '',
+      state: addressData.state || '',
+      pincode: addressData.pincode || '',
+      phone: addressData.phone || ''
+    };
+
+    const orderDetails = orderData.products.map(product => ({
+      order_id: orderId,
+      product_id: product.productId,
+      product_name: product.name,
+      price: product.price,
+      quantity: product.quantity,
+      total_amount: product.price * product.quantity,
+      user_id: orderData.userId,
+      address_details: cleanAddressData,  // Pass as object, let Supabase handle JSONB casting
+      customer_name: addressData.name
+    }));
+    
+    console.log('Creating order details with address information');
+
+    // Insert order details with proper error handling and explicit JSONB casting
+    const { error: detailsError } = await supabase
+      .from('order_details')
+      .insert(orderDetails);
+      
+    if (detailsError) {
+      console.error('Order details creation error:', detailsError);
+      // Rollback both order and items since details failed
+      await supabase.from('order_items').delete().eq('order_id', orderId);
+      await supabase.from('orders').delete().eq('id', orderId);
+      throw detailsError;
+    }
+    
+    console.log('Order details created successfully');
     
     // Update product stock quantities
     for (const product of orderData.products) {

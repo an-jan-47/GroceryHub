@@ -117,7 +117,7 @@ const PaymentMethodsPage = () => {
         totalAmount: totalAmount,
         platformFees: platformFees,
         discountAmount: discountAmount,
-        appliedCouponId: appliedCouponData?.coupon?.id || null,
+        // Remove appliedCouponId field
         products: cartItems.map(item => ({
           productId: item.id,
           name: item.name,
