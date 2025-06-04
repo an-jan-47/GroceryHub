@@ -1,224 +1,137 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
+
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Search, ChevronRight } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { Search } from 'lucide-react';
-import { useCart } from '@/hooks/useCart';
+import { Button } from '@/components/ui/button';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
 import PopularProducts from '@/components/PopularProducts';
-import ProductCard from '@/components/ProductCard';
-import { toast } from '@/components/ui/sonner';
-import type { CarouselApi } from '@/components/ui/carousel';
+import SearchFilters from '@/components/SearchFilters';
 import { useQuery } from '@tanstack/react-query';
-import { getProducts, searchProducts, Product } from '@/services/productService';
-import { getCategories } from '@/services/categoryService';
-import { getBanners } from '@/services/bannerService';
+import { searchProducts, getCategories, type SearchFilters } from '@/services/searchService';
+import ProductsGrid from '@/components/ProductsGrid';
 
-const HomePage = () => {
-  const { addToCart, cartItems, updateQuantity } = useCart();
-  const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
-  const [carouselApi, setCarouselApi] = useState<CarouselApi>();
-  const [searchQuery, setSearchQuery] = useState('');
+const Index = () => {
   const navigate = useNavigate();
-  
-  // Fetch data from Supabase
-  const { data: products, isLoading: isLoadingProducts } = useQuery({
-    queryKey: ['allProducts'],
-    queryFn: getProducts
-  });
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
 
-  const { data: categories } = useQuery({
+  const { data: categories = [] } = useQuery({
     queryKey: ['categories'],
-    queryFn: getCategories
+    queryFn: getCategories,
   });
 
-  const { data: banners } = useQuery({
-    queryKey: ['banners'],
-    queryFn: getBanners
-  });
-
-  // Handle search
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleQuickSearch = () => {
     if (searchQuery.trim()) {
-      try {
-        const results = await searchProducts(searchQuery);
-        if (results && results.length > 0) {
-          navigate(`/search?query=${encodeURIComponent(searchQuery.trim())}`);
-        } else {
-          toast("No products found", {
-            description: "Try a different search term"
-          });
-        }
-      } catch (error) {
-        console.error('Search error:', error);
-        toast("Search failed", {
-          description: "Something went wrong, please try again"
-        });
-      }
+      navigate(`/explore?q=${encodeURIComponent(searchQuery.trim())}`);
     }
   };
 
-  // Auto rotate banner carousel
-  useEffect(() => {
-    if (!banners || banners.length === 0) return;
-    
-    const interval = setInterval(() => {
-      setCurrentBannerIndex(prevIndex => 
-        prevIndex === banners.length - 1 ? 0 : prevIndex + 1
-      );
-      carouselApi?.scrollTo(currentBannerIndex);
-    }, 5000);
-    
-    return () => clearInterval(interval);
-  }, [carouselApi, currentBannerIndex, banners]);
-  
-  // Handle carousel api change
-  useEffect(() => {
-    if (!carouselApi) return;
-    
-    const onSelect = () => {
-      setCurrentBannerIndex(carouselApi.selectedScrollSnap());
-    };
-    
-    carouselApi.on("select", onSelect);
-    
-    return () => {
-      carouselApi.off("select", onSelect);
-    };
-  }, [carouselApi]);
-  
-  // Get featured products - first 8 items or fewer if less available
-  const featuredProducts = products ? products.slice(0, 8) : [];
-  
+  const handleAdvancedSearch = async (filters: SearchFilters) => {
+    setIsSearching(true);
+    try {
+      const results = await searchProducts(filters);
+      setSearchResults(results);
+    } catch (error) {
+      console.error('Search error:', error);
+    }
+    setIsSearching(false);
+  };
+
   return (
     <div className="pb-20">
       <Header />
       
-      {/* Search bar below header */}
-      <div className="sticky top-16 z-40 bg-white pb-2 pt-3 px-4 border-b border-gray-100 shadow-sm">
-        <form onSubmit={handleSearch} className="relative w-full">
-          <Input
-            type="search"
-            placeholder="Search products..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pr-10 bg-gray-50"
-          />
-          <button 
-            type="submit" 
-            className="absolute right-3 top-1/2 transform -translate-y-1/2"
-          >
-            <Search className="w-5 h-5 text-gray-500" />
-          </button>
-        </form>
-      </div>
-      
-      <main className="container px-4 py-4 mx-auto space-y-6">
-        {/* Hero Carousel */}
-        {banners && banners.length > 0 && (
-          <Carousel className="w-full" setApi={setCarouselApi} opts={{ startIndex: currentBannerIndex }}>
-            <CarouselContent>
-              {banners.map((banner) => (
-                <CarouselItem key={banner.id} className="relative">
-                  <Link to={banner.link} className="block">
-                    <div className="h-48 md:h-64 rounded-lg overflow-hidden relative">
-                      <img src={banner.image} alt={banner.title} className="w-full h-full object-cover" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent p-5 flex flex-col justify-end">
-                        <h3 className="text-xl font-bold text-white">{banner.title}</h3>
-                        {banner.subtitle && <p className="text-sm text-white/90">{banner.subtitle}</p>}
-                      </div>
-                    </div>
-                  </Link>
-                </CarouselItem>
-              ))}
-            </CarouselContent>
-            <div className="hidden md:block">
-              <CarouselPrevious />
-              <CarouselNext />
-            </div>
-            <div className="mt-2 flex justify-center gap-1">
-              {banners.map((_, index) => (
-                <div 
-                  key={index} 
-                  className={`h-1.5 rounded-full transition-all ${index === currentBannerIndex ? 'w-6 bg-brand-blue' : 'w-2 bg-gray-300'}`} 
-                />
-              ))}
-            </div>
-          </Carousel>
-        )}
-        
-        {/* Google Ads Section */}
-        <div className="bg-gray-100 h-20 rounded-lg flex items-center justify-center">
-          <p className="text-gray-500">Ad Space</p>
+      <main className="container px-4 py-6 mx-auto">
+        {/* Welcome Section */}
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold mb-2">Welcome to GroceryHub</h1>
+          <p className="text-gray-600">Fresh groceries delivered to your doorstep</p>
         </div>
-        
-        {/* Most Popular Products Section */}
-        <PopularProducts />
-        
-        {/* Categories */}
-        <section>
-          <div className="flex justify-between items-center mb-3">
-            <h2 className="text-lg font-semibold">Categories</h2>
-            <Link to="/explore" className="text-brand-blue text-sm">See all</Link>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {categories?.map((category) => (
-              <Link 
-                to={`/explore?category=${encodeURIComponent(category.name)}`} 
-                key={category.id}
-                className="relative rounded-lg overflow-hidden group"
-              >
-                <div className="h-32 bg-gray-100 relative">
-                  <img 
-                    src={category.image} 
-                    alt={category.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <div className="absolute inset-0 bg-black/40 p-3 flex flex-col justify-end">
-                    <h3 className="font-medium text-white">{category.name}</h3>
-                    {category.description && <p className="text-xs text-white/80">{category.description}</p>}
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </section>
-        
-        {/* Featured Products Section */}
-        <section>
-          <div className="flex justify-between items-center mb-3">
-            <h2 className="text-lg font-semibold">Featured Products</h2>
-            <Link to="/explore" className="text-brand-blue text-sm">View All Products</Link>
+
+        {/* Search Section */}
+        <div className="mb-6">
+          <div className="flex gap-2 mb-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+              <Input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleQuickSearch()}
+                placeholder="Search for products..."
+                className="pl-10"
+              />
+            </div>
+            <Button onClick={handleQuickSearch}>Search</Button>
           </div>
           
-          {isLoadingProducts ? (
-            <div className="py-8 text-center">
-              <div className="w-10 h-10 border-4 border-t-blue-500 border-blue-200 rounded-full animate-spin mx-auto"></div>
-              <p className="mt-4 text-gray-600">Loading products...</p>
-            </div>
-          ) : featuredProducts.length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {featuredProducts.map((product: Product) => (
-                <ProductCard 
-                  key={product.id} 
-                  product={product}
-                  showBuyNow={false}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8 bg-gray-50 rounded-lg">
-              <p className="text-gray-500">No products found.</p>
+          <Button 
+            onClick={() => setShowAdvancedSearch(!showAdvancedSearch)}
+            variant="outline" 
+            size="sm"
+          >
+            Advanced Search
+          </Button>
+          
+          {showAdvancedSearch && (
+            <div className="mt-4">
+              <SearchFilters onFilterChange={handleAdvancedSearch} />
             </div>
           )}
-        </section>
+        </div>
+
+        {/* Search Results */}
+        {searchResults.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-xl font-semibold mb-4">Search Results</h2>
+            {isSearching ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <div key={i} className="bg-gray-200 animate-pulse rounded-lg h-64"></div>
+                ))}
+              </div>
+            ) : (
+              <ProductsGrid products={searchResults} />
+            )}
+          </div>
+        )}
+
+        {/* Categories Section */}
+        {categories.length > 0 && (
+          <div className="mb-8">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold">Shop by Category</h2>
+              <Link to="/explore" className="text-brand-blue text-sm flex items-center">
+                View All <ChevronRight className="w-4 h-4 ml-1" />
+              </Link>
+            </div>
+            
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {categories.slice(0, 8).map((category) => (
+                <Link
+                  key={category.id}
+                  to={`/explore?category=${encodeURIComponent(category.name)}`}
+                  className="bg-white rounded-lg shadow-sm p-4 text-center hover:shadow-md transition-shadow"
+                >
+                  <img
+                    src={category.image}
+                    alt={category.name}
+                    className="w-16 h-16 mx-auto mb-2 object-contain"
+                  />
+                  <h3 className="font-medium text-sm">{category.name}</h3>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Popular Products */}
+        <PopularProducts />
       </main>
       
       <BottomNavigation />
     </div>
   );
-};
-
-export default HomePage;

@@ -9,14 +9,12 @@ import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { getUserOrders } from '@/services/orderService';
-import { supabase } from '@/integrations/supabase/client';
+import { getUserOrders, subscribeToUserOrdersUpdates } from '@/services/orderService';
 
 const OrderHistory = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [isSubscribed, setIsSubscribed] = useState(false);
   
   // Fetch orders from backend
   const { 
@@ -31,31 +29,23 @@ const OrderHistory = () => {
 
   // Set up real-time subscription to order updates
   useEffect(() => {
-    if (!user || isSubscribed) return;
+    if (!user) return;
+    
+    console.log('Setting up real-time subscription for user orders');
     
     // Subscribe to changes on orders for this user
-    const subscription = supabase
-      .channel(`user-orders-${user.id}`)
-      .on('postgres_changes', {
-        event: '*', // Listen for all events (INSERT, UPDATE, DELETE)
-        schema: 'public',
-        table: 'orders',
-        filter: `user_id=eq.${user.id}`
-      }, (payload) => {
-        console.log('Orders updated:', payload);
-        // Invalidate the query to trigger a refetch
-        queryClient.invalidateQueries({ queryKey: ['orders', user.id] });
-      })
-      .subscribe();
-    
-    setIsSubscribed(true);
+    const subscription = subscribeToUserOrdersUpdates(user.id, (payload) => {
+      console.log('Orders updated via realtime:', payload);
+      // Invalidate the query to trigger a refetch
+      queryClient.invalidateQueries({ queryKey: ['orders', user.id] });
+    });
     
     // Clean up subscription on unmount
     return () => {
+      console.log('Cleaning up order subscription');
       subscription.unsubscribe();
-      setIsSubscribed(false);
     };
-  }, [user, queryClient, isSubscribed]);
+  }, [user, queryClient]);
 
   // Filter orders by ID
   const filteredOrders = orders ? orders.filter(order => 

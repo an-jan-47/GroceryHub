@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ChevronLeft, Package, MapPin, Clock, CreditCard, Truck, CheckCircle, AlertCircle } from 'lucide-react';
@@ -7,69 +6,43 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
-import { getOrderById } from '@/services/orderService';
+import { getOrderById, subscribeToOrderUpdates } from '@/services/orderService';
 import { formatCurrency } from '@/utils/formatters';
-import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 const OrderDetails = () => {
   const { id } = useParams();
   const queryClient = useQueryClient();
-  const [isSubscribed, setIsSubscribed] = useState(false);
   
   // Use React Query for data fetching and caching
   const { data: orderData, isLoading } = useQuery({
     queryKey: ['order', id],
     queryFn: async () => {
       if (!id) throw new Error('No order ID provided');
-      
-      // First get the basic order data
-      const data = await getOrderById(id);
-      
-      // Then fetch the latest status directly from the database
-      const { data: statusData, error } = await supabase
-        .from('orders')
-        .select('status')
-        .eq('id', id)
-        .single();
-      
-      if (!error && statusData) {
-        // Update the order status with the latest from the database
-        data.order.status = statusData.status;
-      }
-      
-      return data;
+      return await getOrderById(id);
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
   
   // Set up real-time subscription to order updates
   useEffect(() => {
-    if (!id || isSubscribed) return;
+    if (!id) return;
+    
+    console.log('Setting up real-time subscription for order:', id);
     
     // Subscribe to changes on this specific order
-    const subscription = supabase
-      .channel(`order-${id}`)
-      .on('postgres_changes', {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'orders',
-        filter: `id=eq.${id}`
-      }, (payload) => {
-        console.log('Order updated:', payload);
-        // Invalidate the query to trigger a refetch
-        queryClient.invalidateQueries({ queryKey: ['order', id] });
-      })
-      .subscribe();
-    
-    setIsSubscribed(true);
+    const subscription = subscribeToOrderUpdates(id, (payload) => {
+      console.log('Order updated via realtime:', payload);
+      // Invalidate the query to trigger a refetch
+      queryClient.invalidateQueries({ queryKey: ['order', id] });
+    });
     
     // Clean up subscription on unmount
     return () => {
+      console.log('Cleaning up order subscription for:', id);
       subscription.unsubscribe();
-      setIsSubscribed(false);
     };
-  }, [id, queryClient, isSubscribed]);
+  }, [id, queryClient]);
   
   const formatDate = (dateString: string) => {
     const options: Intl.DateTimeFormatOptions = { 
