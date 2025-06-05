@@ -20,7 +20,7 @@ const ChangePassword = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { signOut } = useAuth();
 
   const validatePassword = (password: string) => {
     const minLength = 8;
@@ -78,7 +78,7 @@ const ChangePassword = () => {
       
       // Auto-logout after password change
       setTimeout(async () => {
-        await logout();
+        await signOut();
         navigate('/login');
       }, 2000);
 

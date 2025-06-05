@@ -4,14 +4,14 @@ import { useSearchParams } from 'react-router-dom';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
 import ProductsGrid from '@/components/ProductsGrid';
-import SearchFilters from '@/components/SearchFilters';
+import SearchFiltersComponent from '@/components/SearchFilters';
 import { useQuery } from '@tanstack/react-query';
-import { searchProducts, type SearchFilters } from '@/services/searchService';
+import { searchProducts, type SearchFilters as SearchFiltersType } from '@/services/searchService';
 
 const Explore = () => {
   const [searchParams] = useSearchParams();
   const initialQuery = searchParams.get('q') || '';
-  const [filters, setFilters] = useState<SearchFilters>({ query: initialQuery });
+  const [filters, setFilters] = useState<SearchFiltersType>({ query: initialQuery });
 
   const { data: products = [], isLoading } = useQuery({
     queryKey: ['searchProducts', filters],
@@ -26,7 +26,7 @@ const Explore = () => {
       <main className="container px-4 py-6 mx-auto">
         <h1 className="text-2xl font-bold mb-6">Explore Products</h1>
         
-        <SearchFilters 
+        <SearchFiltersComponent 
           onFilterChange={setFilters}
           initialQuery={initialQuery}
         />
@@ -42,7 +42,7 @@ const Explore = () => {
             {products.length > 0 ? (
               <>
                 <p className="text-gray-600 mb-4">{products.length} products found</p>
-                <ProductsGrid products={products} />
+                <ProductsGrid customProducts={products} />
               </>
             ) : (
               <div className="text-center py-12">

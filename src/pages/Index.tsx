@@ -7,9 +7,9 @@ import { Button } from '@/components/ui/button';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
 import PopularProducts from '@/components/PopularProducts';
-import SearchFilters from '@/components/SearchFilters';
+import SearchFiltersComponent from '@/components/SearchFilters';
 import { useQuery } from '@tanstack/react-query';
-import { searchProducts, getCategories, type SearchFilters } from '@/services/searchService';
+import { searchProducts, getCategories, type SearchFilters as SearchFiltersType } from '@/services/searchService';
 import ProductsGrid from '@/components/ProductsGrid';
 
 const Index = () => {
@@ -30,7 +30,7 @@ const Index = () => {
     }
   };
 
-  const handleAdvancedSearch = async (filters: SearchFilters) => {
+  const handleAdvancedSearch = async (filters: SearchFiltersType) => {
     setIsSearching(true);
     try {
       const results = await searchProducts(filters);
@@ -78,7 +78,7 @@ const Index = () => {
           
           {showAdvancedSearch && (
             <div className="mt-4">
-              <SearchFilters onFilterChange={handleAdvancedSearch} />
+              <SearchFiltersComponent onFilterChange={handleAdvancedSearch} />
             </div>
           )}
         </div>
@@ -94,7 +94,7 @@ const Index = () => {
                 ))}
               </div>
             ) : (
-              <ProductsGrid products={searchResults} />
+              <ProductsGrid customProducts={searchResults} />
             )}
           </div>
         )}
