@@ -135,3 +135,6 @@ const Index = () => {
       <BottomNavigation />
     </div>
   );
+};
+
+export default Index;
