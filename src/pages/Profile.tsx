@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { User, Package, LogOut, Heart, Settings, Lock, ShieldCheck, Info, Edit, ShoppingBag, MapPin, Tag, Shield, HelpCircle } from 'lucide-react';
@@ -41,54 +42,6 @@ const Profile = () => {
       console.error('Error signing out:', error);
     }
   };
-  
-  const menuItems = [
-    { 
-      icon: ShoppingBag, 
-      label: "My Orders", 
-      path: "/order-history",
-      description: "Track your recent orders"
-    },
-    { 
-      icon: MapPin, 
-      label: "Saved Addresses", 
-      path: "/address",
-      description: "Manage delivery addresses"
-    },
-    { 
-      icon: Tag, 
-      label: "Coupons & Offers", 
-      path: "/coupons",
-      description: "View available discounts"
-    },
-    { 
-      icon: Heart, 
-      label: "Wishlist", 
-      path: "/wishlist",
-      description: "Your saved items"
-    }
-  ];
-
-  const aboutSupportItems = [
-    { 
-      icon: Shield, 
-      label: "Privacy Settings", 
-      path: "/privacy-settings",
-      description: "Manage your privacy preferences"
-    },
-    { 
-      icon: HelpCircle, 
-      label: "Help & Support", 
-      path: "/help-support",
-      description: "Get help with your orders"
-    },
-    { 
-      icon: Info, 
-      label: "About Us", 
-      path: "/about-us",
-      description: "Learn more about our company"
-    }
-  ];
 
   if (isLoading) {
     return (
@@ -133,10 +86,7 @@ const Profile = () => {
             </Link>
             
             <Separator />
-            {/* Remove this duplicate opening Link tag */}
-            {/* <Link to="#" className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-md"> */}
             
-            {/* Keep only this Link */}
             <Link to="/wishlist" className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-md">
               <div className="flex items-center">
                 <Heart className="h-5 w-5 text-red-500 mr-3" />
@@ -210,9 +160,9 @@ const Profile = () => {
             
             <Separator />
             
-            <Link to="/wishlist" className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-md">
+            <Link to="/help-support" className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-md">
               <div className="flex items-center">
-                <Settings className="h-5 w-5 text-gray-600 mr-3" />
+                <HelpCircle className="h-5 w-5 text-green-600 mr-3" />
                 <span>Help & Support</span>
               </div>
               <span className="text-gray-400">→</span>

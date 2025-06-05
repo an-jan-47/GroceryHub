@@ -46,7 +46,20 @@ export const createRazorpayOrder = async (amount: number, receipt: string) => {
 
     if (error) {
       console.error('Supabase function error:', error);
-      throw new Error(`Failed to create order: ${error.message}`);
+      
+      // Provide more specific error messages
+      if (error.message?.includes('credentials not configured')) {
+        throw new Error('Payment gateway not configured. Please contact support.');
+      } else if (error.message?.includes('Authentication failed')) {
+        throw new Error('Payment gateway authentication failed. Please contact support.');
+      } else {
+        throw new Error(`Failed to create order: ${error.message}`);
+      }
+    }
+    
+    if (!data || data.error) {
+      console.error('Razorpay order creation failed:', data);
+      throw new Error(data?.error || 'Failed to create payment order');
     }
     
     console.log('Razorpay order created successfully:', data);
@@ -111,6 +124,11 @@ export const verifyRazorpayPayment = async (
     if (error) {
       console.error('Payment verification error:', error);
       throw new Error(`Verification failed: ${error.message}`);
+    }
+    
+    if (!data || !data.verified) {
+      console.error('Payment verification failed:', data);
+      throw new Error(data?.error || 'Payment verification failed');
     }
     
     console.log('Payment verification result:', data);

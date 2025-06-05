@@ -19,14 +19,36 @@ serve(async (req) => {
   }
 
   try {
-    // Use the test credentials provided by the user
-    const razorpayKeyId = 'rzp_test_NhYbBXqUSxpojf'
-    const razorpayKeySecret = 'dQ8wWKtlLk9LPCdmutAV6HJ'
+    // Get Razorpay credentials from environment variables
+    const razorpayKeyId = Deno.env.get('RAZORPAY_KEY_ID')
+    const razorpayKeySecret = Deno.env.get('RAZORPAY_KEY_SECRET')
+
+    if (!razorpayKeyId || !razorpayKeySecret) {
+      console.error('Razorpay credentials not found in environment variables')
+      return new Response(JSON.stringify({ 
+        error: 'Razorpay credentials not configured. Please contact support.' 
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
 
     const { amount, currency = 'INR', receipt }: OrderData = await req.json()
 
+    // Validate amount
+    if (!amount || amount <= 0) {
+      return new Response(JSON.stringify({ 
+        error: 'Invalid amount provided' 
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
     // Create order with Razorpay
     const auth = btoa(`${razorpayKeyId}:${razorpayKeySecret}`)
+    
+    console.log('Creating Razorpay order with amount:', amount, 'currency:', currency, 'receipt:', receipt)
     
     const response = await fetch('https://api.razorpay.com/v1/orders', {
       method: 'POST',
@@ -44,17 +66,38 @@ serve(async (req) => {
     if (!response.ok) {
       const errorText = await response.text()
       console.error('Razorpay API error:', errorText)
-      throw new Error('Failed to create Razorpay order')
+      
+      let errorMessage = 'Failed to create Razorpay order'
+      try {
+        const errorData = JSON.parse(errorText)
+        if (errorData.error && errorData.error.description) {
+          errorMessage = errorData.error.description
+        }
+      } catch (e) {
+        // If we can't parse the error, use the default message
+      }
+      
+      return new Response(JSON.stringify({ 
+        error: errorMessage,
+        details: errorText 
+      }), {
+        status: response.status,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
     const order = await response.json()
+    console.log('Razorpay order created successfully:', order.id)
 
     return new Response(JSON.stringify(order), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (error) {
     console.error('Error creating Razorpay order:', error)
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ 
+      error: 'Internal server error',
+      message: error.message 
+    }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })

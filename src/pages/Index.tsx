@@ -117,27 +117,23 @@ const Index = () => {
               >
                 {banners.map((banner, index) => (
                   <div key={banner.id} className="w-full flex-shrink-0">
-                    <div className="relative h-48 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg overflow-hidden">
-                      <img
-                        src={banner.image}
-                        alt={banner.title}
-                        className="w-full h-full object-cover"
-                      />
-                      <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center">
-                        <div className="text-white p-6">
-                          <h2 className="text-2xl font-bold mb-2">{banner.title}</h2>
-                          {banner.subtitle && (
-                            <p className="text-lg opacity-90 mb-4">{banner.subtitle}</p>
-                          )}
-                          <Link
-                            to={banner.link}
-                            className="inline-block bg-white text-gray-900 px-6 py-2 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
-                          >
-                            Shop Now
-                          </Link>
+                    <Link to={banner.link} className="block">
+                      <div className="relative h-48 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg overflow-hidden cursor-pointer hover:opacity-95 transition-opacity">
+                        <img
+                          src={banner.image}
+                          alt={banner.title}
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-black bg-opacity-30 flex items-end">
+                          <div className="text-white p-6 w-full">
+                            <h2 className="text-2xl font-bold mb-2">{banner.title}</h2>
+                            {banner.subtitle && (
+                              <p className="text-lg opacity-90">{banner.subtitle}</p>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    </Link>
                   </div>
                 ))}
               </div>

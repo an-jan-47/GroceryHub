@@ -1,6 +1,5 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
-import { createHmac } from 'https://deno.land/std@0.177.0/crypto/mod.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -20,13 +19,37 @@ serve(async (req) => {
   }
 
   try {
-    // Use the test secret provided by the user
-    const razorpayKeySecret = 'dQ8wWKtlLk9LPCdmutAV6HJ'
+    // Get Razorpay secret from environment variables
+    const razorpayKeySecret = Deno.env.get('RAZORPAY_KEY_SECRET')
+
+    if (!razorpayKeySecret) {
+      console.error('Razorpay secret not found in environment variables')
+      return new Response(JSON.stringify({ 
+        verified: false, 
+        error: 'Razorpay credentials not configured' 
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
 
     const { razorpay_payment_id, razorpay_order_id, razorpay_signature }: VerificationData = await req.json()
 
+    // Validate input
+    if (!razorpay_payment_id || !razorpay_order_id || !razorpay_signature) {
+      return new Response(JSON.stringify({ 
+        verified: false, 
+        error: 'Missing required payment verification data' 
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
     // Verify signature
     const body = `${razorpay_order_id}|${razorpay_payment_id}`
+    
+    console.log('Verifying payment signature for order:', razorpay_order_id, 'payment:', razorpay_payment_id)
     
     const encoder = new TextEncoder()
     const keyData = encoder.encode(razorpayKeySecret)
@@ -45,19 +68,34 @@ serve(async (req) => {
       .map(b => b.toString(16).padStart(2, '0'))
       .join('')
 
-    if (expectedSignature !== razorpay_signature) {
-      return new Response(JSON.stringify({ verified: false, error: 'Invalid signature' }), {
+    const isValid = expectedSignature === razorpay_signature
+    
+    console.log('Payment verification result:', isValid ? 'SUCCESS' : 'FAILED')
+
+    if (!isValid) {
+      return new Response(JSON.stringify({ 
+        verified: false, 
+        error: 'Invalid payment signature' 
+      }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    return new Response(JSON.stringify({ verified: true }), {
+    return new Response(JSON.stringify({ 
+      verified: true,
+      payment_id: razorpay_payment_id,
+      order_id: razorpay_order_id
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (error) {
     console.error('Error verifying payment:', error)
-    return new Response(JSON.stringify({ verified: false, error: error.message }), {
+    return new Response(JSON.stringify({ 
+      verified: false, 
+      error: 'Internal server error',
+      message: error.message 
+    }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
