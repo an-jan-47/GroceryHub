@@ -1,82 +1,118 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import { toast } from '@/components/ui/sonner';
-import { Check, Copy } from 'lucide-react';
+import { validateCoupon } from '@/services/couponService';
 
 interface CouponApplyProps {
-  couponCode: string;
-  description: string;
-  onApply: (code: string) => void;
+  cartTotal: number;
+  onCouponApplied: (couponData: any) => void;
+  appliedCoupon?: any;
+  onCouponRemoved: () => void;
 }
 
-const CouponApply = ({ couponCode, description, onApply }: CouponApplyProps) => {
-  const [applied, setApplied] = useState(false);
+const CouponApply = ({ cartTotal, onCouponApplied, appliedCoupon, onCouponRemoved }: CouponApplyProps) => {
+  const [couponCode, setCouponCode] = useState('');
+  const [isValidating, setIsValidating] = useState(false);
 
-  // Check if this coupon is already applied
-  useEffect(() => {
-    const savedCoupon = localStorage.getItem('appliedCoupon');
-    if (savedCoupon) {
-      try {
-        const { coupon } = JSON.parse(savedCoupon);
-        if (coupon.code === couponCode) {
-          setApplied(true);
-        }
-      } catch (error) {
-        // Ignore error
-      }
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) {
+      toast('Please enter a coupon code');
+      return;
     }
-  }, [couponCode]);
 
-  const handleCopy = async () => {
+    setIsValidating(true);
     try {
-      await navigator.clipboard.writeText(couponCode);
-      toast('Coupon code copied!');
-    } catch (err) {
-      console.error('Failed to copy:', err);
+      const couponData = await validateCoupon(couponCode, cartTotal);
+      
+      if (couponData.valid) {
+        // Calculate discount based on coupon type and value
+        let discountAmount = 0;
+        
+        if (couponData.coupon.type === 'percentage') {
+          // For percentage coupons, calculate percentage of cart total
+          discountAmount = (cartTotal * couponData.coupon.value) / 100;
+          
+          // Apply max discount limit if specified
+          if (couponData.coupon.max_discount_amount && discountAmount > couponData.coupon.max_discount_amount) {
+            discountAmount = couponData.coupon.max_discount_amount;
+          }
+        } else if (couponData.coupon.type === 'fixed') {
+          // For fixed amount coupons
+          discountAmount = Math.min(couponData.coupon.value, cartTotal);
+        }
+        
+        const couponInfo = {
+          ...couponData,
+          discountAmount: discountAmount
+        };
+        
+        onCouponApplied(couponInfo);
+        setCouponCode('');
+        toast(`Coupon applied! You saved ₹${discountAmount.toFixed(2)}`);
+      } else {
+        toast(couponData.message || 'Invalid coupon code');
+      }
+    } catch (error: any) {
+      console.error('Error applying coupon:', error);
+      toast(error.message || 'Failed to apply coupon');
+    } finally {
+      setIsValidating(false);
     }
   };
 
-  const handleApply = () => {
-    if (!applied) {
-      onApply(couponCode);
-      setApplied(true);
-    }
+  const handleRemoveCoupon = () => {
+    onCouponRemoved();
+    toast('Coupon removed');
   };
 
   return (
-    <div className="border rounded-lg p-4 space-y-3">
-      <div>
-        <div className="flex items-center justify-between">
-          <span className="font-mono font-bold text-lg">{couponCode}</span>
+    <div className="bg-white rounded-lg shadow-sm p-4">
+      <h3 className="font-semibold mb-3">Apply Coupon</h3>
+      
+      {appliedCoupon ? (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
+            <div>
+              <Badge variant="outline" className="bg-green-100 text-green-800 border-green-300">
+                {appliedCoupon.coupon.code}
+              </Badge>
+              <p className="text-sm text-green-700 mt-1">
+                {appliedCoupon.coupon.description}
+              </p>
+              <p className="text-sm font-medium text-green-800">
+                You saved ₹{appliedCoupon.discountAmount?.toFixed(2)}
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRemoveCoupon}
+              className="text-red-600 border-red-300 hover:bg-red-50"
+            >
+              Remove
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex gap-2">
+          <Input
+            placeholder="Enter coupon code"
+            value={couponCode}
+            onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+            className="flex-1"
+          />
           <Button 
-            onClick={handleCopy} 
-            variant="outline" 
-            size="sm"
-            className="h-8 w-8 p-0"
+            onClick={handleApplyCoupon}
+            disabled={isValidating}
+            className="bg-brand-blue hover:bg-brand-darkBlue"
           >
-            <Copy className="h-3 w-3" />
+            {isValidating ? 'Validating...' : 'Apply'}
           </Button>
         </div>
-        <p className="text-sm text-gray-600 mt-1">{description}</p>
-      </div>
-      
-      <Button 
-        onClick={handleApply}
-        disabled={applied}
-        className="w-full"
-        variant={applied ? "secondary" : "default"}
-      >
-        {applied ? (
-          <>
-            <Check className="h-4 w-4 mr-2" />
-            Applied
-          </>
-        ) : (
-          'Apply Coupon'
-        )}
-      </Button>
+      )}
     </div>
   );
 };

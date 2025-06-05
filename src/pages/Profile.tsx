@@ -1,7 +1,6 @@
-
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { User, Package, LogOut, Heart, Settings, Lock, ShieldCheck, Info, Edit } from 'lucide-react';
+import { User, Package, LogOut, Heart, Settings, Lock, ShieldCheck, Info, Edit, ShoppingBag, MapPin, Tag, Shield, HelpCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
@@ -43,6 +42,54 @@ const Profile = () => {
     }
   };
   
+  const menuItems = [
+    { 
+      icon: ShoppingBag, 
+      label: "My Orders", 
+      path: "/order-history",
+      description: "Track your recent orders"
+    },
+    { 
+      icon: MapPin, 
+      label: "Saved Addresses", 
+      path: "/address",
+      description: "Manage delivery addresses"
+    },
+    { 
+      icon: Tag, 
+      label: "Coupons & Offers", 
+      path: "/coupons",
+      description: "View available discounts"
+    },
+    { 
+      icon: Heart, 
+      label: "Wishlist", 
+      path: "/wishlist",
+      description: "Your saved items"
+    }
+  ];
+
+  const aboutSupportItems = [
+    { 
+      icon: Shield, 
+      label: "Privacy Settings", 
+      path: "/privacy-settings",
+      description: "Manage your privacy preferences"
+    },
+    { 
+      icon: HelpCircle, 
+      label: "Help & Support", 
+      path: "/help-support",
+      description: "Get help with your orders"
+    },
+    { 
+      icon: Info, 
+      label: "About Us", 
+      path: "/about-us",
+      description: "Learn more about our company"
+    }
+  ];
+
   if (isLoading) {
     return (
       <div className="min-h-screen pb-20 bg-gray-50 flex items-center justify-center">

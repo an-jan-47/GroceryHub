@@ -30,6 +30,7 @@ import Coupons from "./pages/Coupons";
 import Categories from "./pages/Categories";
 import WriteReview from "./pages/WriteReview";
 import Wishlist from "./pages/Wishlist";
+import HelpSupport from "./pages/HelpSupport";
 
 // Providers
 import { CartProvider } from "./hooks/useCart";
@@ -101,6 +102,7 @@ const AppContent = () => {
       <Route path="/change-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
       <Route path="/privacy-settings" element={<ProtectedRoute><PrivacySettings /></ProtectedRoute>} />
       <Route path="/about-us" element={<AboutUs />} />
+      <Route path="/help-support" element={<HelpSupport />} />
       
       <Route path="/coupons" element={<Coupons />} />
       <Route path="/wishlist" element={<Wishlist />} />

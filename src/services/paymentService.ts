@@ -33,6 +33,8 @@ interface RazorpayResponse {
 // Create a Razorpay order on the server
 export const createRazorpayOrder = async (amount: number, receipt: string) => {
   try {
+    console.log('Creating Razorpay order for amount:', amount, 'receipt:', receipt);
+    
     // Call your backend function to create a Razorpay order
     const { data, error } = await supabase.functions.invoke('create-razorpay-order', {
       body: { 
@@ -42,7 +44,12 @@ export const createRazorpayOrder = async (amount: number, receipt: string) => {
       }
     });
 
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase function error:', error);
+      throw new Error(`Failed to create order: ${error.message}`);
+    }
+    
+    console.log('Razorpay order created successfully:', data);
     return data;
   } catch (error) {
     console.error('Error creating Razorpay order:', error);
@@ -69,12 +76,17 @@ export const processRazorpayPayment = (
   const razorpay = new (window as any).Razorpay({
     ...options,
     handler: (response: RazorpayResponse) => {
+      console.log('Payment successful:', response);
       onSuccess(response);
     },
   });
 
   // Open Razorpay payment form
-  razorpay.on('payment.failed', onError);
+  razorpay.on('payment.failed', (response: any) => {
+    console.error('Payment failed:', response.error);
+    onError(response.error);
+  });
+  
   razorpay.open();
 };
 
@@ -86,6 +98,8 @@ export const verifyRazorpayPayment = async (
   razorpayOrderId: string
 ) => {
   try {
+    console.log('Verifying payment:', { paymentId, orderId, signature, razorpayOrderId });
+    
     const { data, error } = await supabase.functions.invoke('verify-razorpay-payment', {
       body: {
         razorpay_payment_id: paymentId,
@@ -94,7 +108,12 @@ export const verifyRazorpayPayment = async (
       }
     });
 
-    if (error) throw error;
+    if (error) {
+      console.error('Payment verification error:', error);
+      throw new Error(`Verification failed: ${error.message}`);
+    }
+    
+    console.log('Payment verification result:', data);
     return data;
   } catch (error) {
     console.error('Error verifying payment:', error);
@@ -102,7 +121,7 @@ export const verifyRazorpayPayment = async (
   }
 };
 
-// Save payment details to database
+// Save payment details to database using existing table structure
 export const savePaymentDetails = async (
   orderId: string,
   paymentId: string,
@@ -111,6 +130,8 @@ export const savePaymentDetails = async (
   paymentMethod: string
 ) => {
   try {
+    console.log('Saving payment details:', { orderId, paymentId, amount, status, paymentMethod });
+    
     const { data, error } = await supabase
       .from('payments')
       .insert({
@@ -124,7 +145,12 @@ export const savePaymentDetails = async (
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('Error saving payment details:', error);
+      throw error;
+    }
+    
+    console.log('Payment details saved successfully:', data);
     return data;
   } catch (error) {
     console.error('Error saving payment details:', error);
