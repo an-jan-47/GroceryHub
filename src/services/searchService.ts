@@ -40,7 +40,11 @@ export const searchProducts = async (filters: SearchFilters) => {
     throw error;
   }
 
-  return data || [];
+  // Convert features from Json to string[] to match Product type
+  return data?.map(product => ({
+    ...product,
+    features: Array.isArray(product.features) ? product.features.map(f => String(f)) : []
+  })) || [];
 };
 
 export const getCategories = async () => {
