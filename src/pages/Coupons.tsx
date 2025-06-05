@@ -1,10 +1,11 @@
 
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ChevronLeft, Tag } from 'lucide-react';
+import { ChevronLeft, Tag, Copy } from 'lucide-react';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
-import CouponApply from '@/components/CouponApply';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/sonner';
@@ -48,6 +49,13 @@ const Coupons = () => {
     }
   };
 
+  const copyCouponCode = (code: string) => {
+    navigator.clipboard.writeText(code);
+    toast('Coupon code copied!', {
+      description: 'You can paste it at checkout.'
+    });
+  };
+
   return (
     <div className="pb-20">
       <Header />
@@ -81,12 +89,41 @@ const Coupons = () => {
             ) : (
               <div className="space-y-3">
                 {coupons.map((coupon) => (
-                  <CouponApply
-                    key={coupon.id}
-                    couponCode={coupon.code}
-                    description={coupon.description || `Get ${coupon.type === 'percentage' ? coupon.value + '%' : '₹' + coupon.value} off`}
-                    onApply={handleApplyCoupon}
-                  />
+                  <div key={coupon.id} className="bg-white rounded-lg shadow-sm border p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                        {coupon.code}
+                      </Badge>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => copyCouponCode(coupon.code)}
+                        className="text-gray-500 hover:text-gray-700"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    
+                    <div className="mb-3">
+                      <h3 className="font-medium mb-1">
+                        {coupon.type === 'percentage' ? `${coupon.value}% OFF` : `₹${coupon.value} OFF`}
+                      </h3>
+                      <p className="text-sm text-gray-600">
+                        {coupon.description || `Get ${coupon.type === 'percentage' ? coupon.value + '%' : '₹' + coupon.value} off`}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Min. purchase: ₹{coupon.min_purchase_amount}
+                        {coupon.max_discount_amount && ` • Max discount: ₹${coupon.max_discount_amount}`}
+                      </p>
+                    </div>
+                    
+                    <Button 
+                      onClick={() => handleApplyCoupon(coupon.code)}
+                      className="w-full bg-blue-600 hover:bg-blue-700"
+                    >
+                      Apply Coupon
+                    </Button>
+                  </div>
                 ))}
               </div>
             )}

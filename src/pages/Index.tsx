@@ -19,12 +19,6 @@ import { getProducts } from "@/services/productService";
 const Index = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [showFilters, setShowFilters] = useState(false);
-  const [searchFilters, setSearchFilters] = useState({
-    category: "",
-    priceRange: [0, 1000] as [number, number],
-    rating: 0,
-    sortBy: "relevance" as "relevance" | "price-low" | "price-high" | "rating" | "newest"
-  });
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
 
   // Add navigation gestures
@@ -60,11 +54,16 @@ const Index = () => {
 
   const handleSearch = () => {
     // Search functionality would be implemented here
-    console.log("Searching for:", searchQuery, "with filters:", searchFilters);
+    console.log("Searching for:", searchQuery);
   };
 
-  const handleFilterChange = (filters: typeof searchFilters) => {
-    setSearchFilters(filters);
+  const handleFilterChange = (filters: {
+    query?: string;
+    category?: string;
+    minPrice?: number;
+    maxPrice?: number;
+  }) => {
+    console.log("Filters changed:", filters);
   };
 
   return (
@@ -100,8 +99,8 @@ const Index = () => {
           {showFilters && (
             <div className="mt-4 p-4 border-t">
               <SearchFilters 
-                filters={searchFilters} 
-                onFiltersChange={handleFilterChange} 
+                onFilterChange={handleFilterChange}
+                initialQuery={searchQuery}
               />
             </div>
           )}
@@ -232,7 +231,7 @@ const Index = () => {
             </Link>
           </div>
           
-          <ProductsGrid products={featuredProducts} />
+          <ProductsGrid customProducts={featuredProducts} />
         </div>
       </main>
       

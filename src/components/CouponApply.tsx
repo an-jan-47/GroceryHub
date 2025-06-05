@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/components/ui/sonner';
-import { validateCoupon } from '@/services/couponService';
+import { validateCoupon, type Coupon } from '@/services/couponService';
 
 interface CouponApplyProps {
   cartTotal: number;
@@ -25,39 +25,35 @@ const CouponApply = ({ cartTotal, onCouponApplied, appliedCoupon, onCouponRemove
 
     setIsValidating(true);
     try {
-      const couponData = await validateCoupon(couponCode, cartTotal);
+      const coupon = await validateCoupon(couponCode, cartTotal);
       
-      if (couponData.valid) {
-        // Calculate discount based on coupon type and value
-        let discountAmount = 0;
+      // Calculate discount based on coupon type and value
+      let discountAmount = 0;
+      
+      if (coupon.type === 'percentage') {
+        // For percentage coupons, calculate percentage of cart total
+        discountAmount = (cartTotal * coupon.value) / 100;
         
-        if (couponData.coupon.type === 'percentage') {
-          // For percentage coupons, calculate percentage of cart total
-          discountAmount = (cartTotal * couponData.coupon.value) / 100;
-          
-          // Apply max discount limit if specified
-          if (couponData.coupon.max_discount_amount && discountAmount > couponData.coupon.max_discount_amount) {
-            discountAmount = couponData.coupon.max_discount_amount;
-          }
-        } else if (couponData.coupon.type === 'fixed') {
-          // For fixed amount coupons
-          discountAmount = Math.min(couponData.coupon.value, cartTotal);
+        // Apply max discount limit if specified
+        if (coupon.max_discount_amount && discountAmount > coupon.max_discount_amount) {
+          discountAmount = coupon.max_discount_amount;
         }
-        
-        const couponInfo = {
-          ...couponData,
-          discountAmount: discountAmount
-        };
-        
-        onCouponApplied(couponInfo);
-        setCouponCode('');
-        toast(`Coupon applied! You saved ₹${discountAmount.toFixed(2)}`);
-      } else {
-        toast(couponData.message || 'Invalid coupon code');
+      } else if (coupon.type === 'fixed') {
+        // For fixed amount coupons
+        discountAmount = Math.min(coupon.value, cartTotal);
       }
+      
+      const couponInfo = {
+        coupon: coupon,
+        discountAmount: discountAmount
+      };
+      
+      onCouponApplied(couponInfo);
+      setCouponCode('');
+      toast(`Coupon applied! You saved ₹${discountAmount.toFixed(2)}`);
     } catch (error: any) {
       console.error('Error applying coupon:', error);
-      toast(error.message || 'Failed to apply coupon');
+      toast(error.message || 'Invalid coupon code');
     } finally {
       setIsValidating(false);
     }
