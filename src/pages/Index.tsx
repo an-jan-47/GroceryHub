@@ -1,9 +1,7 @@
 
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, ChevronRight } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { ChevronRight } from 'lucide-react';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
 import PopularProducts from '@/components/PopularProducts';
@@ -11,11 +9,10 @@ import SearchFiltersComponent from '@/components/SearchFilters';
 import { useQuery } from '@tanstack/react-query';
 import { searchProducts, getCategories, type SearchFilters as SearchFiltersType } from '@/services/searchService';
 import ProductsGrid from '@/components/ProductsGrid';
+import { getProducts } from '@/services/productService';
 
 const Index = () => {
   const navigate = useNavigate();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
 
@@ -24,11 +21,14 @@ const Index = () => {
     queryFn: getCategories,
   });
 
-  const handleQuickSearch = () => {
-    if (searchQuery.trim()) {
-      navigate(`/explore?q=${encodeURIComponent(searchQuery.trim())}`);
-    }
-  };
+  // Fetch featured products from explore
+  const { data: featuredProducts = [] } = useQuery({
+    queryKey: ['featured-products'],
+    queryFn: async () => {
+      const products = await getProducts();
+      return products.slice(0, 8); // Get first 8 products as featured
+    },
+  });
 
   const handleAdvancedSearch = async (filters: SearchFiltersType) => {
     setIsSearching(true);
@@ -46,41 +46,9 @@ const Index = () => {
       <Header />
       
       <main className="container px-4 py-6 mx-auto">
-        {/* Welcome Section */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold mb-2">Welcome to GroceryHub</h1>
-          <p className="text-gray-600">Fresh groceries delivered to your doorstep</p>
-        </div>
-
         {/* Search Section */}
         <div className="mb-6">
-          <div className="flex gap-2 mb-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-              <Input
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleQuickSearch()}
-                placeholder="Search for products..."
-                className="pl-10"
-              />
-            </div>
-            <Button onClick={handleQuickSearch}>Search</Button>
-          </div>
-          
-          <Button 
-            onClick={() => setShowAdvancedSearch(!showAdvancedSearch)}
-            variant="outline" 
-            size="sm"
-          >
-            Advanced Search
-          </Button>
-          
-          {showAdvancedSearch && (
-            <div className="mt-4">
-              <SearchFiltersComponent onFilterChange={handleAdvancedSearch} />
-            </div>
-          )}
+          <SearchFiltersComponent onFilterChange={handleAdvancedSearch} />
         </div>
 
         {/* Search Results */}
@@ -104,7 +72,7 @@ const Index = () => {
           <div className="mb-8">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold">Shop by Category</h2>
-              <Link to="/explore" className="text-brand-blue text-sm flex items-center">
+              <Link to="/categories" className="text-brand-blue text-sm flex items-center">
                 View All <ChevronRight className="w-4 h-4 ml-1" />
               </Link>
             </div>
@@ -130,6 +98,19 @@ const Index = () => {
 
         {/* Popular Products */}
         <PopularProducts />
+
+        {/* Featured Products */}
+        {featuredProducts.length > 0 && (
+          <div className="mb-8">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold">Featured Products</h2>
+              <Link to="/explore" className="text-brand-blue text-sm flex items-center">
+                View All <ChevronRight className="w-4 h-4 ml-1" />
+              </Link>
+            </div>
+            <ProductsGrid customProducts={featuredProducts} />
+          </div>
+        )}
       </main>
       
       <BottomNavigation />

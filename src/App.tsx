@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -25,6 +26,7 @@ import ChangePassword from "./pages/ChangePassword";
 import PrivacySettings from "./pages/PrivacySettings";
 import AboutUs from "./pages/AboutUs";
 import Coupons from "./pages/Coupons";
+import Categories from "./pages/Categories";
 
 // Providers
 import { CartProvider } from "./hooks/useCart";
@@ -62,9 +64,6 @@ import WriteReview from "./pages/WriteReview";
 // Add this import at the top with other page imports
 import Wishlist from "./pages/Wishlist";
 
-// Then add this route inside the Routes component (around line 125)
-<Route path="/wishlist" element={<Wishlist />} />
-
 const App = () => {
   const [isLoading, setIsLoading] = useState(true);
   
@@ -98,7 +97,6 @@ const App = () => {
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/product/:productId" element={<ProductDetail />} />
-                {/* Make sure this matches the parameter name in useParams */}
                 <Route path="/cart" element={<Cart />} />
                 <Route path="/address" element={
                   <ProtectedRoute>
@@ -118,6 +116,7 @@ const App = () => {
                 } />
                 <Route path="/order-confirmation" element={<ProtectedRoute><OrderConfirmation /></ProtectedRoute>} />
                 <Route path="/explore" element={<Explore />} />
+                <Route path="/categories" element={<Categories />} />
                 <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
                 <Route path="/order-history" element={<ProtectedRoute><OrderHistory /></ProtectedRoute>} />
                 <Route path="/order/:id" element={<ProtectedRoute><OrderDetails /></ProtectedRoute>} />
@@ -126,16 +125,15 @@ const App = () => {
                 <Route path="/signup" element={<SignUp />} />
                 <Route path="/orders" element={<Navigate to="/order-history" replace />} />
                 
-                {/* Routes */}
                 <Route path="/change-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
                 <Route path="/privacy-settings" element={<ProtectedRoute><PrivacySettings /></ProtectedRoute>} />
                 <Route path="/about-us" element={<AboutUs />} />
                 
                 <Route path="/coupons" element={<Coupons />} />
+                <Route path="/wishlist" element={<Wishlist />} />
                 
                 <Route path="*" element={<NotFound />} />
                 
-                {/* Add this route inside the Routes component */}
                 <Route path="/write-review/:productId" element={<ProtectedRoute><WriteReview /></ProtectedRoute>} />
               </Routes>
             </BrowserRouter>

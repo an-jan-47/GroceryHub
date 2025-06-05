@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ChevronLeft, Tag } from 'lucide-react';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
@@ -10,11 +10,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/sonner';
 
 const Coupons = () => {
-  const [appliedCoupons, setAppliedCoupons] = useState<string[]>([]);
+  const navigate = useNavigate();
 
-  // Fetch active coupons, showing only top 2 in available offers
+  // Fetch all active coupons
   const { data: coupons = [], isLoading } = useQuery({
-    queryKey: ['coupons'],
+    queryKey: ['all-coupons'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('coupons')
@@ -34,17 +34,19 @@ const Coupons = () => {
     if (couponData) {
       localStorage.setItem('appliedCoupon', JSON.stringify({
         coupon: couponData,
-        discountAmount: couponData.value // This should be calculated based on cart total
+        discountAmount: couponData.value // This will be properly calculated in cart
       }));
       
-      setAppliedCoupons(prev => [...prev, couponCode]);
-      toast('Coupon saved! It will be applied at checkout.');
+      toast('Coupon saved! Redirecting to cart...', {
+        description: 'Your coupon will be applied at checkout.'
+      });
+      
+      // Redirect to cart after a short delay
+      setTimeout(() => {
+        navigate('/cart');
+      }, 1000);
     }
   };
-
-  // Show top 2 coupons in available offers
-  const availableOffers = coupons.slice(0, 2);
-  const allCoupons = coupons;
 
   return (
     <div className="pb-20">
@@ -52,9 +54,9 @@ const Coupons = () => {
       
       <main className="container px-4 py-4 mx-auto">
         <div className="py-3 flex items-center">
-          <Link to="/profile" className="flex items-center text-gray-500">
+          <Link to="/cart" className="flex items-center text-gray-500">
             <ChevronLeft className="w-5 h-5 mr-1" />
-            <span>Back to Profile</span>
+            <span>Back to Cart</span>
           </Link>
         </div>
         
@@ -68,50 +70,26 @@ const Coupons = () => {
           </div>
         ) : (
           <div className="space-y-6">
-            {/* Available Offers - Top 2 */}
-            {availableOffers.length > 0 && (
-              <div>
-                <h2 className="text-lg font-semibold mb-4 flex items-center">
-                  <Tag className="w-5 h-5 mr-2 text-green-600" />
-                  Available Offers
-                </h2>
-                <div className="space-y-3">
-                  {availableOffers.map((coupon) => (
-                    <CouponApply
-                      key={coupon.id}
-                      couponCode={coupon.code}
-                      description={coupon.description || `Get ${coupon.type === 'percentage' ? coupon.value + '%' : '₹' + coupon.value} off`}
-                      onApply={handleApplyCoupon}
-                    />
-                  ))}
+            {coupons.length === 0 ? (
+              <div className="text-center py-8">
+                <div className="mx-auto w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+                  <Tag className="h-8 w-8 text-gray-400" />
                 </div>
+                <h3 className="text-lg font-medium mb-2">No coupons available</h3>
+                <p className="text-gray-500">Check back later for exciting offers!</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {coupons.map((coupon) => (
+                  <CouponApply
+                    key={coupon.id}
+                    couponCode={coupon.code}
+                    description={coupon.description || `Get ${coupon.type === 'percentage' ? coupon.value + '%' : '₹' + coupon.value} off`}
+                    onApply={handleApplyCoupon}
+                  />
+                ))}
               </div>
             )}
-            
-            {/* All Coupons */}
-            <div>
-              <h2 className="text-lg font-semibold mb-4">All Coupons</h2>
-              {allCoupons.length === 0 ? (
-                <div className="text-center py-8">
-                  <div className="mx-auto w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-                    <Tag className="h-8 w-8 text-gray-400" />
-                  </div>
-                  <h3 className="text-lg font-medium mb-2">No coupons available</h3>
-                  <p className="text-gray-500">Check back later for exciting offers!</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {allCoupons.map((coupon) => (
-                    <CouponApply
-                      key={coupon.id}
-                      couponCode={coupon.code}
-                      description={coupon.description || `Get ${coupon.type === 'percentage' ? coupon.value + '%' : '₹' + coupon.value} off`}
-                      onApply={handleApplyCoupon}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
           </div>
         )}
       </main>

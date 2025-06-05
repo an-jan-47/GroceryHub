@@ -10,7 +10,6 @@ import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
 import { toast } from '@/components/ui/sonner';
 import { useAuthCheck } from '@/hooks/useAuthCheck';
-import CouponRecommendations from '@/components/CouponRecommendations';
 import { validateCoupon, calculateDiscount, type Coupon } from '@/services/couponService';
 
 const CartPage = () => {
@@ -30,20 +29,46 @@ const CartPage = () => {
     checkAuthForCheckout
   } = useAuthCheck();
 
-  // Calculate costs with corrected tax logic
-  const platformFees = 5.00;
+  // New price calculation logic inspired by Flipkart
   const taxRate = 0.18; // 18% GST
+  const platformFees = 5.00;
+  const deliveryFees = 0.00; // Set to 0 by default as requested
   
-  // Subtotal is the cart total without any additional charges
-  const subtotal = cartTotal;
+  // Calculate item-wise pricing
+  const itemCalculations = cartItems.map(item => {
+    const itemPrice = item.salePrice ?? item.price;
+    const itemTotal = itemPrice * item.quantity;
+    const itemTax = itemTotal * taxRate; // 18% of item total
+    const itemSubtotal = itemTotal - itemTax; // Price after removing tax
+    
+    return {
+      ...item,
+      itemPrice,
+      itemTotal,
+      itemTax,
+      itemSubtotal
+    };
+  });
   
-  // Tax is calculated on subtotal + platform fees (before discount)
-  const taxableAmount = subtotal + platformFees;
-  const tax = taxableAmount * taxRate;
-  
-  // Final total calculation
-  const totalBeforeDiscount = subtotal + platformFees + tax;
+  // Calculate totals
+  const subtotal = itemCalculations.reduce((total, item) => total + item.itemSubtotal, 0);
+  const totalTax = itemCalculations.reduce((total, item) => total + item.itemTax, 0);
+  const totalBeforeDiscount = subtotal + platformFees + deliveryFees + totalTax;
   const finalTotal = totalBeforeDiscount - discountAmount;
+
+  // Load applied coupon from localStorage on mount
+  useEffect(() => {
+    const savedCoupon = localStorage.getItem('appliedCoupon');
+    if (savedCoupon) {
+      try {
+        const { coupon, discountAmount: savedDiscount } = JSON.parse(savedCoupon);
+        setAppliedCoupon(coupon);
+        setDiscountAmount(savedDiscount);
+      } catch (error) {
+        localStorage.removeItem('appliedCoupon');
+      }
+    }
+  }, []);
 
   const handleCouponApply = async () => {
     if (!couponCode.trim()) {
@@ -53,12 +78,18 @@ const CartPage = () => {
 
     setIsApplyingCoupon(true);
     try {
-      const coupon = await validateCoupon(couponCode, subtotal);
-      const discount = calculateDiscount(coupon, subtotal);
+      const coupon = await validateCoupon(couponCode, subtotal + platformFees + deliveryFees + totalTax);
+      const discount = calculateDiscount(coupon, subtotal + platformFees + deliveryFees + totalTax);
       
       setAppliedCoupon(coupon);
       setDiscountAmount(discount);
       setCouponCode('');
+      
+      // Store in localStorage
+      localStorage.setItem('appliedCoupon', JSON.stringify({
+        coupon: coupon,
+        discountAmount: discount
+      }));
       
       toast("Coupon applied!", {
         description: `₹${discount.toFixed(2)} discount applied`
@@ -75,17 +106,8 @@ const CartPage = () => {
   const handleRemoveCoupon = () => {
     setAppliedCoupon(null);
     setDiscountAmount(0);
+    localStorage.removeItem('appliedCoupon');
     toast("Coupon removed");
-  };
-
-  const handleCouponRecommendation = (coupon: Coupon) => {
-    const discount = calculateDiscount(coupon, subtotal);
-    setAppliedCoupon(coupon);
-    setDiscountAmount(discount);
-    
-    toast("Coupon applied!", {
-      description: `₹${discount.toFixed(2)} discount applied`
-    });
   };
 
   const handleCheckout = () => {
@@ -192,12 +214,6 @@ const CartPage = () => {
             </div>
             
             <div className="mt-6">
-              {/* Coupon Recommendations */}
-              <CouponRecommendations 
-                onApplyCoupon={handleCouponRecommendation}
-                cartTotal={subtotal}
-              />
-              
               {/* Applied Coupon Display */}
               {appliedCoupon && (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
@@ -218,20 +234,30 @@ const CartPage = () => {
                 </div>
               )}
               
-              {/* Manual Coupon Entry */}
-              <div className="flex items-center space-x-2 mb-6">
-                <Input 
-                  placeholder="Enter coupon code" 
-                  value={couponCode} 
-                  onChange={e => setCouponCode(e.target.value.toUpperCase())}
-                  className="flex-grow" 
-                />
+              {/* Coupon Entry and Coupons Link */}
+              <div className="space-y-3 mb-6">
+                <div className="flex items-center space-x-2">
+                  <Input 
+                    placeholder="Enter coupon code" 
+                    value={couponCode} 
+                    onChange={e => setCouponCode(e.target.value.toUpperCase())}
+                    className="flex-grow" 
+                  />
+                  <Button 
+                    onClick={handleCouponApply} 
+                    disabled={!couponCode || isApplyingCoupon}
+                    variant="outline"
+                  >
+                    {isApplyingCoupon ? 'Applying...' : 'Apply'}
+                  </Button>
+                </div>
+                
                 <Button 
-                  onClick={handleCouponApply} 
-                  disabled={!couponCode || isApplyingCoupon}
-                  variant="outline"
+                  variant="outline" 
+                  onClick={() => navigate('/coupons')}
+                  className="w-full border-blue-300 text-blue-700 hover:bg-blue-50"
                 >
-                  {isApplyingCoupon ? 'Applying...' : 'Apply'}
+                  View All Coupons
                 </Button>
               </div>
               
@@ -246,8 +272,12 @@ const CartPage = () => {
                   <span>₹{platformFees.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
+                  <span className="text-gray-600">Delivery Fees</span>
+                  <span>₹{deliveryFees.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
                   <span className="text-gray-600">Tax (18% GST)</span>
-                  <span>₹{tax.toFixed(2)}</span>
+                  <span>₹{totalTax.toFixed(2)}</span>
                 </div>
                 {discountAmount > 0 && (
                   <div className="flex justify-between text-green-600">

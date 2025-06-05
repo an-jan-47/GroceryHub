@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/components/ui/sonner';
@@ -14,6 +14,21 @@ interface CouponApplyProps {
 const CouponApply = ({ couponCode, description, onApply }: CouponApplyProps) => {
   const [applied, setApplied] = useState(false);
 
+  // Check if this coupon is already applied
+  useEffect(() => {
+    const savedCoupon = localStorage.getItem('appliedCoupon');
+    if (savedCoupon) {
+      try {
+        const { coupon } = JSON.parse(savedCoupon);
+        if (coupon.code === couponCode) {
+          setApplied(true);
+        }
+      } catch (error) {
+        // Ignore error
+      }
+    }
+  }, [couponCode]);
+
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(couponCode);
@@ -24,9 +39,10 @@ const CouponApply = ({ couponCode, description, onApply }: CouponApplyProps) => 
   };
 
   const handleApply = () => {
-    onApply(couponCode);
-    setApplied(true);
-    toast('Coupon applied successfully!');
+    if (!applied) {
+      onApply(couponCode);
+      setApplied(true);
+    }
   };
 
   return (
