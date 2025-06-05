@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from '@/components/ui/sonner';
 
@@ -30,11 +31,15 @@ interface RazorpayResponse {
 }
 
 // Create a Razorpay order on the server
-export const createRazorpayOrder = async (amount: number, orderId: string) => {
+export const createRazorpayOrder = async (amount: number, receipt: string) => {
   try {
     // Call your backend function to create a Razorpay order
     const { data, error } = await supabase.functions.invoke('create-razorpay-order', {
-      body: { amount, orderId }
+      body: { 
+        amount: Math.round(amount * 100), // Convert to paise
+        currency: 'INR',
+        receipt 
+      }
     });
 
     if (error) throw error;
@@ -83,10 +88,9 @@ export const verifyRazorpayPayment = async (
   try {
     const { data, error } = await supabase.functions.invoke('verify-razorpay-payment', {
       body: {
-        paymentId,
-        orderId,
-        signature,
-        razorpayOrderId
+        razorpay_payment_id: paymentId,
+        razorpay_order_id: razorpayOrderId,
+        razorpay_signature: signature
       }
     });
 

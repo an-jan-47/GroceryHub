@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import LoadingScreen from "./components/LoadingScreen";
+import { useNavigationGestures } from "./hooks/useNavigationGestures";
 
 // Pages
 import Index from "./pages/Index";
@@ -27,6 +28,8 @@ import PrivacySettings from "./pages/PrivacySettings";
 import AboutUs from "./pages/AboutUs";
 import Coupons from "./pages/Coupons";
 import Categories from "./pages/Categories";
+import WriteReview from "./pages/WriteReview";
+import Wishlist from "./pages/Wishlist";
 
 // Providers
 import { CartProvider } from "./hooks/useCart";
@@ -59,10 +62,55 @@ const queryClient = new QueryClient({
   }
 });
 
-// Add this import
-import WriteReview from "./pages/WriteReview";
-// Add this import at the top with other page imports
-import Wishlist from "./pages/Wishlist";
+const AppContent = () => {
+  // Add global navigation gestures
+  useNavigationGestures();
+  
+  return (
+    <Routes>
+      <Route path="/" element={<Index />} />
+      <Route path="/product/:productId" element={<ProductDetail />} />
+      <Route path="/cart" element={<Cart />} />
+      <Route path="/address" element={
+        <ProtectedRoute>
+          <OrderCompletedGuard>
+            <Address />
+          </OrderCompletedGuard>
+        </ProtectedRoute>
+      } />
+      <Route path="/payment" element={
+        <ProtectedRoute>
+          <OrderCompletedGuard>
+            <ErrorBoundary>
+              <Payment />
+            </ErrorBoundary>
+          </OrderCompletedGuard>
+        </ProtectedRoute>
+      } />
+      <Route path="/order-confirmation" element={<ProtectedRoute><OrderConfirmation /></ProtectedRoute>} />
+      <Route path="/explore" element={<Explore />} />
+      <Route path="/categories" element={<Categories />} />
+      <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+      <Route path="/order-history" element={<ProtectedRoute><OrderHistory /></ProtectedRoute>} />
+      <Route path="/order/:id" element={<ProtectedRoute><OrderDetails /></ProtectedRoute>} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/signup" element={<SignUp />} />
+      <Route path="/orders" element={<Navigate to="/order-history" replace />} />
+      
+      <Route path="/change-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
+      <Route path="/privacy-settings" element={<ProtectedRoute><PrivacySettings /></ProtectedRoute>} />
+      <Route path="/about-us" element={<AboutUs />} />
+      
+      <Route path="/coupons" element={<Coupons />} />
+      <Route path="/wishlist" element={<Wishlist />} />
+      
+      <Route path="*" element={<NotFound />} />
+      
+      <Route path="/write-review/:productId" element={<ProtectedRoute><WriteReview /></ProtectedRoute>} />
+    </Routes>
+  );
+};
 
 const App = () => {
   const [isLoading, setIsLoading] = useState(true);
@@ -94,48 +142,7 @@ const App = () => {
             <Toaster />
             <Sonner />
             <BrowserRouter>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/product/:productId" element={<ProductDetail />} />
-                <Route path="/cart" element={<Cart />} />
-                <Route path="/address" element={
-                  <ProtectedRoute>
-                    <OrderCompletedGuard>
-                      <Address />
-                    </OrderCompletedGuard>
-                  </ProtectedRoute>
-                } />
-                <Route path="/payment" element={
-                  <ProtectedRoute>
-                    <OrderCompletedGuard>
-                      <ErrorBoundary>
-                        <Payment />
-                      </ErrorBoundary>
-                    </OrderCompletedGuard>
-                  </ProtectedRoute>
-                } />
-                <Route path="/order-confirmation" element={<ProtectedRoute><OrderConfirmation /></ProtectedRoute>} />
-                <Route path="/explore" element={<Explore />} />
-                <Route path="/categories" element={<Categories />} />
-                <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-                <Route path="/order-history" element={<ProtectedRoute><OrderHistory /></ProtectedRoute>} />
-                <Route path="/order/:id" element={<ProtectedRoute><OrderDetails /></ProtectedRoute>} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/forgot-password" element={<ForgotPassword />} />
-                <Route path="/signup" element={<SignUp />} />
-                <Route path="/orders" element={<Navigate to="/order-history" replace />} />
-                
-                <Route path="/change-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
-                <Route path="/privacy-settings" element={<ProtectedRoute><PrivacySettings /></ProtectedRoute>} />
-                <Route path="/about-us" element={<AboutUs />} />
-                
-                <Route path="/coupons" element={<Coupons />} />
-                <Route path="/wishlist" element={<Wishlist />} />
-                
-                <Route path="*" element={<NotFound />} />
-                
-                <Route path="/write-review/:productId" element={<ProtectedRoute><WriteReview /></ProtectedRoute>} />
-              </Routes>
+              <AppContent />
             </BrowserRouter>
           </TooltipProvider>
         </CartProvider>

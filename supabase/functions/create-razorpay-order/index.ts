@@ -1,7 +1,5 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
-import { hmac } from 'https://deno.land/std@0.177.0/crypto/mod.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -21,16 +19,9 @@ serve(async (req) => {
   }
 
   try {
-    const razorpayKeyId = Deno.env.get('RAZORPAY_KEY_ID')
-    const razorpayKeySecret = Deno.env.get('RAZORPAY_KEY_SECRET')
-
-    if (!razorpayKeyId || !razorpayKeySecret) {
-      throw new Error('Razorpay credentials not configured')
-    }
-
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!
-    const supabase = createClient(supabaseUrl, supabaseKey)
+    // Use the test credentials provided by the user
+    const razorpayKeyId = 'rzp_test_NhYbBXqUSxpojf'
+    const razorpayKeySecret = 'dQ8wWKtlLk9LPCdmutAV6HJ'
 
     const { amount, currency = 'INR', receipt }: OrderData = await req.json()
 
@@ -44,13 +35,15 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        amount: amount * 100, // Convert to paise
+        amount, // Amount already in paise
         currency,
         receipt,
       }),
     })
 
     if (!response.ok) {
+      const errorText = await response.text()
+      console.error('Razorpay API error:', errorText)
       throw new Error('Failed to create Razorpay order')
     }
 

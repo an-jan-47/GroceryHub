@@ -10,6 +10,7 @@ import { useQuery } from '@tanstack/react-query';
 import { searchProducts, getCategories, type SearchFilters as SearchFiltersType } from '@/services/searchService';
 import ProductsGrid from '@/components/ProductsGrid';
 import { getProducts } from '@/services/productService';
+import { getBanners } from '@/services/bannerService';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -19,6 +20,12 @@ const Index = () => {
   const { data: categories = [] } = useQuery({
     queryKey: ['categories'],
     queryFn: getCategories,
+  });
+
+  // Fetch banners
+  const { data: banners = [] } = useQuery({
+    queryKey: ['banners'],
+    queryFn: getBanners,
   });
 
   // Fetch featured products from explore
@@ -46,6 +53,37 @@ const Index = () => {
       <Header />
       
       <main className="container px-4 py-6 mx-auto">
+        {/* Banners Section */}
+        {banners.length > 0 && (
+          <div className="mb-6">
+            <div className="grid gap-4">
+              {banners.map((banner) => (
+                <Link
+                  key={banner.id}
+                  to={banner.link}
+                  className="block w-full"
+                >
+                  <img
+                    src={banner.image}
+                    alt={banner.title}
+                    className="w-full h-48 md:h-64 object-cover rounded-lg shadow-sm hover:shadow-md transition-shadow"
+                  />
+                  {(banner.title || banner.subtitle) && (
+                    <div className="absolute inset-0 bg-black bg-opacity-40 rounded-lg flex flex-col justify-end p-4">
+                      {banner.title && (
+                        <h2 className="text-white text-xl font-bold mb-1">{banner.title}</h2>
+                      )}
+                      {banner.subtitle && (
+                        <p className="text-white text-sm">{banner.subtitle}</p>
+                      )}
+                    </div>
+                  )}
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Search Section */}
         <div className="mb-6">
           <SearchFiltersComponent onFilterChange={handleAdvancedSearch} />
