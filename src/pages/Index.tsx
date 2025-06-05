@@ -39,7 +39,7 @@ const Index = () => {
   // Fetch featured products from explore page
   const { data: featuredProducts = [] } = useQuery({
     queryKey: ['featured-products'],
-    queryFn: () => getProducts({ limit: 8 })
+    queryFn: getProducts
   });
 
   // Auto-change banner every 5 seconds
@@ -231,7 +231,7 @@ const Index = () => {
             </Link>
           </div>
           
-          <ProductsGrid customProducts={featuredProducts} />
+          <ProductsGrid customProducts={featuredProducts.slice(0, 8)} />
         </div>
       </main>
       
