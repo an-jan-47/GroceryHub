@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from '@/components/ui/sonner';
 import type { OrderStatus } from "@/types";
@@ -110,7 +109,7 @@ export const placeOrder = async (orderDetails: OrderDetails) => {
   }
 };
 
-// Create order function specifically for Payment.tsx - UPDATED VERSION
+// Create order function specifically for Payment.tsx - UPDATED VERSION WITH BETTER ERROR HANDLING
 export const createOrder = async (orderData: OrderData): Promise<{ success: boolean; orderId?: string }> => {
   try {
     console.log('Creating order with data:', orderData);
@@ -120,29 +119,48 @@ export const createOrder = async (orderData: OrderData): Promise<{ success: bool
       throw new Error('Invalid order data: missing required fields');
     }
     
-    // Fetch address data first to ensure it exists
+    // Get current user to ensure authentication
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !user) {
+      console.error('Authentication error during order creation:', authError);
+      throw new Error('User not authenticated');
+    }
+    
+    console.log('Current authenticated user:', user.id);
+    
+    // Verify the user ID matches
+    if (user.id !== orderData.userId) {
+      console.error('User ID mismatch:', { authenticated: user.id, provided: orderData.userId });
+      throw new Error('User ID mismatch');
+    }
+    
+    // Fetch address data first to ensure it exists and belongs to user
     const { data: addressData, error: addressError } = await supabase
       .from('addresses')
       .select('*')
       .eq('id', orderData.addressId)
+      .eq('user_id', user.id)  // Ensure address belongs to user
       .single();
       
     if (addressError || !addressData) {
       console.error('Error fetching address:', addressError);
-      throw new Error(`Address not found: ${addressError?.message || 'Unknown error'}`);
+      throw new Error(`Address not found or doesn't belong to user: ${addressError?.message || 'Unknown error'}`);
     }
     
-    // Create the order record with correct column name
+    console.log('Address verified:', addressData.id);
+    
+    // Create the order record with explicit user verification
     const { data: order, error: orderError } = await supabase
       .from('orders')
       .insert({
-        user_id: orderData.userId,
+        user_id: user.id,  // Use authenticated user ID
         address_id: orderData.addressId,
         payment_method: orderData.paymentMethod,
         total_amount: orderData.totalAmount,
         platform_fees: orderData.platformFees || 0,
         discount_amount: orderData.discountAmount || 0,
-        status: 'pending',  // Changed from order_status to status
+        status: 'pending',
         payment_status: orderData.paymentMethod === 'cod' ? 'pending' : 'completed'
       })
       .select()
@@ -150,6 +168,12 @@ export const createOrder = async (orderData: OrderData): Promise<{ success: bool
     
     if (orderError) {
       console.error('Order creation error:', orderError);
+      console.error('Order error details:', {
+        code: orderError.code,
+        message: orderError.message,
+        details: orderError.details,
+        hint: orderError.hint
+      });
       throw orderError;
     }
     
@@ -176,6 +200,12 @@ export const createOrder = async (orderData: OrderData): Promise<{ success: bool
       
     if (itemsError) {
       console.error('Order items creation error:', itemsError);
+      console.error('Items error details:', {
+        code: itemsError.code,
+        message: itemsError.message,
+        details: itemsError.details,
+        hint: itemsError.hint
+      });
       // Rollback the order creation since items failed
       await supabase.from('orders').delete().eq('id', orderId);
       throw itemsError;
@@ -183,10 +213,7 @@ export const createOrder = async (orderData: OrderData): Promise<{ success: bool
     
     console.log('Order items created successfully');
     
-    // Create order details with properly formatted address_details using direct insertion
     // The database trigger will handle the order_details population automatically
-    // So we don't need to manually insert into order_details here
-    
     console.log('Order details will be populated by database trigger');
     
     // Update product stock quantities
@@ -201,12 +228,13 @@ export const createOrder = async (orderData: OrderData): Promise<{ success: bool
 
         if (stockError) {
           console.error(`Error updating stock for product ${product.productId}:`, stockError);
-          toast(`Stock update error: ${stockError.message}`);
+          // Don't throw here, just log the error and continue
         } else {
           console.log(`Stock updated successfully for product ${product.productId}`);
         }
       } catch (err) {
         console.error(`Error updating product ${product.productId}:`, err);
+        // Don't throw here, just log the error and continue
       }
     }
     

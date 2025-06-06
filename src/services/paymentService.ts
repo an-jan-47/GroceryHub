@@ -139,7 +139,7 @@ export const verifyRazorpayPayment = async (
   }
 };
 
-// Save payment details to database using existing table structure
+// Save payment details to database - FIXED VERSION
 export const savePaymentDetails = async (
   orderId: string,
   paymentId: string,
@@ -149,6 +149,16 @@ export const savePaymentDetails = async (
 ) => {
   try {
     console.log('Saving payment details:', { orderId, paymentId, amount, status, paymentMethod });
+    
+    // Get current user to ensure we have user context
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !user) {
+      console.error('Authentication error when saving payment:', authError);
+      throw new Error('User not authenticated');
+    }
+    
+    console.log('Current user for payment:', user.id);
     
     const { data, error } = await supabase
       .from('payments')
@@ -165,6 +175,12 @@ export const savePaymentDetails = async (
 
     if (error) {
       console.error('Error saving payment details:', error);
+      console.error('Error details:', {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint
+      });
       throw error;
     }
     
