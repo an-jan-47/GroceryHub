@@ -8,18 +8,8 @@ import SearchFiltersComponent from '@/components/SearchFilters';
 import { useQuery } from '@tanstack/react-query';
 import { searchProducts, type SearchFilters as SearchFiltersType } from '@/services/searchService';
 
-const useSearchParams = () => {
-  try {
-    return useSearchParamsPolyfill();
-  } catch (error) {
-    // Return a mock implementation if outside Router context
-    console.warn('useSearchParams used outside Router context');
-    return [new URLSearchParams(), () => {}];
-  }
-};
-
 const Explore = () => {
-  const [searchParams] = useSearchParams();
+  const [searchParams] = useSearchParamsPolyfill();
   const initialQuery = searchParams.get('q') || '';
   const [filters, setFilters] = useState<SearchFiltersType>({ query: initialQuery });
 
