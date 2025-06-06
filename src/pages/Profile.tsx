@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { User, Package, LogOut, Heart, Settings, Lock, ShieldCheck, Info, Edit } from 'lucide-react';
+import { User, Package, LogOut, Heart, Settings, Lock, ShieldCheck, Info, Edit, ShoppingBag, MapPin, Tag, Shield, HelpCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
@@ -42,7 +42,7 @@ const Profile = () => {
       console.error('Error signing out:', error);
     }
   };
-  
+
   if (isLoading) {
     return (
       <div className="min-h-screen pb-20 bg-gray-50 flex items-center justify-center">
@@ -86,10 +86,7 @@ const Profile = () => {
             </Link>
             
             <Separator />
-            {/* Remove this duplicate opening Link tag */}
-            {/* <Link to="#" className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-md"> */}
             
-            {/* Keep only this Link */}
             <Link to="/wishlist" className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-md">
               <div className="flex items-center">
                 <Heart className="h-5 w-5 text-red-500 mr-3" />
@@ -163,9 +160,9 @@ const Profile = () => {
             
             <Separator />
             
-            <Link to="/wishlist" className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-md">
+            <Link to="/help-support" className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-md">
               <div className="flex items-center">
-                <Settings className="h-5 w-5 text-gray-600 mr-3" />
+                <HelpCircle className="h-5 w-5 text-green-600 mr-3" />
                 <span>Help & Support</span>
               </div>
               <span className="text-gray-400">→</span>

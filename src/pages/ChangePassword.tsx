@@ -1,9 +1,10 @@
 
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, EyeOff, Eye, Lock } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ChevronLeft, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { toast } from '@/components/ui/sonner';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
@@ -17,195 +18,179 @@ const ChangePassword = () => {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const { user } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const { signOut } = useAuth();
 
-  const validatePasswords = () => {
-    if (newPassword.length < 6) {
-      toast("Password too short", {
-        description: "New password must be at least 6 characters long"
-      });
-      return false;
+  const validatePassword = (password: string) => {
+    const minLength = 8;
+    const hasUpperCase = /[A-Z]/.test(password);
+    const hasLowerCase = /[a-z]/.test(password);
+    const hasNumbers = /\d/.test(password);
+    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+
+    if (password.length < minLength) {
+      return 'Password must be at least 8 characters long';
     }
-
-    if (newPassword !== confirmPassword) {
-      toast("Passwords don't match", {
-        description: "New password and confirmation password do not match"
-      });
-      return false;
+    if (!hasUpperCase) {
+      return 'Password must contain at least one uppercase letter';
     }
-
-    return true;
+    if (!hasLowerCase) {
+      return 'Password must contain at least one lowercase letter';
+    }
+    if (!hasNumbers) {
+      return 'Password must contain at least one number';
+    }
+    if (!hasSpecialChar) {
+      return 'Password must contain at least one special character';
+    }
+    return null;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validatePasswords()) return;
+    if (newPassword !== confirmPassword) {
+      toast('Passwords do not match');
+      return;
+    }
+
+    const passwordError = validatePassword(newPassword);
+    if (passwordError) {
+      toast(passwordError);
+      return;
+    }
+
+    setIsLoading(true);
     
-    setIsSubmitting(true);
     try {
-      // First verify current password by attempting to sign in
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: user?.email || '',
-        password: currentPassword
+      // Update password using Supabase
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
       });
-      
-      if (signInError) {
-        toast("Current password incorrect", {
-          description: "Please check your current password and try again"
-        });
+
+      if (error) {
+        toast(`Error: ${error.message}`);
         return;
       }
+
+      toast('Password updated successfully! Please login again with your new password.');
       
-      // Change password
-      const { error } = await supabase.auth.updateUser({ 
-        password: newPassword 
-      });
-      
-      if (error) throw error;
-      
-      toast("Password updated", {
-        description: "Your password has been successfully changed"
-      });
-      
-      // Clear form
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
-      
+      // Auto-logout after password change
+      setTimeout(async () => {
+        await signOut();
+        navigate('/login');
+      }, 2000);
+
     } catch (error: any) {
-      toast("Error", {
-        description: error.message || "Failed to update password"
-      });
+      console.error('Password change error:', error);
+      toast(`Error: ${error.message || 'Failed to change password'}`);
     } finally {
-      setIsSubmitting(false);
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="pb-20 min-h-screen bg-gray-50">
+    <div className="pb-20">
       <Header />
       
-      <main className="container mx-auto px-4 py-6">
-        <div className="mb-6 flex items-center">
-          <Button
-            variant="ghost"
-            onClick={() => navigate('/profile')}
-            className="p-0 h-auto"
-          >
-            <ArrowLeft className="h-5 w-5 mr-2" />
-            Back to profile
-          </Button>
+      <main className="container px-4 py-4 mx-auto max-w-md">
+        <div className="py-3 flex items-center">
+          <Link to="/profile" className="flex items-center text-gray-500">
+            <ChevronLeft className="w-5 h-5 mr-1" />
+            <span>Back to Profile</span>
+          </Link>
         </div>
         
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <h1 className="text-xl font-bold mb-6">Change Password</h1>
-          
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-1">
-              <label htmlFor="current-password" className="text-sm font-medium">
-                Current Password
-              </label>
-              <div className="relative">
-                <Input
-                  id="current-password"
-                  type={showCurrentPassword ? "text" : "password"}
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  required
-                  className="pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
-                >
-                  {showCurrentPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
-                </button>
-              </div>
-            </div>
-            
-            <div className="space-y-1">
-              <label htmlFor="new-password" className="text-sm font-medium">
-                New Password
-              </label>
-              <div className="relative">
-                <Input
-                  id="new-password"
-                  type={showNewPassword ? "text" : "password"}
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  required
-                  className="pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowNewPassword(!showNewPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
-                >
-                  {showNewPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
-                </button>
-              </div>
-              <p className="text-xs text-gray-500">
-                Password must be at least 6 characters long
-              </p>
-            </div>
-            
-            <div className="space-y-1">
-              <label htmlFor="confirm-password" className="text-sm font-medium">
-                Confirm New Password
-              </label>
-              <div className="relative">
-                <Input
-                  id="confirm-password"
-                  type={showConfirmPassword ? "text" : "password"}
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                  className="pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
-                >
-                  {showConfirmPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
-                </button>
-              </div>
-            </div>
-            
-            <Button 
-              type="submit" 
-              className="w-full" 
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? 'Updating...' : 'Update Password'}
-            </Button>
-          </form>
-          
-          <div className="mt-6 border-t pt-6">
-            <div className="flex items-center text-amber-600 bg-amber-50 p-4 rounded-md">
-              <Lock className="h-5 w-5 mr-2" />
-              <p className="text-sm">
-                For security reasons, you'll be logged out after changing your password and will need to log in again.
-              </p>
+        <h1 className="text-2xl font-bold mb-6">Change Password</h1>
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <Label htmlFor="currentPassword">Current Password</Label>
+            <div className="relative">
+              <Input
+                id="currentPassword"
+                type={showCurrentPassword ? 'text' : 'password'}
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                required
+                className="pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center"
+              >
+                {showCurrentPassword ? (
+                  <EyeOff className="h-4 w-4 text-gray-400" />
+                ) : (
+                  <Eye className="h-4 w-4 text-gray-400" />
+                )}
+              </button>
             </div>
           </div>
-        </div>
+          
+          <div>
+            <Label htmlFor="newPassword">New Password</Label>
+            <div className="relative">
+              <Input
+                id="newPassword"
+                type={showNewPassword ? 'text' : 'password'}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                required
+                className="pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setShowNewPassword(!showNewPassword)}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center"
+              >
+                {showNewPassword ? (
+                  <EyeOff className="h-4 w-4 text-gray-400" />
+                ) : (
+                  <Eye className="h-4 w-4 text-gray-400" />
+                )}
+              </button>
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              Password must be at least 8 characters with uppercase, lowercase, number, and special character
+            </p>
+          </div>
+          
+          <div>
+            <Label htmlFor="confirmPassword">Confirm New Password</Label>
+            <div className="relative">
+              <Input
+                id="confirmPassword"
+                type={showConfirmPassword ? 'text' : 'password'}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                className="pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center"
+              >
+                {showConfirmPassword ? (
+                  <EyeOff className="h-4 w-4 text-gray-400" />
+                ) : (
+                  <Eye className="h-4 w-4 text-gray-400" />
+                )}
+              </button>
+            </div>
+          </div>
+          
+          <Button
+            type="submit"
+            disabled={isLoading}
+            className="w-full bg-brand-blue hover:bg-brand-darkBlue"
+          >
+            {isLoading ? 'Updating...' : 'Update Password'}
+          </Button>
+        </form>
       </main>
       
       <BottomNavigation />

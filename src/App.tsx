@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -5,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import LoadingScreen from "./components/LoadingScreen";
+import { useNavigationGestures } from "./hooks/useNavigationGestures";
 
 // Pages
 import Index from "./pages/Index";
@@ -25,6 +27,10 @@ import ChangePassword from "./pages/ChangePassword";
 import PrivacySettings from "./pages/PrivacySettings";
 import AboutUs from "./pages/AboutUs";
 import Coupons from "./pages/Coupons";
+import Categories from "./pages/Categories";
+import WriteReview from "./pages/WriteReview";
+import Wishlist from "./pages/Wishlist";
+import HelpSupport from "./pages/HelpSupport";
 
 // Providers
 import { CartProvider } from "./hooks/useCart";
@@ -57,13 +63,65 @@ const queryClient = new QueryClient({
   }
 });
 
-// Add this import
-import WriteReview from "./pages/WriteReview";
-// Add this import at the top with other page imports
-import Wishlist from "./pages/Wishlist";
+// We wrap all route components with this HOC to ensure they have access to the router
+const withRouterProvider = (Component) => {
+  return (props) => (
+    <BrowserRouter>
+      <Component {...props} />
+    </BrowserRouter>
+  );
+};
 
-// Then add this route inside the Routes component (around line 125)
-<Route path="/wishlist" element={<Wishlist />} />
+const AppContent = () => {
+  // Add global navigation gestures
+  useNavigationGestures();
+  
+  return (
+    <Routes>
+      <Route path="/" element={<Index />} />
+      <Route path="/product/:productId" element={<ProductDetail />} />
+      <Route path="/cart" element={<Cart />} />
+      <Route path="/address" element={
+        <ProtectedRoute>
+          <OrderCompletedGuard>
+            <Address />
+          </OrderCompletedGuard>
+        </ProtectedRoute>
+      } />
+      <Route path="/payment" element={
+        <ProtectedRoute>
+          <OrderCompletedGuard>
+            <ErrorBoundary>
+              <Payment />
+            </ErrorBoundary>
+          </OrderCompletedGuard>
+        </ProtectedRoute>
+      } />
+      <Route path="/order-confirmation" element={<ProtectedRoute><OrderConfirmation /></ProtectedRoute>} />
+      <Route path="/explore" element={<Explore />} />
+      <Route path="/categories" element={<Categories />} />
+      <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+      <Route path="/order-history" element={<ProtectedRoute><OrderHistory /></ProtectedRoute>} />
+      <Route path="/order/:id" element={<ProtectedRoute><OrderDetails /></ProtectedRoute>} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/signup" element={<SignUp />} />
+      <Route path="/orders" element={<Navigate to="/order-history" replace />} />
+      
+      <Route path="/change-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
+      <Route path="/privacy-settings" element={<ProtectedRoute><PrivacySettings /></ProtectedRoute>} />
+      <Route path="/about-us" element={<AboutUs />} />
+      <Route path="/help-support" element={<HelpSupport />} />
+      
+      <Route path="/coupons" element={<Coupons />} />
+      <Route path="/wishlist" element={<Wishlist />} />
+      
+      <Route path="*" element={<NotFound />} />
+      
+      <Route path="/write-review/:productId" element={<ProtectedRoute><WriteReview /></ProtectedRoute>} />
+    </Routes>
+  );
+};
 
 const App = () => {
   const [isLoading, setIsLoading] = useState(true);
@@ -95,49 +153,7 @@ const App = () => {
             <Toaster />
             <Sonner />
             <BrowserRouter>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/product/:productId" element={<ProductDetail />} />
-                {/* Make sure this matches the parameter name in useParams */}
-                <Route path="/cart" element={<Cart />} />
-                <Route path="/address" element={
-                  <ProtectedRoute>
-                    <OrderCompletedGuard>
-                      <Address />
-                    </OrderCompletedGuard>
-                  </ProtectedRoute>
-                } />
-                <Route path="/payment" element={
-                  <ProtectedRoute>
-                    <OrderCompletedGuard>
-                      <ErrorBoundary>
-                        <Payment />
-                      </ErrorBoundary>
-                    </OrderCompletedGuard>
-                  </ProtectedRoute>
-                } />
-                <Route path="/order-confirmation" element={<ProtectedRoute><OrderConfirmation /></ProtectedRoute>} />
-                <Route path="/explore" element={<Explore />} />
-                <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-                <Route path="/order-history" element={<ProtectedRoute><OrderHistory /></ProtectedRoute>} />
-                <Route path="/order/:id" element={<ProtectedRoute><OrderDetails /></ProtectedRoute>} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/forgot-password" element={<ForgotPassword />} />
-                <Route path="/signup" element={<SignUp />} />
-                <Route path="/orders" element={<Navigate to="/order-history" replace />} />
-                
-                {/* Routes */}
-                <Route path="/change-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
-                <Route path="/privacy-settings" element={<ProtectedRoute><PrivacySettings /></ProtectedRoute>} />
-                <Route path="/about-us" element={<AboutUs />} />
-                
-                <Route path="/coupons" element={<Coupons />} />
-                
-                <Route path="*" element={<NotFound />} />
-                
-                {/* Add this route inside the Routes component */}
-                <Route path="/write-review/:productId" element={<ProtectedRoute><WriteReview /></ProtectedRoute>} />
-              </Routes>
+              <AppContent />
             </BrowserRouter>
           </TooltipProvider>
         </CartProvider>

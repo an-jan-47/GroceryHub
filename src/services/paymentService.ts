@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from '@/components/ui/sonner';
 
@@ -30,14 +31,38 @@ interface RazorpayResponse {
 }
 
 // Create a Razorpay order on the server
-export const createRazorpayOrder = async (amount: number, orderId: string) => {
+export const createRazorpayOrder = async (amount: number, receipt: string) => {
   try {
+    console.log('Creating Razorpay order for amount:', amount, 'receipt:', receipt);
+    
     // Call your backend function to create a Razorpay order
     const { data, error } = await supabase.functions.invoke('create-razorpay-order', {
-      body: { amount, orderId }
+      body: { 
+        amount: Math.round(amount * 100), // Convert to paise
+        currency: 'INR',
+        receipt 
+      }
     });
 
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase function error:', error);
+      
+      // Provide more specific error messages
+      if (error.message?.includes('credentials not configured')) {
+        throw new Error('Payment gateway not configured. Please contact support.');
+      } else if (error.message?.includes('Authentication failed')) {
+        throw new Error('Payment gateway authentication failed. Please contact support.');
+      } else {
+        throw new Error(`Failed to create order: ${error.message}`);
+      }
+    }
+    
+    if (!data || data.error) {
+      console.error('Razorpay order creation failed:', data);
+      throw new Error(data?.error || 'Failed to create payment order');
+    }
+    
+    console.log('Razorpay order created successfully:', data);
     return data;
   } catch (error) {
     console.error('Error creating Razorpay order:', error);
@@ -64,12 +89,17 @@ export const processRazorpayPayment = (
   const razorpay = new (window as any).Razorpay({
     ...options,
     handler: (response: RazorpayResponse) => {
+      console.log('Payment successful:', response);
       onSuccess(response);
     },
   });
 
   // Open Razorpay payment form
-  razorpay.on('payment.failed', onError);
+  razorpay.on('payment.failed', (response: any) => {
+    console.error('Payment failed:', response.error);
+    onError(response.error);
+  });
+  
   razorpay.open();
 };
 
@@ -81,16 +111,27 @@ export const verifyRazorpayPayment = async (
   razorpayOrderId: string
 ) => {
   try {
+    console.log('Verifying payment:', { paymentId, orderId, signature, razorpayOrderId });
+    
     const { data, error } = await supabase.functions.invoke('verify-razorpay-payment', {
       body: {
-        paymentId,
-        orderId,
-        signature,
-        razorpayOrderId
+        razorpay_payment_id: paymentId,
+        razorpay_order_id: razorpayOrderId,
+        razorpay_signature: signature
       }
     });
 
-    if (error) throw error;
+    if (error) {
+      console.error('Payment verification error:', error);
+      throw new Error(`Verification failed: ${error.message}`);
+    }
+    
+    if (!data || !data.verified) {
+      console.error('Payment verification failed:', data);
+      throw new Error(data?.error || 'Payment verification failed');
+    }
+    
+    console.log('Payment verification result:', data);
     return data;
   } catch (error) {
     console.error('Error verifying payment:', error);
@@ -98,7 +139,7 @@ export const verifyRazorpayPayment = async (
   }
 };
 
-// Save payment details to database
+// Save payment details to database - FIXED VERSION
 export const savePaymentDetails = async (
   orderId: string,
   paymentId: string,
@@ -107,6 +148,18 @@ export const savePaymentDetails = async (
   paymentMethod: string
 ) => {
   try {
+    console.log('Saving payment details:', { orderId, paymentId, amount, status, paymentMethod });
+    
+    // Get current user to ensure we have user context
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !user) {
+      console.error('Authentication error when saving payment:', authError);
+      throw new Error('User not authenticated');
+    }
+    
+    console.log('Current user for payment:', user.id);
+    
     const { data, error } = await supabase
       .from('payments')
       .insert({
@@ -120,7 +173,18 @@ export const savePaymentDetails = async (
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('Error saving payment details:', error);
+      console.error('Error details:', {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint
+      });
+      throw error;
+    }
+    
+    console.log('Payment details saved successfully:', data);
     return data;
   } catch (error) {
     console.error('Error saving payment details:', error);

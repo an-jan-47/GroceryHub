@@ -1,7 +1,5 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
-import { hmac } from 'https://deno.land/std@0.177.0/crypto/mod.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -21,21 +19,36 @@ serve(async (req) => {
   }
 
   try {
+    // Get Razorpay credentials from environment variables
     const razorpayKeyId = Deno.env.get('RAZORPAY_KEY_ID')
     const razorpayKeySecret = Deno.env.get('RAZORPAY_KEY_SECRET')
 
     if (!razorpayKeyId || !razorpayKeySecret) {
-      throw new Error('Razorpay credentials not configured')
+      console.error('Razorpay credentials not found in environment variables')
+      return new Response(JSON.stringify({ 
+        error: 'Razorpay credentials not configured. Please contact support.' 
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
-
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!
-    const supabase = createClient(supabaseUrl, supabaseKey)
 
     const { amount, currency = 'INR', receipt }: OrderData = await req.json()
 
+    // Validate amount
+    if (!amount || amount <= 0) {
+      return new Response(JSON.stringify({ 
+        error: 'Invalid amount provided' 
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
     // Create order with Razorpay
     const auth = btoa(`${razorpayKeyId}:${razorpayKeySecret}`)
+    
+    console.log('Creating Razorpay order with amount:', amount, 'currency:', currency, 'receipt:', receipt)
     
     const response = await fetch('https://api.razorpay.com/v1/orders', {
       method: 'POST',
@@ -44,24 +57,50 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        amount: amount * 100, // Convert to paise
+        amount, // Amount already in paise
         currency,
         receipt,
       }),
     })
 
     if (!response.ok) {
-      throw new Error('Failed to create Razorpay order')
+      const errorText = await response.text()
+      console.error('Razorpay API error:', errorText)
+      
+      let errorMessage = 'Failed to create Razorpay order'
+      try {
+        const errorData = JSON.parse(errorText)
+        if (errorData.error && errorData.error.description) {
+          errorMessage = errorData.error.description
+        }
+      } catch (e) {
+        // If we can't parse the error, use the default message
+      }
+      
+      return new Response(JSON.stringify({ 
+        error: errorMessage,
+        details: errorText 
+      }), {
+        status: response.status,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
     const order = await response.json()
+    console.log('Razorpay order created successfully:', order.id)
+    
+    // Add the key ID to the response so frontend can use it
+    order.key_id = razorpayKeyId
 
     return new Response(JSON.stringify(order), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (error) {
     console.error('Error creating Razorpay order:', error)
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ 
+      error: 'Internal server error',
+      message: error.message 
+    }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })

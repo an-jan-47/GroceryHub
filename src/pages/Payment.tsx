@@ -1,12 +1,14 @@
+
 import { useState, useEffect } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { ChevronLeft, MapPin, CreditCard } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { CreditCard, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { toast } from '@/components/ui/sonner';
 import { useCart } from '@/hooks/useCart';
+import { useNavigationGestures } from '@/hooks/useNavigationGestures';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
 import { createOrder } from '@/services/orderService';
@@ -14,6 +16,12 @@ import { getAddressById } from '@/services/addressService';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useAuthCheck } from '@/hooks/useAuthCheck';
 import { useAuth } from '@/contexts/AuthContext';
+import { 
+  createRazorpayOrder, 
+  processRazorpayPayment, 
+  verifyRazorpayPayment,
+  savePaymentDetails 
+} from '@/services/paymentService';
 
 const formatCurrency = (amount: number): string => {
   return `₹${amount.toFixed(2)}`;
@@ -35,6 +43,9 @@ const PaymentMethodsPage = () => {
   const { user } = useAuth();
   const [paymentMethod, setPaymentMethod] = useState('cod');
   const [appliedCouponData, setAppliedCouponData] = useState<any>(null);
+  
+  // Add navigation gestures
+  useNavigationGestures();
   
   // Load applied coupon data from localStorage
   useEffect(() => {
@@ -88,36 +99,49 @@ const PaymentMethodsPage = () => {
   
   // Calculate costs with corrected tax logic - matching Cart component
   const platformFees = 5.00;
+  const deliveryFees = 0.00;
   const taxRate = 0.18; // 18% GST
   
-  // Subtotal is the cart total without any additional charges
-  const subtotal = cartTotal;
+  // Calculate subtotal by removing tax from each item
+  const subtotal = cartItems.reduce((total, item) => {
+    const itemPrice = item.salePrice || item.price;
+    const priceWithoutTax = itemPrice / (1 + taxRate);
+    return total + (priceWithoutTax * item.quantity);
+  }, 0);
   
-  // Tax is calculated on subtotal + platform fees (before discount)
-  const taxableAmount = subtotal + platformFees;
-  const tax = taxableAmount * taxRate;
+  // Tax is calculated on original prices
+  const tax = cartItems.reduce((total, item) => {
+    const itemPrice = item.salePrice || item.price;
+    const taxAmount = (itemPrice * taxRate) / (1 + taxRate);
+    return total + (taxAmount * item.quantity);
+  }, 0);
   
   // Discount amount from applied coupon
   const discountAmount = appliedCouponData?.discountAmount || 0;
   
   // Final total calculation
-  const totalBeforeDiscount = subtotal + platformFees + tax;
+  const totalBeforeDiscount = subtotal + platformFees + deliveryFees + tax;
   const totalAmount = totalBeforeDiscount - discountAmount;
   
   // Create order mutation
   const createOrderMutation = useMutation({
-    mutationFn: async (paymentData: { paymentMethod: string, razorpayPaymentId?: string, razorpayOrderId?: string, razorpaySignature?: string }) => {
+    mutationFn: async (paymentData: { 
+      paymentMethod: string, 
+      razorpayPaymentId?: string, 
+      razorpayOrderId?: string, 
+      razorpaySignature?: string 
+    }) => {
       if (!addressId || !user) throw new Error('No address or user found');
       if (!cartItems || cartItems.length === 0) throw new Error('Cart is empty');
       
-      return createOrder({
+      // Create order first
+      const orderResult = await createOrder({
         addressId: addressId,
         userId: user.id,
         paymentMethod: paymentData.paymentMethod,
         totalAmount: totalAmount,
         platformFees: platformFees,
         discountAmount: discountAmount,
-        // Remove appliedCouponId field
         products: cartItems.map(item => ({
           productId: item.id,
           name: item.name,
@@ -125,6 +149,19 @@ const PaymentMethodsPage = () => {
           quantity: item.quantity
         }))
       });
+
+      // If Razorpay payment, save payment details
+      if (paymentData.razorpayPaymentId && orderResult.orderId) {
+        await savePaymentDetails(
+          orderResult.orderId,
+          paymentData.razorpayPaymentId,
+          totalAmount,
+          'completed',
+          'razorpay'
+        );
+      }
+
+      return orderResult;
     },
     onSuccess: ({ orderId }) => {
       // Store order ID for confirmation page
@@ -157,19 +194,20 @@ const PaymentMethodsPage = () => {
     }
     
     try {
-      const orderResponse = {
-        id: 'order_' + Math.random().toString(36).substring(2, 15),
-        amount: Math.round(totalAmount * 100),
-        currency: 'INR'
-      };
+      // Create Razorpay order
+      const razorpayOrder = await createRazorpayOrder(totalAmount, `order_${Date.now()}`);
+      
+      if (!razorpayOrder || !razorpayOrder.id) {
+        throw new Error('Failed to create payment order');
+      }
       
       const options = {
-        key: 'rzp_test_YOUR_KEY_ID',
-        amount: orderResponse.amount,
+        key: razorpayOrder.key_id || 'rzp_test_NhYbBXqUSxpojf', // Fallback to test key
+        amount: razorpayOrder.amount,
         currency: 'INR',
         name: 'GroceryHub',
         description: 'Purchase from GroceryHub',
-        order_id: orderResponse.id,
+        order_id: razorpayOrder.id,
         prefill: {
           name: address?.name || '',
           email: user?.email || '',
@@ -180,39 +218,47 @@ const PaymentMethodsPage = () => {
         },
         theme: {
           color: '#3B82F6'
-        },
-        handler: function(response: any) {
-          const paymentData = {
-            paymentMethod: 'razorpay',
-            razorpayPaymentId: response.razorpay_payment_id,
-            razorpayOrderId: response.razorpay_order_id,
-            razorpaySignature: response.razorpay_signature
-          };
-          
-          createOrderMutation.mutate(paymentData);
-        },
-        modal: {
-          ondismiss: function() {
-            setIsProcessingPayment(false);
-            toast('Payment cancelled', {
-              description: 'You can try again or choose another payment method'
-            });
-          }
         }
       };
       
-      const razorpay = new window.Razorpay(options);
-      
-      razorpay.on('payment.failed', function(response: any) {
-        setIsProcessingPayment(false);
-        toast('Payment failed', {
-          description: response.error.description || 'Please try again or use another payment method'
-        });
-      });
-      
-      razorpay.open();
+      processRazorpayPayment(
+        options,
+        async (response) => {
+          // Verify payment
+          try {
+            await verifyRazorpayPayment(
+              response.razorpay_payment_id,
+              razorpayOrder.id,
+              response.razorpay_signature,
+              response.razorpay_order_id
+            );
+            
+            // Create order with payment details
+            const paymentData = {
+              paymentMethod: 'razorpay',
+              razorpayPaymentId: response.razorpay_payment_id,
+              razorpayOrderId: response.razorpay_order_id,
+              razorpaySignature: response.razorpay_signature
+            };
+            
+            createOrderMutation.mutate(paymentData);
+          } catch (error) {
+            console.error('Payment verification failed:', error);
+            setIsProcessingPayment(false);
+            toast('Payment verification failed', {
+              description: 'Please try again or contact support'
+            });
+          }
+        },
+        (error) => {
+          setIsProcessingPayment(false);
+          toast('Payment failed', {
+            description: error.description || 'Please try again or use another payment method'
+          });
+        }
+      );
     } catch (error) {
-      console.error('Razorpay initialization error:', error);
+      console.error('Razorpay order creation failed:', error);
       setIsProcessingPayment(false);
       toast('Payment initialization failed', {
         description: 'Please try again or use another payment method'
@@ -247,13 +293,6 @@ const PaymentMethodsPage = () => {
       <Header />
       
       <main className="container px-4 py-4 mx-auto">
-        <div className="py-3 flex items-center">
-          <Link to="/address" className="flex items-center text-gray-500">
-            <ChevronLeft className="w-5 h-5 mr-1" />
-            <span>Back to Address</span>
-          </Link>
-        </div>
-        
         <h1 className="text-2xl font-bold mb-6">Payment Method</h1>
         
         {isLoadingAddress ? (
@@ -325,6 +364,11 @@ const PaymentMethodsPage = () => {
               <div className="flex justify-between">
                 <span className="text-gray-600">Platform Fees</span>
                 <span>₹{platformFees.toFixed(2)}</span>
+              </div>
+              
+              <div className="flex justify-between">
+                <span className="text-gray-600">Delivery Fees</span>
+                <span>₹{deliveryFees.toFixed(2)}</span>
               </div>
               
               <div className="flex justify-between">

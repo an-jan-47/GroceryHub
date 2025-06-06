@@ -7,69 +7,46 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
-import { getOrderById } from '@/services/orderService';
-import { formatCurrency } from '@/utils/formatters';
-import { supabase } from '@/integrations/supabase/client';
+import { getOrderById, subscribeToOrderUpdates } from '@/services/orderService';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+
+const formatCurrency = (amount: number): string => {
+  return `₹${amount.toFixed(2)}`;
+};
 
 const OrderDetails = () => {
   const { id } = useParams();
   const queryClient = useQueryClient();
-  const [isSubscribed, setIsSubscribed] = useState(false);
   
   // Use React Query for data fetching and caching
   const { data: orderData, isLoading } = useQuery({
     queryKey: ['order', id],
     queryFn: async () => {
       if (!id) throw new Error('No order ID provided');
-      
-      // First get the basic order data
-      const data = await getOrderById(id);
-      
-      // Then fetch the latest status directly from the database
-      const { data: statusData, error } = await supabase
-        .from('orders')
-        .select('status')
-        .eq('id', id)
-        .single();
-      
-      if (!error && statusData) {
-        // Update the order status with the latest from the database
-        data.order.status = statusData.status;
-      }
-      
-      return data;
+      return await getOrderById(id);
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
   
   // Set up real-time subscription to order updates
   useEffect(() => {
-    if (!id || isSubscribed) return;
+    if (!id) return;
+    
+    console.log('Setting up real-time subscription for order:', id);
     
     // Subscribe to changes on this specific order
-    const subscription = supabase
-      .channel(`order-${id}`)
-      .on('postgres_changes', {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'orders',
-        filter: `id=eq.${id}`
-      }, (payload) => {
-        console.log('Order updated:', payload);
-        // Invalidate the query to trigger a refetch
-        queryClient.invalidateQueries({ queryKey: ['order', id] });
-      })
-      .subscribe();
-    
-    setIsSubscribed(true);
+    const subscription = subscribeToOrderUpdates(id, (payload) => {
+      console.log('Order updated via realtime:', payload);
+      // Invalidate the query to trigger a refetch
+      queryClient.invalidateQueries({ queryKey: ['order', id] });
+    });
     
     // Clean up subscription on unmount
     return () => {
+      console.log('Cleaning up order subscription for:', id);
       subscription.unsubscribe();
-      setIsSubscribed(false);
     };
-  }, [id, queryClient, isSubscribed]);
+  }, [id, queryClient]);
   
   const formatDate = (dateString: string) => {
     const options: Intl.DateTimeFormatOptions = { 
@@ -83,6 +60,7 @@ const OrderDetails = () => {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'Processing':
+      case 'pending':
         return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">Processing</Badge>;
       case 'Shipped':
         return <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">Shipped</Badge>;
@@ -136,6 +114,28 @@ const OrderDetails = () => {
   }
   
   const { order, items } = orderData;
+  
+  // Calculate costs with 18% tax logic
+  const taxRate = 0.18; // 18% GST
+  const platformFees = order.platform_fees || 5.00;
+  const deliveryFees = 0.00; // Set to 0 as requested
+  
+  // Calculate subtotal by removing tax from each item
+  const subtotal = items.reduce((total, item) => {
+    const itemPrice = item.price;
+    const priceWithoutTax = itemPrice / (1 + taxRate);
+    return total + (priceWithoutTax * item.quantity);
+  }, 0);
+  
+  // Tax is calculated on original prices
+  const tax = items.reduce((total, item) => {
+    const itemPrice = item.price;
+    const taxAmount = (itemPrice * taxRate) / (1 + taxRate);
+    return total + (taxAmount * item.quantity);
+  }, 0);
+  
+  // Discount amount
+  const discountAmount = order.discount_amount || 0;
   
   return (
     <div className="pb-20 bg-gray-50 min-h-screen">
@@ -245,19 +245,31 @@ const OrderDetails = () => {
           
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Subtotal</span>
-              <span>{formatCurrency(items.reduce((sum, item) => sum + (item.price * item.quantity), 0))}</span>
+              <span className="text-gray-500">Subtotal (excl. tax)</span>
+              <span>{formatCurrency(subtotal)}</span>
+            </div>
+            
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500">Platform Fees</span>
+              <span>{formatCurrency(platformFees)}</span>
             </div>
             
             <div className="flex justify-between text-sm">
               <span className="text-gray-500">Delivery Fee</span>
-              <span>{formatCurrency(0)}</span>
+              <span>{formatCurrency(deliveryFees)}</span>
             </div>
             
             <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Tax</span>
-              <span>{formatCurrency(0)}</span>
+              <span className="text-gray-500">Tax (18% GST)</span>
+              <span>{formatCurrency(tax)}</span>
             </div>
+            
+            {discountAmount > 0 && (
+              <div className="flex justify-between text-sm text-green-600">
+                <span>Discount</span>
+                <span>-{formatCurrency(discountAmount)}</span>
+              </div>
+            )}
             
             <Separator className="my-2" />
             
