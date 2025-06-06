@@ -147,7 +147,7 @@ export const createOrder = async (orderData: OrderData): Promise<{ success: bool
     console.log('Order created with ID:', orderId);
     
     // Create order items with proper error handling
-    const orderItems = orderData.products.map(product => ({
+    const orderItems = orderData.products.map(product => ({ 
       order_id: orderId,
       product_id: product.productId,
       price: product.price,
