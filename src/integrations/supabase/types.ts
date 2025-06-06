@@ -163,6 +163,13 @@ export type Database = {
             foreignKeyName: "coupon_usage_order_id_fkey"
             columns: ["order_id"]
             isOneToOne: false
+            referencedRelation: "order_complete_details"
+            referencedColumns: ["order_id"]
+          },
+          {
+            foreignKeyName: "coupon_usage_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
             referencedRelation: "orders"
             referencedColumns: ["id"]
           },
@@ -233,6 +240,8 @@ export type Database = {
           address_details: Json | null
           created_at: string
           customer_name: string | null
+          discount_amount: number | null
+          discount_percentage: number | null
           id: string
           order_id: string
           price: number
@@ -247,6 +256,8 @@ export type Database = {
           address_details?: Json | null
           created_at?: string
           customer_name?: string | null
+          discount_amount?: number | null
+          discount_percentage?: number | null
           id?: string
           order_id: string
           price: number
@@ -261,6 +272,8 @@ export type Database = {
           address_details?: Json | null
           created_at?: string
           customer_name?: string | null
+          discount_amount?: number | null
+          discount_percentage?: number | null
           id?: string
           order_id?: string
           price?: number
@@ -272,6 +285,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "order_details_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "order_complete_details"
+            referencedColumns: ["order_id"]
+          },
           {
             foreignKeyName: "order_details_order_id_fkey"
             columns: ["order_id"]
@@ -291,6 +311,8 @@ export type Database = {
       order_items: {
         Row: {
           created_at: string
+          discount_amount: number | null
+          discount_percentage: number | null
           id: string
           order_id: string
           price: number
@@ -299,6 +321,8 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          discount_amount?: number | null
+          discount_percentage?: number | null
           id?: string
           order_id: string
           price: number
@@ -307,6 +331,8 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          discount_amount?: number | null
+          discount_percentage?: number | null
           id?: string
           order_id?: string
           price?: number
@@ -314,6 +340,13 @@ export type Database = {
           quantity?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "order_complete_details"
+            referencedColumns: ["order_id"]
+          },
           {
             foreignKeyName: "order_items_order_id_fkey"
             columns: ["order_id"]
@@ -435,6 +468,13 @@ export type Database = {
             foreignKeyName: "payments_order_id_fkey"
             columns: ["order_id"]
             isOneToOne: false
+            referencedRelation: "order_complete_details"
+            referencedColumns: ["order_id"]
+          },
+          {
+            foreignKeyName: "payments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
             referencedRelation: "orders"
             referencedColumns: ["id"]
           },
@@ -476,6 +516,7 @@ export type Database = {
           created_at: string | null
           description: string
           features: Json | null
+          hsn_number: string | null
           id: string
           images: string[]
           name: string
@@ -492,6 +533,7 @@ export type Database = {
           created_at?: string | null
           description: string
           features?: Json | null
+          hsn_number?: string | null
           id?: string
           images: string[]
           name: string
@@ -508,6 +550,7 @@ export type Database = {
           created_at?: string | null
           description?: string
           features?: Json | null
+          hsn_number?: string | null
           id?: string
           images?: string[]
           name?: string
@@ -699,12 +742,83 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      order_complete_details: {
+        Row: {
+          address: string | null
+          address_id: string | null
+          address_name: string | null
+          address_phone: string | null
+          address_type: string | null
+          applied_coupon_id: string | null
+          brand: string | null
+          city: string | null
+          created_at: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          description: string | null
+          hsn_number: string | null
+          item_discount: number | null
+          item_discount_percentage: number | null
+          item_id: string | null
+          item_price: number | null
+          item_total: number | null
+          order_discount: number | null
+          order_id: string | null
+          payment_method: string | null
+          pincode: string | null
+          product_id: string | null
+          product_image: string | null
+          product_name: string | null
+          quantity: number | null
+          state: string | null
+          status: string | null
+          subtotal: number | null
+          total_amount: number | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_address_id_fkey"
+            columns: ["address_id"]
+            isOneToOne: false
+            referencedRelation: "addresses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_applied_coupon_id_fkey"
+            columns: ["applied_coupon_id"]
+            isOneToOne: false
+            referencedRelation: "coupons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       decrease_product_stock: {
         Args: { product_id: string; quantity: number }
         Returns: undefined
+      }
+      get_dashboard_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          total_orders: number
+          total_revenue: number
+          total_customers: number
+          total_products: number
+          pending_orders: number
+          delivered_orders: number
+          today_orders: number
+          today_revenue: number
+        }[]
       }
       increase_product_stock: {
         Args: { product_id: string; quantity: number }

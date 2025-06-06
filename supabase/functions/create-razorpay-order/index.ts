@@ -88,6 +88,9 @@ serve(async (req) => {
 
     const order = await response.json()
     console.log('Razorpay order created successfully:', order.id)
+    
+    // Add the key ID to the response so frontend can use it
+    order.key_id = razorpayKeyId
 
     return new Response(JSON.stringify(order), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

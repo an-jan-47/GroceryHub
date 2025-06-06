@@ -197,8 +197,12 @@ const PaymentMethodsPage = () => {
       // Create Razorpay order
       const razorpayOrder = await createRazorpayOrder(totalAmount, `order_${Date.now()}`);
       
+      if (!razorpayOrder || !razorpayOrder.id) {
+        throw new Error('Failed to create payment order');
+      }
+      
       const options = {
-        key: 'rzp_test_NhYbBXqUSxpojf',
+        key: razorpayOrder.key_id || 'rzp_test_NhYbBXqUSxpojf', // Fallback to test key
         amount: razorpayOrder.amount,
         currency: 'INR',
         name: 'GroceryHub',
