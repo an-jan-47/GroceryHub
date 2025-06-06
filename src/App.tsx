@@ -63,6 +63,15 @@ const queryClient = new QueryClient({
   }
 });
 
+// We wrap all route components with this HOC to ensure they have access to the router
+const withRouterProvider = (Component) => {
+  return (props) => (
+    <BrowserRouter>
+      <Component {...props} />
+    </BrowserRouter>
+  );
+};
+
 const AppContent = () => {
   // Add global navigation gestures
   useNavigationGestures();

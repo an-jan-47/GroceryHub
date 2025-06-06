@@ -1,12 +1,22 @@
 
-import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useState } from 'react';
+import { useSearchParams as useSearchParamsPolyfill } from 'react-router-dom';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
 import ProductsGrid from '@/components/ProductsGrid';
 import SearchFiltersComponent from '@/components/SearchFilters';
 import { useQuery } from '@tanstack/react-query';
 import { searchProducts, type SearchFilters as SearchFiltersType } from '@/services/searchService';
+
+const useSearchParams = () => {
+  try {
+    return useSearchParamsPolyfill();
+  } catch (error) {
+    // Return a mock implementation if outside Router context
+    console.warn('useSearchParams used outside Router context');
+    return [new URLSearchParams(), () => {}];
+  }
+};
 
 const Explore = () => {
   const [searchParams] = useSearchParams();
