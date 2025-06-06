@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { CreditCard, MapPin } from 'lucide-react';
@@ -44,10 +43,8 @@ const PaymentMethodsPage = () => {
   const [paymentMethod, setPaymentMethod] = useState('cod');
   const [appliedCouponData, setAppliedCouponData] = useState<any>(null);
   
-  // Add navigation gestures
   useNavigationGestures();
   
-  // Load applied coupon data from localStorage
   useEffect(() => {
     const storedCouponData = localStorage.getItem('appliedCoupon');
     if (storedCouponData) {
@@ -60,7 +57,6 @@ const PaymentMethodsPage = () => {
     }
   }, []);
   
-  // Check if user is authenticated
   useEffect(() => {
     checkAuthForCheckout();
     
@@ -69,7 +65,6 @@ const PaymentMethodsPage = () => {
       navigate('/address');
     }
     
-    // Load Razorpay script
     const loadRazorpayScript = () => {
       return new Promise((resolve) => {
         const script = document.createElement('script');
@@ -90,40 +85,32 @@ const PaymentMethodsPage = () => {
     loadRazorpayScript();
   }, [checkAuthForCheckout, addressId, navigate]);
   
-  // Fetch the selected address
   const { data: address, isLoading: isLoadingAddress } = useQuery({
     queryKey: ['address', addressId],
     queryFn: () => addressId ? getAddressById(addressId) : Promise.reject('No address ID'),
     enabled: !!addressId
   });
   
-  // Calculate costs with corrected tax logic - matching Cart component
   const platformFees = 5.00;
   const deliveryFees = 0.00;
-  const taxRate = 0.18; // 18% GST
+  const taxRate = 0.18;
   
-  // Calculate subtotal by removing tax from each item
   const subtotal = cartItems.reduce((total, item) => {
     const itemPrice = item.salePrice || item.price;
     const priceWithoutTax = itemPrice / (1 + taxRate);
     return total + (priceWithoutTax * item.quantity);
   }, 0);
   
-  // Tax is calculated on original prices
   const tax = cartItems.reduce((total, item) => {
     const itemPrice = item.salePrice || item.price;
     const taxAmount = (itemPrice * taxRate) / (1 + taxRate);
     return total + (taxAmount * item.quantity);
   }, 0);
   
-  // Discount amount from applied coupon
   const discountAmount = appliedCouponData?.discountAmount || 0;
-  
-  // Final total calculation
   const totalBeforeDiscount = subtotal + platformFees + deliveryFees + tax;
   const totalAmount = totalBeforeDiscount - discountAmount;
   
-  // Create order mutation
   const createOrderMutation = useMutation({
     mutationFn: async (paymentData: { 
       paymentMethod: string, 
@@ -134,7 +121,6 @@ const PaymentMethodsPage = () => {
       if (!addressId || !user) throw new Error('No address or user found');
       if (!cartItems || cartItems.length === 0) throw new Error('Cart is empty');
       
-      // Create order first
       const orderResult = await createOrder({
         addressId: addressId,
         userId: user.id,
@@ -150,28 +136,23 @@ const PaymentMethodsPage = () => {
         }))
       });
 
-      // If Razorpay payment, save payment details
       if (paymentData.razorpayPaymentId && orderResult.orderId) {
-        await savePaymentDetails(
-          orderResult.orderId,
-          paymentData.razorpayPaymentId,
-          totalAmount,
-          'completed',
-          'razorpay'
-        );
+        await savePaymentDetails({
+          orderId: orderResult.orderId,
+          paymentId: paymentData.razorpayPaymentId,
+          amount: totalAmount,
+          status: 'completed',
+          method: 'razorpay',
+          userId: user.id  // Ensure user_id is included
+        });
       }
 
       return orderResult;
     },
     onSuccess: ({ orderId }) => {
-      // Store order ID for confirmation page
       localStorage.setItem('lastOrderId', orderId!);
-      
-      // Clear the cart and applied coupon
       clearCart();
       localStorage.removeItem('appliedCoupon');
-      
-      // Navigate to confirmation
       navigate('/order-confirmation');
     },
     onError: (error: any) => {
@@ -183,7 +164,6 @@ const PaymentMethodsPage = () => {
     }
   });
 
-  // Function to initiate Razorpay payment
   const initiateRazorpayPayment = async () => {
     if (!window.Razorpay) {
       toast('Razorpay SDK not loaded', {
@@ -194,7 +174,6 @@ const PaymentMethodsPage = () => {
     }
     
     try {
-      // Create Razorpay order
       const razorpayOrder = await createRazorpayOrder(totalAmount, `order_${Date.now()}`);
       
       if (!razorpayOrder || !razorpayOrder.id) {
@@ -202,7 +181,7 @@ const PaymentMethodsPage = () => {
       }
       
       const options = {
-        key: razorpayOrder.key_id || 'rzp_test_NhYbBXqUSxpojf', // Fallback to test key
+        key: razorpayOrder.key_id || 'rzp_test_NhYbBXqUSxpojf',
         amount: razorpayOrder.amount,
         currency: 'INR',
         name: 'GroceryHub',
@@ -224,7 +203,6 @@ const PaymentMethodsPage = () => {
       processRazorpayPayment(
         options,
         async (response) => {
-          // Verify payment
           try {
             await verifyRazorpayPayment(
               response.razorpay_payment_id,
@@ -233,7 +211,6 @@ const PaymentMethodsPage = () => {
               response.razorpay_order_id
             );
             
-            // Create order with payment details
             const paymentData = {
               paymentMethod: 'razorpay',
               razorpayPaymentId: response.razorpay_payment_id,

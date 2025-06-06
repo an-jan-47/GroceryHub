@@ -47,6 +47,7 @@ import { trackError } from "./utils/errorTracking";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
+      staleTime: 0, // Change this to 0 to always fetch fresh data
       retry: (failureCount, error) => {
         // Don't retry on 404 errors
         if (typeof error === 'object' && error !== null && 'status' in error) {

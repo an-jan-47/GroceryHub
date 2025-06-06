@@ -17,53 +17,18 @@ import { getCategories } from "@/services/categoryService";
 import { getProducts } from "@/services/productService";
 
 const Index = () => {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [showFilters, setShowFilters] = useState(false);
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
+  const { data: banners = [] } = useQuery(['banners'], getBanners);
+  const { data: categories = [] } = useQuery(['categories'], getCategories);
+  const { data: featuredProducts = [] } = useQuery(['featuredProducts'], () => getProducts({ featured: true }));
 
-  // Add navigation gestures
-  useNavigationGestures();
-
-  // Fetch banners
-  const { data: banners = [] } = useQuery({
-    queryKey: ['banners'],
-    queryFn: getBanners
-  });
-
-  // Fetch categories
-  const { data: categories = [] } = useQuery({
-    queryKey: ['categories'],
-    queryFn: getCategories
-  });
-
-  // Fetch featured products from explore page
-  const { data: featuredProducts = [] } = useQuery({
-    queryKey: ['featured-products'],
-    queryFn: getProducts
-  });
-
-  // Auto-change banner every 5 seconds
-  useEffect(() => {
-    if (banners.length > 1) {
-      const interval = setInterval(() => {
-        setCurrentBannerIndex((prev) => (prev + 1) % banners.length);
-      }, 5000);
-      return () => clearInterval(interval);
-    }
-  }, [banners.length]);
-
-  const handleSearch = () => {
-    // Search functionality would be implemented here
-    console.log("Searching for:", searchQuery);
+  const handleSearch = (filters: any) => {
+    // Navigate to explore page with filters
+    navigate(`/explore?${new URLSearchParams(filters).toString()}`);
   };
 
-  const handleFilterChange = (filters: {
-    query?: string;
-    category?: string;
-    minPrice?: number;
-    maxPrice?: number;
-  }) => {
-    console.log("Filters changed:", filters);
+  const handleFilterChange = (filters: any) => {
+    handleSearch(filters);
   };
 
   return (
@@ -71,39 +36,11 @@ const Index = () => {
       <Header />
       
       <main className="container px-4 py-4 mx-auto">
-        {/* Advanced Search Section */}
-        <div className="mb-6 bg-white rounded-lg shadow-sm p-4">
-          <div className="flex gap-2">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <Input
-                placeholder="Search products, brands..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setShowFilters(!showFilters)}
-              className="shrink-0"
-            >
-              <Filter className="h-4 w-4" />
-            </Button>
-            <Button onClick={handleSearch} className="shrink-0">
-              Search
-            </Button>
-          </div>
-          
-          {showFilters && (
-            <div className="mt-4 p-4 border-t">
-              <SearchFilters 
-                onFilterChange={handleFilterChange}
-                initialQuery={searchQuery}
-              />
-            </div>
-          )}
+        <div className="mb-6">
+          <SearchFilters 
+            onFilterChange={handleFilterChange}
+            initialQuery=""
+          />
         </div>
 
         {/* Banners Section with Scrollable Design */}

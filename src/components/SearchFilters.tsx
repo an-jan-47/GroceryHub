@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Filter, X } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { getCategories } from '@/services/searchService';
+import { Slider } from "@/components/ui/slider";
 
 interface SearchFiltersProps {
   onFilterChange: (filters: {
@@ -24,11 +25,19 @@ const SearchFilters = ({ onFilterChange, initialQuery = '' }: SearchFiltersProps
   const [category, setCategory] = useState('all');
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
-
-  const { data: categories = [] } = useQuery({
-    queryKey: ['categories'],
-    queryFn: getCategories,
-  });
+  const [priceRange, setPriceRange] = useState([0, 10000]);
+  
+  const { data: categories = [] } = useQuery(['categories'], getCategories);
+  
+  const handlePriceChange = (value: number[]) => {
+    setPriceRange(value);
+    onFilterChange({
+      query: query.trim() || undefined,
+      category: category === 'all' ? undefined : category,
+      minPrice: value[0],
+      maxPrice: value[1]
+    });
+  };
 
   const handleSearch = () => {
     onFilterChange({
@@ -60,7 +69,6 @@ const SearchFilters = ({ onFilterChange, initialQuery = '' }: SearchFiltersProps
         <Button onClick={() => setShowFilters(!showFilters)} variant="outline" size="icon">
           <Filter className="h-4 w-4" />
         </Button>
-        <Button onClick={handleSearch}>Search</Button>
       </div>
 
       {showFilters && (
@@ -72,7 +80,7 @@ const SearchFilters = ({ onFilterChange, initialQuery = '' }: SearchFiltersProps
             </Button>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="space-y-4">
             <div>
               <Label htmlFor="category">Category</Label>
               <Select value={category} onValueChange={setCategory}>
@@ -90,36 +98,32 @@ const SearchFilters = ({ onFilterChange, initialQuery = '' }: SearchFiltersProps
               </Select>
             </div>
             
-            <div>
-              <Label htmlFor="minPrice">Min Price (₹)</Label>
-              <Input
-                id="minPrice"
-                type="number"
-                placeholder="0"
-                value={minPrice}
-                onChange={(e) => setMinPrice(e.target.value)}
-              />
+            <div className="space-y-2">
+              <Label>Price Range</Label>
+              <div className="pt-4">
+                <Slider
+                  defaultValue={[0, 10000]}
+                  max={10000}
+                  step={100}
+                  value={priceRange}
+                  onValueChange={handlePriceChange}
+                  className="w-full"
+                />
+                <div className="flex justify-between mt-2 text-sm text-gray-500">
+                  <span>₹{priceRange[0]}</span>
+                  <span>₹{priceRange[1]}</span>
+                </div>
+              </div>
             </div>
-            
-            <div>
-              <Label htmlFor="maxPrice">Max Price (₹)</Label>
-              <Input
-                id="maxPrice"
-                type="number"
-                placeholder="1000"
-                value={maxPrice}
-                onChange={(e) => setMaxPrice(e.target.value)}
-              />
+
+            <div className="flex gap-2">
+              <Button onClick={handleSearch} className="flex-1">
+                Apply Filters
+              </Button>
+              <Button onClick={clearFilters} variant="outline">
+                Clear
+              </Button>
             </div>
-          </div>
-          
-          <div className="flex gap-2">
-            <Button onClick={handleSearch} className="flex-1">
-              Apply Filters
-            </Button>
-            <Button onClick={clearFilters} variant="outline">
-              Clear
-            </Button>
           </div>
         </div>
       )}

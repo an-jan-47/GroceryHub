@@ -81,17 +81,19 @@ export const calculateDiscount = (coupon: Coupon, cartTotal: number): number => 
   let discount = 0;
 
   if (coupon.type === 'percentage') {
-    discount = (cartTotal * coupon.value) / 100;
+    // Calculate percentage discount
+    discount = (cartTotal * (coupon.value / 100));
+    
+    // Ensure discount doesn't exceed maximum allowed
+    if (coupon.max_discount_amount) {
+      discount = Math.min(discount, coupon.max_discount_amount);
+    }
   } else if (coupon.type === 'fixed') {
-    discount = coupon.value;
+    discount = Math.min(coupon.value, cartTotal); // Don't exceed cart total
   }
 
-  // Apply maximum discount limit if specified
-  if (coupon.max_discount_amount && discount > coupon.max_discount_amount) {
-    discount = coupon.max_discount_amount;
-  }
-
-  return Math.min(discount, cartTotal);
+  // Round to 2 decimal places
+  return Math.round(discount * 100) / 100;
 };
 
 export const applyCoupon = async (couponId: string, orderId: string, discountAmount: number) => {

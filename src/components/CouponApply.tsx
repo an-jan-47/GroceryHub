@@ -31,27 +31,29 @@ const CouponApply = ({ cartTotal, onCouponApplied, appliedCoupon, onCouponRemove
       let discountAmount = 0;
       
       if (coupon.type === 'percentage') {
-        // For percentage coupons, calculate percentage of cart total
-        discountAmount = (cartTotal * coupon.value) / 100;
+        // Calculate percentage of cart total with proper rounding
+        discountAmount = Math.round((cartTotal * (coupon.value / 100)) * 100) / 100;
         
         // Apply max discount limit if specified
-        if (coupon.max_discount_amount && discountAmount > coupon.max_discount_amount) {
-          discountAmount = coupon.max_discount_amount;
+        if (coupon.max_discount_amount) {
+          discountAmount = Math.min(discountAmount, coupon.max_discount_amount);
         }
       } else if (coupon.type === 'fixed') {
         // For fixed amount coupons
         discountAmount = Math.min(coupon.value, cartTotal);
       }
       
-      const couponInfo = {
+      // Round to 2 decimal places
+      discountAmount = Math.round(discountAmount * 100) / 100;
+      
+      onCouponApplied({
         coupon: coupon,
         discountAmount: discountAmount
-      };
+      });
       
-      onCouponApplied(couponInfo);
       setCouponCode('');
       toast(`Coupon applied! You saved ₹${discountAmount.toFixed(2)}`);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error applying coupon:', error);
       toast(error.message || 'Invalid coupon code');
     } finally {

@@ -10,36 +10,27 @@ interface CategoryCardProps {
   };
 }
 
-const CategoryCard = ({ category }: CategoryCardProps) => {
-  return (
-    <Link 
-      to={`/explore?category=${encodeURIComponent(category.name)}`}
-      className="block relative overflow-hidden rounded-lg aspect-square group transition-transform duration-300 hover:scale-105"
-    >
-      <img 
-        src={category.image} 
-        alt={category.name}
-        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-      />
-      
-      {/* Gradient overlay for better text readability */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-      
-      {/* Text content positioned at bottom left */}
-      <div className="absolute bottom-0 left-0 right-0 p-4">
-        <div className="backdrop-blur-sm bg-black/30 rounded-lg p-3">
-          <h3 className="text-white font-semibold text-lg leading-tight">
-            {category.name}
-          </h3>
-          {category.description && (
-            <p className="text-white/80 text-sm mt-1 line-clamp-2">
-              {category.description}
-            </p>
-          )}
+const CategoryCard = ({ category }) => (
+  <Link
+    to={`/explore?category=${encodeURIComponent(category.name)}`}
+    className="block group"
+  >
+    <div className="relative overflow-hidden rounded-lg bg-gray-100 transition-all duration-300 group-hover:shadow-lg">
+      <div className="aspect-square">
+        <img
+          src={category.image || '/placeholder.svg'}
+          alt={category.name}
+          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+        />
+      </div>
+      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent">
+        <div className="absolute bottom-0 p-4 text-white">
+          <h3 className="text-lg font-semibold">{category.name}</h3>
+          <p className="text-sm opacity-90">{category.description}</p>
         </div>
       </div>
-    </Link>
-  );
-};
+    </div>
+  </Link>
+);
 
 export default CategoryCard;
