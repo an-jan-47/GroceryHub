@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -251,10 +250,10 @@ const ProductDetailPage = () => {
             <div className="grid grid-cols-2 gap-3">
               {relatedProducts.map(relatedProduct => (
                 <ProductCard
-  product={relatedProduct}
-  className="flex-shrink-0"
-/>
-
+                  key={relatedProduct.id}
+                  product={relatedProduct}
+                  className="flex-shrink-0"
+                />
               ))}
             </div>
           </div>

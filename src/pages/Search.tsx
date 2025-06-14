@@ -1,4 +1,3 @@
-
 import { useState, useMemo, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Search as SearchIcon, X } from 'lucide-react';
@@ -199,13 +198,9 @@ const SearchPage = () => {
           ) : filteredProducts.length > 0 ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
               {filteredProducts.map((product) => (
-  <div key={product.id}>
-    <ProductCard product={product} />
-  </div>
-))}
-
-))}
-
+                <div key={product.id}>
+                  <ProductCard product={product} />
+                </div>
               ))}
             </div>
           ) : (
