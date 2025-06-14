@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
 
 
-const SignUpPage = () => {
+const SignUp = () => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -103,7 +103,7 @@ const SignUpPage = () => {
     }
   };
   
-  const handleGoogleSignUp = async () => {
+  const handleGoogleSignUp = async (e: React.MouseEvent) => {
     try {
       setFormError(null);
       await signInWithGoogle();
@@ -236,4 +236,4 @@ const SignUpPage = () => {
   );
 };
 
-export default SignUpPage;
+export default SignUp;

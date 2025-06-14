@@ -1,96 +1,119 @@
 
 import { useState, useEffect } from 'react';
-import { type Coupon } from '@/services/couponService';
 
 export interface AppliedCouponState {
-  coupon: Coupon;
+  coupon: {
+    id: string;
+    code: string;
+    type: 'percentage' | 'fixed';
+    value: number;
+    min_purchase_amount: number;
+    max_discount_amount?: number;
+  };
   discountAmount: number;
-  appliedToTotal?: number; // Make this optional to match AppliedCoupon interface
+  appliedToTotal?: number;
 }
 
-interface CouponStateManager {
-  appliedCoupons: AppliedCouponState[];
-  addCoupon: (coupon: Coupon, discountAmount: number) => void;
-  removeCoupon: (couponId: string) => void;
-  clearCoupons: () => void;
-  setCoupons: (coupons: AppliedCouponState[]) => void;
-}
+class CouponStateManager {
+  private appliedCoupons: AppliedCouponState[] = [];
+  private listeners: ((coupons: AppliedCouponState[]) => void)[] = [];
 
-// Create a simple global state for coupons
-const globalCouponState = {
-  appliedCoupons: [] as AppliedCouponState[],
-  listeners: [] as Array<() => void>,
-  
-  addCoupon(coupon: Coupon, discountAmount: number) {
+  addCoupon(coupon: AppliedCouponState['coupon'], discountAmount: number) {
+    // Check if coupon already exists
     const existingIndex = this.appliedCoupons.findIndex(c => c.coupon.id === coupon.id);
-    if (existingIndex !== -1) {
-      this.appliedCoupons[existingIndex] = { coupon, discountAmount };
-    } else {
-      this.appliedCoupons.push({ coupon, discountAmount });
+    
+    if (existingIndex === -1) {
+      const newCoupon: AppliedCouponState = { coupon, discountAmount };
+      this.appliedCoupons = [...this.appliedCoupons, newCoupon];
+      this.updateLocalStorage();
+      this.notifyListeners();
     }
-    this.saveToLocalStorage();
-    this.notifyListeners();
-  },
-  
+  }
+
   removeCoupon(couponId: string) {
-    console.log('Removing coupon with ID:', couponId, 'Current coupons:', this.appliedCoupons);
+    console.log('CouponStateManager: Removing coupon with ID:', couponId);
+    const originalLength = this.appliedCoupons.length;
     this.appliedCoupons = this.appliedCoupons.filter(c => c.coupon.id !== couponId);
-    console.log('After removal:', this.appliedCoupons);
-    this.saveToLocalStorage();
-    this.notifyListeners();
-  },
-  
-  clearCoupons() {
-    this.appliedCoupons = [];
-    this.saveToLocalStorage();
-    this.notifyListeners();
-  },
-  
-  setCoupons(coupons: AppliedCouponState[]) {
-    this.appliedCoupons = coupons;
-    this.saveToLocalStorage();
-    this.notifyListeners();
-  },
-  
-  saveToLocalStorage() {
-    if (this.appliedCoupons.length > 0) {
-      localStorage.setItem('appliedCoupon', JSON.stringify(this.appliedCoupons));
-    } else {
-      localStorage.removeItem('appliedCoupon');
+    
+    if (this.appliedCoupons.length !== originalLength) {
+      console.log('CouponStateManager: Coupon removed, new count:', this.appliedCoupons.length);
+      this.updateLocalStorage();
+      this.notifyListeners();
     }
-  },
-  
-  subscribe(listener: () => void) {
+  }
+
+  clearCoupons() {
+    if (this.appliedCoupons.length > 0) {
+      this.appliedCoupons = [];
+      this.updateLocalStorage();
+      this.notifyListeners();
+    }
+  }
+
+  setCoupons(coupons: AppliedCouponState[]) {
+    this.appliedCoupons = [...coupons];
+    this.updateLocalStorage();
+    this.notifyListeners();
+  }
+
+  getAppliedCoupons(): AppliedCouponState[] {
+    return [...this.appliedCoupons];
+  }
+
+  subscribe(listener: (coupons: AppliedCouponState[]) => void) {
     this.listeners.push(listener);
     return () => {
       this.listeners = this.listeners.filter(l => l !== listener);
     };
-  },
-  
-  notifyListeners() {
-    this.listeners.forEach(listener => listener());
   }
-};
 
-export const useCouponState = (): CouponStateManager => {
-  const [appliedCoupons, setAppliedCoupons] = useState<AppliedCouponState[]>([]);
-  
+  private notifyListeners() {
+    // Use setTimeout to prevent infinite loops
+    setTimeout(() => {
+      this.listeners.forEach(listener => {
+        try {
+          listener([...this.appliedCoupons]);
+        } catch (error) {
+          console.error('Error in coupon state listener:', error);
+        }
+      });
+    }, 0);
+  }
+
+  private updateLocalStorage() {
+    try {
+      if (this.appliedCoupons.length > 0) {
+        localStorage.setItem('appliedCoupon', JSON.stringify(this.appliedCoupons));
+      } else {
+        localStorage.removeItem('appliedCoupon');
+      }
+    } catch (error) {
+      console.error('Error updating localStorage:', error);
+    }
+  }
+}
+
+const couponStateManager = new CouponStateManager();
+
+export const useCouponState = () => {
+  const [appliedCoupons, setAppliedCoupons] = useState<AppliedCouponState[]>(
+    couponStateManager.getAppliedCoupons()
+  );
+
   useEffect(() => {
-    const unsubscribe = globalCouponState.subscribe(() => {
-      setAppliedCoupons([...globalCouponState.appliedCoupons]);
+    const unsubscribe = couponStateManager.subscribe((coupons) => {
+      setAppliedCoupons(coupons);
     });
-    
-    // Initialize with current state
-    setAppliedCoupons([...globalCouponState.appliedCoupons]);
-    
+
     return unsubscribe;
   }, []);
-  
+
   return {
     appliedCoupons,
-    addCoupon: globalCouponState.addCoupon.bind(globalCouponState),
-    removeCoupon: globalCouponState.removeCoupon.bind(globalCouponState),
-    clearCoupons: globalCouponState.clearCoupons.bind(globalCouponState),
-    setCoupons: globalCouponState.setCoupons.bind(globalCouponState),
+    addCoupon: (coupon: AppliedCouponState['coupon'], discountAmount: number) => 
+      couponStateManager.addCoupon(coupon, discountAmount),
+    removeCoupon: (couponId: string) => couponStateManager.removeCoupon(couponId),
+    clearCoupons: () => couponStateManager.clearCoupons(),
+    setCoupons: (coupons: AppliedCouponState[]) => couponStateManager.setCoupons(coupons)
   };
 };

@@ -78,7 +78,7 @@ const WriteReview = () => {
   }, [user, navigate, isLoadingProduct]);
   
   // Handle form submission
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
     if (!user || !productId) {
