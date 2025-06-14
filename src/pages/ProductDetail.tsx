@@ -250,11 +250,10 @@ const ProductDetailPage = () => {
             <h2 className="font-semibold mb-3">Related Products</h2>
             <div className="grid grid-cols-2 gap-3">
               {relatedProducts.map(relatedProduct => (
-                <ProductCard 
-                  key={relatedProduct.id} 
-                  product={relatedProduct} 
-                  className="h-full"
-                />
+                <ProductCard
+  product={product}
+  className="flex-shrink-0"
+/>
               ))}
             </div>
           </div>
