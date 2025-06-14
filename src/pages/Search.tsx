@@ -11,19 +11,7 @@ import { getProducts } from '@/services/productService';
 import ProductCard from '@/components/ProductCard';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
-
-interface Product {
-  id: string;
-  name: string;
-  price: number;
-  sale_price?: number;
-  description?: string;
-  images?: string[];
-  category: string;
-  brand?: string;
-  rating: number;
-  stock: number;
-}
+import { Product } from '@/types/product';
 
 const SearchPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -194,7 +182,7 @@ const SearchPage = () => {
           {isLoading ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
               {[...Array(8)].map((_, i) => (
-                <div key={i} className="space-y-2">
+                <div key={`search-loading-${i}`} className="space-y-2">
                   <div className="h-40 w-full bg-gray-200 animate-pulse rounded-md" />
                   <div className="space-y-1.5">
                     <div className="h-4 w-3/4 bg-gray-200 animate-pulse rounded" />

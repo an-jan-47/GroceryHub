@@ -16,19 +16,19 @@ class ErrorBoundary extends Component<Props, State> {
     this.state = { hasError: false };
   }
 
-  public static getDerivedStateFromError(error: Error): State {
+  static getDerivedStateFromError(error: Error): State {
     return { hasError: true, error };
   }
 
-  public componentDidCatch(error: Error, errorInfo: any) {
+  componentDidCatch(error: Error, errorInfo: any) {
     console.error('ErrorBoundary caught an error:', error, errorInfo);
   }
 
-  public handleReset = () => {
+  handleReset = () => {
     this.setState({ hasError: false, error: undefined });
   };
 
-  public render() {
+  render() {
     if (this.state.hasError) {
       return (
         <div className="min-h-screen flex items-center justify-center bg-gray-50">

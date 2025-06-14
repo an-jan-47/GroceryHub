@@ -22,7 +22,7 @@ const Categories = () => {
         {isLoading ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="bg-gray-200 animate-pulse rounded-lg aspect-square"></div>
+              <div key={`loading-category-${i}`} className="bg-gray-200 animate-pulse rounded-lg aspect-square"></div>
             ))}
           </div>
         ) : (

@@ -1,5 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
+import { Product } from '@/types/product';
 
 export interface SearchFilters {
   query?: string;
@@ -8,11 +9,10 @@ export interface SearchFilters {
   sortBy?: string;
 }
 
-export const searchProducts = async (filters: SearchFilters) => {
+export const searchProducts = async (filters: SearchFilters): Promise<Product[]> => {
   let query = supabase
     .from('products')
-    .select('*')
-    .eq('is_active', true);
+    .select('*');
 
   // Apply search query filter
   if (filters.query) {
