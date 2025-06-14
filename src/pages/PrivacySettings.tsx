@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronLeft, Save } from 'lucide-react';
@@ -31,6 +30,15 @@ const PrivacySettings = () => {
       }, 3000);
     }
   };
+
+  const privacyKeys = [
+    'marketing_emails',
+    'product_updates',
+    'order_notifications',
+    'personalized_recommendations',
+    'data_sharing',
+    'account_activity_alerts',
+  ] as const;
 
   if (!user) {
     return (
@@ -77,53 +85,51 @@ const PrivacySettings = () => {
         ) : (
           <div>
             <div className="space-y-6">
-              {[
-                {
-                  key: 'marketing_emails',
-                  title: 'Marketing Emails',
-                  description: 'Receive emails about special offers and promotions'
-                },
-                {
-                  key: 'product_updates',
-                  title: 'Product Updates',
-                  description: 'Notifications about new products and features'
-                },
-                {
-                  key: 'order_notifications',
-                  title: 'Order Notifications',
-                  description: 'Updates about your orders, deliveries, and returns'
-                },
-                {
-                  key: 'personalized_recommendations',
-                  title: 'Personalized Recommendations',
-                  description: 'Allow us to use your browsing history to suggest products'
-                },
-                {
-                  key: 'data_sharing',
-                  title: 'Data Sharing',
-                  description: 'Share your data with our trusted partners for improved services'
-                },
-                {
-                  key: 'account_activity_alerts',
-                  title: 'Account Activity Alerts',
-                  description: 'Get notified of login attempts and account changes'
-                }
-              ].map(({ key, title, description }) => (
-                <div key={key}>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-medium">{title}</h3>
-                      <p className="text-sm text-gray-500">{description}</p>
+              {privacyKeys.map((key) => {
+                const settingKey = key as keyof typeof settings;
+                const setting = {
+                  marketing_emails: {
+                    title: 'Marketing Emails',
+                    description: 'Receive emails about special offers and promotions'
+                  },
+                  product_updates: {
+                    title: 'Product Updates',
+                    description: 'Notifications about new products and features'
+                  },
+                  order_notifications: {
+                    title: 'Order Notifications',
+                    description: 'Updates about your orders, deliveries, and returns'
+                  },
+                  personalized_recommendations: {
+                    title: 'Personalized Recommendations',
+                    description: 'Allow us to use your browsing history to suggest products'
+                  },
+                  data_sharing: {
+                    title: 'Data Sharing',
+                    description: 'Share your data with our trusted partners for improved services'
+                  },
+                  account_activity_alerts: {
+                    title: 'Account Activity Alerts',
+                    description: 'Get notified of login attempts and account changes'
+                  }
+                }[key];
+                return (
+                  <div key={key}>
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="font-medium">{setting.title}</h3>
+                        <p className="text-sm text-gray-500">{setting.description}</p>
+                      </div>
+                      <Switch
+                        checked={settings[settingKey]}
+                        onCheckedChange={(value) => updateSetting(settingKey, value)}
+                        className="bg-blue-500 data-[state=checked]:bg-blue-600"
+                      />
                     </div>
-                    <Switch
-                      checked={settings[key as keyof typeof settings]}
-                      onCheckedChange={(value) => updateSetting(key as keyof typeof settings, value)}
-                      className="bg-blue-500 data-[state=checked]:bg-blue-600"
-                    />
+                    <Separator />
                   </div>
-                  <Separator />
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             <div className="mt-8">

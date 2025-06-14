@@ -54,11 +54,17 @@ const ProductDetailPage = () => {
       .slice(0, 4)
   });
 
-  // Check if product is in wishlist on component mount
+  // Check if product is in wishlist on component mount (prevent infinite update)
   useEffect(() => {
     if (productId) {
-      setIsFavorite(isInWishlist(productId));
+      const wish = isInWishlist(productId);
+      setIsFavorite(prev => {
+        if (prev !== wish) return wish;
+        return prev;
+      });
     }
+    // Only depend on productId and isInWishlist (not isFavorite)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [productId, isInWishlist]);
   
   // Handle quantity changes
@@ -248,12 +254,13 @@ const ProductDetailPage = () => {
           <div className="mb-6">
             <h2 className="font-semibold mb-3">Related Products</h2>
             <div className="grid grid-cols-2 gap-3">
-              {relatedProducts.map(relatedProduct => (
-                <ProductCard
-                  key={relatedProduct.id}
-                  product={relatedProduct}
-                  className="flex-shrink-0"
-                />
+              {relatedProducts.map((relatedProduct) => (
+                <div key={relatedProduct.id}>
+                  <ProductCard
+                    product={relatedProduct}
+                    className="flex-shrink-0"
+                  />
+                </div>
               ))}
             </div>
           </div>
