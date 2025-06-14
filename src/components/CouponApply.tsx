@@ -9,12 +9,14 @@ import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/sonner';
-import { calculateDiscount, type Coupon } from '@/services/couponService';
+import { calculateDiscount, validateCoupon, type Coupon } from '@/services/couponService';
 import { useCouponState } from '@/components/CouponStateManager';
+import { useCart } from '@/hooks/useCart';
 
 const CouponApply = () => {
   const navigate = useNavigate();
   const { addCoupon, appliedCoupons } = useCouponState();
+  const { cartItems } = useCart();
 
   // Fetch all active coupons
   const { data: coupons = [], isLoading } = useQuery({
@@ -32,7 +34,14 @@ const CouponApply = () => {
     },
   });
 
-  const handleApplyCoupon = (couponCode: string) => {
+  const handleApplyCoupon = async (couponCode: string) => {
+    if (!cartItems || cartItems.length === 0) {
+      toast('Your cart is empty!', {
+        description: 'Add items to your cart before applying a coupon.'
+      });
+      return;
+    }
+
     const couponData = coupons.find(c => c.code === couponCode);
     if (!couponData) {
       toast('Coupon not found');
@@ -55,10 +64,14 @@ const CouponApply = () => {
     }
 
     try {
-      // For simplicity, we'll use a base amount for calculation
-      // In a real app, you'd want to get the actual cart total
-      const baseAmount = 1000; // This should come from your cart context
-      const discountAmount = calculateDiscount(typedCoupon, baseAmount);
+      const cartTotal = cartItems.reduce((total, item) => {
+        const itemPrice = item.salePrice || item.price;
+        return total + (itemPrice * item.quantity);
+      }, 0);
+      
+      // Validate the coupon before applying
+      await validateCoupon(couponCode, cartTotal, appliedCoupons);
+      const discountAmount = calculateDiscount(typedCoupon, cartTotal);
       
       // Add coupon to global state
       addCoupon(typedCoupon, discountAmount);

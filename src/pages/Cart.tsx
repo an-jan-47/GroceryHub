@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ChevronLeft, Trash2, Plus, Minus, ShoppingCart } from 'lucide-react';
@@ -9,55 +10,12 @@ import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
 import { toast } from '@/components/ui/sonner';
 import { useAuthCheck } from '@/hooks/useAuthCheck';
-import { validateCoupon, calculateDiscount, type Coupon } from '@/services/couponService';
-
-// Create a global state for coupons to share between pages
-const globalCouponState = {
-  appliedCoupons: [] as Array<{ coupon: Coupon; discountAmount: number }>,
-  listeners: [] as Array<() => void>,
-  
-  setCoupons(coupons: Array<{ coupon: Coupon; discountAmount: number }>) {
-    this.appliedCoupons = coupons;
-    this.notifyListeners();
-  },
-  
-  addCoupon(coupon: Coupon, discountAmount: number) {
-    // Check if coupon already exists
-    const existingIndex = this.appliedCoupons.findIndex(c => c.coupon.id === coupon.id);
-    if (existingIndex !== -1) {
-      this.appliedCoupons[existingIndex] = { coupon, discountAmount };
-    } else {
-      this.appliedCoupons.push({ coupon, discountAmount });
-    }
-    this.notifyListeners();
-  },
-  
-  removeCoupon(couponId: string) {
-    this.appliedCoupons = this.appliedCoupons.filter(c => c.coupon.id !== couponId);
-    this.notifyListeners();
-  },
-  
-  clearCoupons() {
-    this.appliedCoupons = [];
-    this.notifyListeners();
-  },
-  
-  subscribe(listener: () => void) {
-    this.listeners.push(listener);
-    return () => {
-      this.listeners = this.listeners.filter(l => l !== listener);
-    };
-  },
-  
-  notifyListeners() {
-    this.listeners.forEach(listener => listener());
-  }
-};
+import { validateCoupon, calculateDiscount } from '@/services/couponService';
+import { useCouponState } from '@/components/CouponStateManager';
 
 const CartPage = () => {
   const [couponCode, setCouponCode] = useState('');
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
-  const [appliedCoupons, setAppliedCoupons] = useState<Array<{ coupon: Coupon; discountAmount: number }>>([]);
   const {
     cartItems,
     removeFromCart,
@@ -65,10 +23,9 @@ const CartPage = () => {
     cartTotal,
     setCartItems
   } = useCart();
+  const { appliedCoupons, addCoupon, removeCoupon, clearCoupons } = useCouponState();
   const navigate = useNavigate();
-  const {
-    checkAuthForCheckout
-  } = useAuthCheck();
+  const { checkAuthForCheckout } = useAuthCheck();
 
   // Pricing configuration 
   const platformFees = 5.00;
@@ -100,7 +57,7 @@ const CartPage = () => {
   // Fixed clearCart function
   const clearCart = () => {
     setCartItems([]);
-    globalCouponState.clearCoupons(); // Clear all applied coupons
+    clearCoupons(); // Clear all applied coupons
     toast("Cart cleared", {
       description: "All items have been removed from your cart"
     });
@@ -110,31 +67,43 @@ const CartPage = () => {
   const handleRemoveFromCart = (productId: string) => {
     removeFromCart(productId);
     if (cartItems.length === 1) { // If this is the last item
-      globalCouponState.clearCoupons();
+      clearCoupons();
     }
   };
 
-  // Update the useEffect for coupon state synchronization
+  // Load coupons from localStorage on component mount
   useEffect(() => {
-    const unsubscribe = globalCouponState.subscribe(() => {
-      // Get all coupons from global state
-      const allCoupons = globalCouponState.appliedCoupons;
-      
-      // Recalculate discount amounts for all coupons
-      const updatedCoupons = allCoupons.map(({ coupon }) => {
-        const newDiscountAmount = calculateDiscount(coupon, totalBeforeDiscount);
-        return { coupon, discountAmount: newDiscountAmount };
-      });
-      
-      setAppliedCoupons(updatedCoupons);
-    });
-    
-    // Initialize with current state
-    const initialCoupons = globalCouponState.appliedCoupons;
-    setAppliedCoupons(initialCoupons);
-    
-    return unsubscribe;
-  }, [totalBeforeDiscount]);
+    const storedCouponData = localStorage.getItem('appliedCoupon');
+    if (storedCouponData && cartItems.length > 0) {
+      try {
+        const parsedData = JSON.parse(storedCouponData);
+        let couponsToLoad: any[] = [];
+        
+        if (Array.isArray(parsedData)) {
+          couponsToLoad = parsedData;
+        } else if (parsedData.coupon) {
+          couponsToLoad = [parsedData];
+        }
+        
+        // Load coupons into global state
+        couponsToLoad.forEach(({ coupon, discountAmount }) => {
+          addCoupon(coupon, discountAmount);
+        });
+      } catch (error) {
+        console.error('Error loading coupons from localStorage:', error);
+        localStorage.removeItem('appliedCoupon');
+      }
+    }
+  }, [cartItems, addCoupon]);
+
+  // Save coupons to localStorage whenever they change
+  useEffect(() => {
+    if (appliedCoupons.length > 0) {
+      localStorage.setItem('appliedCoupon', JSON.stringify(appliedCoupons));
+    } else {
+      localStorage.removeItem('appliedCoupon');
+    }
+  }, [appliedCoupons]);
 
   const handleCouponApply = async () => {
     if (!couponCode.trim()) {
@@ -151,10 +120,10 @@ const CartPage = () => {
 
     setIsApplyingCoupon(true);
     try {
-      const coupon = await validateCoupon(couponCode, totalBeforeDiscount);
+      const coupon = await validateCoupon(couponCode, totalBeforeDiscount, appliedCoupons);
       const discount = calculateDiscount(coupon, totalBeforeDiscount);
       
-      globalCouponState.addCoupon(coupon, discount);
+      addCoupon(coupon, discount);
       setCouponCode('');
       
       toast("Coupon applied!", {
@@ -170,7 +139,7 @@ const CartPage = () => {
   };
 
   const handleRemoveCoupon = (couponId: string) => {
-    globalCouponState.removeCoupon(couponId);
+    removeCoupon(couponId);
     toast("Coupon removed");
   };
 
@@ -215,7 +184,6 @@ const CartPage = () => {
           </div>
         ) : (
           <>
-            {/* ... keep existing code (cart items display) */}
             <div className="divide-y">
               {cartItems.map(item => (
                 <div key={item.id} className="py-4 flex items-center">
@@ -268,7 +236,6 @@ const CartPage = () => {
               ))}
             </div>
             
-            {/* ... keep existing code (rest of the cart page) */}
             <div className="mt-6">
               {/* Applied Coupons Display */}
               {appliedCoupons.length > 0 && (
@@ -386,6 +353,4 @@ const CartPage = () => {
   );
 };
 
-// Export the global coupon state for use in other components
-export { globalCouponState };
 export default CartPage;
