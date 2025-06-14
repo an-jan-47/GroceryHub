@@ -13,9 +13,9 @@ const HelpSupport = () => {
   // Add navigation gestures
   useNavigationGestures();
 
-  const supportPhone = "+91-9876543210";
-  const supportEmail = "support@groceryhub.com";
-  const whatsappNumber = "919876543210"; // Without + or spaces for WhatsApp link
+  const supportPhone = "+91-7352402688";
+  const supportEmail = "groceryhub153@gmail.com";
+  const whatsappNumber = "917352402688"; // Without + or spaces for WhatsApp link
 
   const copyToClipboard = async (text: string, label: string) => {
     try {
@@ -151,7 +151,9 @@ const HelpSupport = () => {
                 
                 <div>
                   <h4 className="font-medium text-gray-900 mb-1">What is your return policy?</h4>
-                  <p className="text-sm text-gray-600">We accept returns within 7 days of delivery for non-perishable items.</p>
+                  <p className="text-sm text-gray-600">We accept returns within 7 days of delivery for non-perishable items. 
+                    <Link to="/return-policy" className="text-blue-600 hover:underline ml-1">View full policy</Link>
+                  </p>
                 </div>
                 
                 <div>
@@ -163,6 +165,17 @@ const HelpSupport = () => {
                   <h4 className="font-medium text-gray-900 mb-1">What payment methods do you accept?</h4>
                   <p className="text-sm text-gray-600">We accept cash on delivery, credit/debit cards, and digital wallets through Razorpay.</p>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Legal Links */}
+          <Card>
+            <CardContent className="p-4">
+              <h3 className="font-semibold text-lg mb-4">Legal Information</h3>
+              <div className="space-y-2">
+                <Link to="/terms-of-use" className="block text-blue-600 hover:underline">Terms of Use</Link>
+                <Link to="/return-policy" className="block text-blue-600 hover:underline">Return Policy</Link>
               </div>
             </CardContent>
           </Card>
@@ -196,3 +209,31 @@ const HelpSupport = () => {
 };
 
 export default HelpSupport;
+
+
+// Add this section after the WhatsApp card and before any other sections
+<div className="mt-8">
+  <h2 className="text-xl font-semibold mb-4">Policies & Information</h2>
+  <div className="space-y-2">
+    <Link to="/privacy-policy" className="block p-4 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow">
+      <div className="flex items-center justify-between">
+        <span className="font-medium">Privacy Policy</span>
+        <ChevronLeft className="h-5 w-5 transform rotate-180 text-gray-400" />
+      </div>
+    </Link>
+    
+    <Link to="/terms-of-use" className="block p-4 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow">
+      <div className="flex items-center justify-between">
+        <span className="font-medium">Terms of Use</span>
+        <ChevronLeft className="h-5 w-5 transform rotate-180 text-gray-400" />
+      </div>
+    </Link>
+    
+    <Link to="/return-policy" className="block p-4 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow">
+      <div className="flex items-center justify-between">
+        <span className="font-medium">Return & Replace Policy</span>
+        <ChevronLeft className="h-5 w-5 transform rotate-180 text-gray-400" />
+      </div>
+    </Link>
+  </div>
+</div>

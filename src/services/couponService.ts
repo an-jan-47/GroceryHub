@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export interface Coupon {
@@ -16,6 +15,13 @@ export interface Coupon {
   is_active: boolean;
   applicable_products?: string[];
   applicable_categories?: string[];
+  can_stack?: boolean; // New field to determine if coupon can be stacked with others
+}
+
+export interface AppliedCoupon {
+  coupon: Coupon;
+  discountAmount: number;
+  appliedToTotal: number; // Add this field to track the total when coupon was applied
 }
 
 export const getActiveCoupons = async (limit?: number) => {
@@ -41,7 +47,22 @@ export const getActiveCoupons = async (limit?: number) => {
   return data as Coupon[];
 };
 
-export const validateCoupon = async (code: string, cartTotal: number) => {
+export const getCouponById = async (couponId: string) => {
+  const { data, error } = await supabase
+    .from('coupons')
+    .select('*')
+    .eq('id', couponId)
+    .single();
+
+  if (error) {
+    console.error('Error fetching coupon by ID:', error);
+    throw error;
+  }
+
+  return data as Coupon;
+};
+
+export const validateCoupon = async (code: string, cartTotal: number, appliedCoupons: AppliedCoupon[] = []) => {
   const { data, error } = await supabase
     .from('coupons')
     .select('*')
@@ -54,6 +75,12 @@ export const validateCoupon = async (code: string, cartTotal: number) => {
   }
 
   const coupon = data as Coupon;
+  
+  // Check if coupon is already applied
+  const isAlreadyApplied = appliedCoupons.some(applied => applied.coupon.code === coupon.code);
+  if (isAlreadyApplied) {
+    throw new Error('This coupon is already applied');
+  }
   
   // Check if coupon is still valid
   const now = new Date();
@@ -74,6 +101,18 @@ export const validateCoupon = async (code: string, cartTotal: number) => {
     throw new Error(`Minimum purchase amount of ₹${coupon.min_purchase_amount} required`);
   }
 
+  // Check if coupon can be stacked (if field exists, default to true for backward compatibility)
+  const canStack = coupon.can_stack !== false;
+  if (!canStack && appliedCoupons.length > 0) {
+    throw new Error('This coupon cannot be combined with other coupons');
+  }
+
+  // Check if any existing coupons prevent stacking
+  const hasNonStackableCoupon = appliedCoupons.some(applied => applied.coupon.can_stack === false);
+  if (hasNonStackableCoupon) {
+    throw new Error('Cannot add more coupons when a non-stackable coupon is applied');
+  }
+
   return coupon;
 };
 
@@ -81,19 +120,44 @@ export const calculateDiscount = (coupon: Coupon, cartTotal: number): number => 
   let discount = 0;
 
   if (coupon.type === 'percentage') {
-    // Calculate percentage discount
-    discount = (cartTotal * (coupon.value / 100));
-    
-    // Ensure discount doesn't exceed maximum allowed
-    if (coupon.max_discount_amount) {
-      discount = Math.min(discount, coupon.max_discount_amount);
-    }
+    discount = (cartTotal * coupon.value) / 100;
   } else if (coupon.type === 'fixed') {
-    discount = Math.min(coupon.value, cartTotal); // Don't exceed cart total
+    discount = coupon.value;
   }
 
-  // Round to 2 decimal places
-  return Math.round(discount * 100) / 100;
+  // Apply maximum discount limit if specified
+  if (coupon.max_discount_amount && discount > coupon.max_discount_amount) {
+    discount = coupon.max_discount_amount;
+  }
+
+  return Math.min(discount, cartTotal);
+};
+
+export const calculateMultipleCouponsDiscount = (coupons: Coupon[], cartTotal: number): AppliedCoupon[] => {
+  const appliedCoupons: AppliedCoupon[] = [];
+  let remainingTotal = cartTotal;
+
+  // Sort coupons by priority (fixed amount first, then percentage)
+  const sortedCoupons = [...coupons].sort((a, b) => {
+    if (a.type === 'fixed' && b.type === 'percentage') return -1;
+    if (a.type === 'percentage' && b.type === 'fixed') return 1;
+    return b.value - a.value; // Higher value first within same type
+  });
+
+  for (const coupon of sortedCoupons) {
+    if (remainingTotal <= 0) break;
+
+    const discount = calculateDiscount(coupon, remainingTotal);
+    if (discount > 0) {
+      appliedCoupons.push({
+        coupon,
+        discountAmount: discount
+      });
+      remainingTotal -= discount;
+    }
+  }
+
+  return appliedCoupons;
 };
 
 export const applyCoupon = async (couponId: string, orderId: string, discountAmount: number) => {
@@ -125,4 +189,38 @@ export const applyCoupon = async (couponId: string, orderId: string, discountAmo
   if (updateError) {
     console.error('Error updating coupon usage count:', updateError);
   }
+};
+
+export const applyMultipleCoupons = async (appliedCoupons: AppliedCoupon[], orderId: string) => {
+  const promises = appliedCoupons.map(applied => 
+    applyCoupon(applied.coupon.id, orderId, applied.discountAmount)
+  );
+  
+  await Promise.all(promises);
+};
+
+export const formatCouponForDisplay = (coupon: Coupon) => {
+  const now = new Date();
+  const expiryDate = new Date(coupon.expiry_date);
+  const isExpired = now > expiryDate;
+  
+  return {
+    ...coupon,
+    isExpired,
+    formattedDiscount: coupon.type === 'percentage' 
+      ? `${coupon.value}% OFF` 
+      : `₹${coupon.value} OFF`,
+    formattedMinPurchase: `Min. purchase ₹${coupon.min_purchase_amount}`,
+    formattedExpiry: expiryDate.toLocaleDateString('en-IN', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric'
+    }),
+    usageText: coupon.usage_limit > 0 
+      ? `${coupon.usage_count}/${coupon.usage_limit} used` 
+      : `${coupon.usage_count} used`,
+    maxDiscountText: coupon.max_discount_amount 
+      ? `Max discount ₹${coupon.max_discount_amount}` 
+      : null
+  };
 };

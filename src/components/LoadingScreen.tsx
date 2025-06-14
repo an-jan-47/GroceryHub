@@ -83,8 +83,7 @@ const LoadingScreen = () => {
             <p className="text-gray-700 mb-4">{funnyMessage}</p>
             <Button 
               onClick={handleRetry}
-              className="w-full flex items-center justify-center"
-              variant="outline"
+              className="w-full flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white"
             >
               <RefreshCw className="h-4 w-4 mr-2" />
               Retry Connection
@@ -99,7 +98,7 @@ const LoadingScreen = () => {
             ) : (
               <WifiOff className="h-4 w-4 text-red-500 mr-1" />
             )}
-            <span>{isOnline ? 'Connected' : 'Disconnected'}</span>
+            <span>{isOnline ? 'Connected' : 'Offline'}</span>
           </div>
         </div>
       </div>

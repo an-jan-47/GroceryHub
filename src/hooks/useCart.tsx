@@ -153,8 +153,12 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   
   const clearCart = () => {
     setCartItems([]);
+    localStorage.removeItem('cart');
+    localStorage.removeItem('appliedCoupons'); // Add this line to clear coupons
+    // Dispatch a custom event to notify other components
+    window.dispatchEvent(new CustomEvent('cartCleared'));
     toast("Cart cleared", {
-      description: "All items removed from cart",
+      description: "All items have been removed from your cart",
       duration: 2000,
       position: "bottom-center"
     });

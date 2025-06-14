@@ -26,9 +26,9 @@ const BannerCard = ({ banner }: BannerCardProps) => {
       {/* Gradient overlay for better text readability */}
       <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/20 to-transparent" />
       
-      {/* Text content positioned at left side */}
-      <div className="absolute inset-0 flex flex-col justify-center p-6 md:p-8">
-        <div className="backdrop-blur-sm bg-black/30 rounded-lg p-4 max-w-md">
+      {/* Text content positioned at bottom left side */}
+      <div className="absolute inset-0 flex flex-col justify-end p-6 md:p-8">
+        <div className="backdrop-blur-sm bg-black/30 rounded-lg p-4 max-w-md text-left">
           <h2 className="text-white font-bold text-xl md:text-2xl lg:text-3xl leading-tight mb-2">
             {banner.title}
           </h2>
@@ -37,11 +37,7 @@ const BannerCard = ({ banner }: BannerCardProps) => {
               {banner.subtitle}
             </p>
           )}
-          <div className="mt-3">
-            <span className="inline-flex items-center px-3 py-1 bg-white/20 backdrop-blur-sm text-white text-xs font-medium rounded-full border border-white/30">
-              Shop Now →
-            </span>
-          </div>
+          {/* Removed the "Shop Now" button */}
         </div>
       </div>
     </Link>

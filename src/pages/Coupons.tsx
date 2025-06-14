@@ -9,9 +9,14 @@ import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/sonner';
+import { calculateDiscount } from '@/services/couponService';
+import { useCouponState } from '@/components/CouponStateManager';
+import { useCart } from '@/hooks/useCart'; // Add this import
 
 const Coupons = () => {
   const navigate = useNavigate();
+  const { addCoupon } = useCouponState();
+  const { cartItems } = useCart(); // Add this line to get cartItems
 
   // Fetch all active coupons
   const { data: coupons = [], isLoading } = useQuery({
@@ -30,22 +35,29 @@ const Coupons = () => {
   });
 
   const handleApplyCoupon = (couponCode: string) => {
-    // Store applied coupon in localStorage for cart page
+    if (!cartItems || cartItems.length === 0) {
+      toast('Your cart is empty!', {
+        description: 'Add items to your cart before applying a coupon.'
+      });
+      return;
+    }
+
     const couponData = coupons.find(c => c.code === couponCode);
     if (couponData) {
-      localStorage.setItem('appliedCoupon', JSON.stringify({
-        coupon: couponData,
-        discountAmount: couponData.value // This will be properly calculated in cart
-      }));
+      const cartTotal = cartItems.reduce((total, item) => {
+        const itemPrice = item.salePrice || item.price;
+        return total + (itemPrice * item.quantity);
+      }, 0);
       
-      toast('Coupon saved! Redirecting to cart...', {
-        description: 'Your coupon will be applied at checkout.'
+      const discountAmount = calculateDiscount(couponData, cartTotal);
+      
+      addCoupon(couponData, discountAmount);
+      
+      toast('Coupon applied! Redirecting to cart...', {
+        description: `₹${discountAmount.toFixed(2)} discount will be applied at checkout.`
       });
       
-      // Redirect to cart after a short delay
-      setTimeout(() => {
-        navigate('/cart');
-      }, 1000);
+      navigate('/cart');
     }
   };
 

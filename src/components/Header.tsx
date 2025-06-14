@@ -13,8 +13,8 @@ const Header = () => {
   const location = useLocation();
   
   return (
-    <header className="sticky top-0 z-50 w-full bg-white border-b border-gray-100 shadow-sm">
-      <div className="container flex items-center justify-between h-16 px-4 md:px-6">
+    <header className="sticky top-0 z-50 w-full bg-white border-b border-gray-100 shadow-sm pt-safe">
+      <div className="container flex items-center justify-between h-16 px-4 md:px-6 mt-2">
         <Link to="/" className="flex items-center">
           <span className="text-xl font-bold text-blue-500">GroceryHub</span>
         </Link>

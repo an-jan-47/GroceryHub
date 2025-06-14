@@ -150,7 +150,7 @@ export const AddressDialog = ({ open, onOpenChange, addressToEdit }: AddressDial
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md mx-auto my-4 p-4 sm:p-6 bg-white rounded-lg w-[95%] sm:w-full">
         <DialogHeader>
           <DialogTitle>{addressToEdit ? 'Edit Address' : 'Add New Address'}</DialogTitle>
           <DialogDescription>
@@ -166,10 +166,10 @@ export const AddressDialog = ({ open, onOpenChange, addressToEdit }: AddressDial
             <Input 
               id="name"
               name="name"
-              placeholder="John Doe"
               value={formData.name}
               onChange={handleInputChange}
               required
+              className="w-full"
             />
           </div>
           
@@ -178,10 +178,10 @@ export const AddressDialog = ({ open, onOpenChange, addressToEdit }: AddressDial
             <Input 
               id="phone"
               name="phone"
-              placeholder="1234567890"
               value={formData.phone}
               onChange={handleInputChange}
               required
+              className="w-full"
             />
           </div>
           
@@ -190,10 +190,10 @@ export const AddressDialog = ({ open, onOpenChange, addressToEdit }: AddressDial
             <Input 
               id="address"
               name="address"
-              placeholder="123 Main Street, Apt 4B"
               value={formData.address}
               onChange={handleInputChange}
               required
+              className="w-full"
             />
           </div>
           
@@ -203,7 +203,6 @@ export const AddressDialog = ({ open, onOpenChange, addressToEdit }: AddressDial
               <Input 
                 id="city"
                 name="city"
-                placeholder="New York"
                 value={formData.city}
                 onChange={handleInputChange}
                 required
@@ -215,7 +214,6 @@ export const AddressDialog = ({ open, onOpenChange, addressToEdit }: AddressDial
               <Input 
                 id="state"
                 name="state"
-                placeholder="NY"
                 value={formData.state}
                 onChange={handleInputChange}
                 required
@@ -228,7 +226,6 @@ export const AddressDialog = ({ open, onOpenChange, addressToEdit }: AddressDial
             <Input 
               id="pincode"
               name="pincode"
-              placeholder="10001"
               value={formData.pincode}
               onChange={handleInputChange}
               required
@@ -289,7 +286,7 @@ export const AddressDialog = ({ open, onOpenChange, addressToEdit }: AddressDial
             <Button 
               type="submit"
               disabled={isSubmitting}
-              className="bg-brand-blue"
+              className="bg-[#3B82F6] hover:bg-[#2563EB] text-white w-full sm:w-auto"
             >
               {isSubmitting 
                 ? 'Saving...' 

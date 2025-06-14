@@ -7,12 +7,19 @@ import { toast } from "@/components/ui/sonner";
 export const initializeApp = (): void => {
   console.info('Initializing application services...');
   
-  // Register service worker for PWA capabilities
-  if ('serviceWorker' in navigator) {
+  // Only register service worker in production
+  if ('serviceWorker' in navigator && import.meta.env.PROD) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('/service-worker.js').catch(error => {
         console.error('Service worker registration failed:', error);
       });
+    });
+  } else if ('serviceWorker' in navigator) {
+    // In development, ensure service workers are unregistered
+    navigator.serviceWorker.getRegistrations().then(registrations => {
+      for (const registration of registrations) {
+        registration.unregister();
+      }
     });
   }
   

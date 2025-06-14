@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from "react";
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
+// Use only one Toaster implementation
+import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
@@ -47,7 +47,6 @@ import { trackError } from "./utils/errorTracking";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 0, // Change this to 0 to always fetch fresh data
       retry: (failureCount, error) => {
         // Don't retry on 404 errors
         if (typeof error === 'object' && error !== null && 'status' in error) {
@@ -64,14 +63,19 @@ const queryClient = new QueryClient({
   }
 });
 
-// We wrap all route components with this HOC to ensure they have access to the router
-const withRouterProvider = (Component) => {
-  return (props) => (
-    <BrowserRouter>
-      <Component {...props} />
-    </BrowserRouter>
-  );
-};
+// Remove this HOC as we're using BrowserRouter directly
+// const withRouterProvider = (Component) => {
+//   return (props) => (
+//     <BrowserRouter>
+//       <Component {...props} />
+//     </BrowserRouter>
+//   );
+// };
+
+// Add these imports at the top with other page imports
+import TermsOfUse from "./pages/TermsOfUse";
+import ReturnPolicy from "./pages/ReturnPolicy";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 
 const AppContent = () => {
   // Add global navigation gestures
@@ -120,6 +124,10 @@ const AppContent = () => {
       <Route path="*" element={<NotFound />} />
       
       <Route path="/write-review/:productId" element={<ProtectedRoute><WriteReview /></ProtectedRoute>} />
+      <Route path="/terms-of-use" element={<TermsOfUse />} />
+      <Route path="/return-policy" element={<ReturnPolicy />} />
+      // Add this route in the Routes component
+      <Route path="/privacy-policy" element={<PrivacyPolicy />} />
     </Routes>
   );
 };
@@ -151,9 +159,8 @@ const App = () => {
       <AuthProvider>
         <CartProvider>
           <TooltipProvider>
-            <Toaster />
-            <Sonner />
             <BrowserRouter>
+              <Toaster />
               <AppContent />
             </BrowserRouter>
           </TooltipProvider>

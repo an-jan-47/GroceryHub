@@ -1,118 +1,176 @@
-
 import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ChevronLeft, Tag, Copy } from 'lucide-react';
+import Header from '@/components/Header';
+import BottomNavigation from '@/components/BottomNavigation';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/sonner';
-import { validateCoupon, type Coupon } from '@/services/couponService';
+import { calculateDiscount } from '@/services/couponService';
+import { globalCouponState } from './Cart'; // Import the global state
 
-interface CouponApplyProps {
-  cartTotal: number;
-  onCouponApplied: (couponData: any) => void;
-  appliedCoupon?: any;
-  onCouponRemoved: () => void;
-}
+const Coupons = () => {
+  const navigate = useNavigate();
 
-const CouponApply = ({ cartTotal, onCouponApplied, appliedCoupon, onCouponRemoved }: CouponApplyProps) => {
-  const [couponCode, setCouponCode] = useState('');
-  const [isValidating, setIsValidating] = useState(false);
+  // Fetch all active coupons
+  const { data: coupons = [], isLoading } = useQuery({
+    queryKey: ['all-coupons'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('coupons')
+        .select('*')
+        .eq('is_active', true)
+        .gte('expiry_date', new Date().toISOString())
+        .order('value', { ascending: false });
+      
+      if (error) throw error;
+      return data || [];
+    },
+  });
 
-  const handleApplyCoupon = async () => {
-    if (!couponCode.trim()) {
-      toast('Please enter a coupon code');
+  const handleApplyCoupon = (couponCode: string) => {
+    const couponData = coupons.find(c => c.code === couponCode);
+    if (!couponData) {
+      toast('Coupon not found');
       return;
     }
 
-    setIsValidating(true);
+    // Check if coupon is already applied
+    const isAlreadyApplied = globalCouponState.appliedCoupons.some(c => c.coupon.id === couponData.id);
+    if (isAlreadyApplied) {
+      toast('Coupon already applied', {
+        description: 'This coupon is already in your cart.'
+      });
+      return;
+    }
+
     try {
-      const coupon = await validateCoupon(couponCode, cartTotal);
+      // For simplicity, we'll use a base amount for calculation
+      // In a real app, you'd want to get the actual cart total
+      const baseAmount = 1000; // This should come from your cart context
+      const discountAmount = calculateDiscount(couponData, baseAmount);
       
-      // Calculate discount based on coupon type and value
-      let discountAmount = 0;
+      // Add coupon to global state
+      globalCouponState.addCoupon(couponData, discountAmount);
       
-      if (coupon.type === 'percentage') {
-        // Calculate percentage of cart total with proper rounding
-        discountAmount = Math.round((cartTotal * (coupon.value / 100)) * 100) / 100;
-        
-        // Apply max discount limit if specified
-        if (coupon.max_discount_amount) {
-          discountAmount = Math.min(discountAmount, coupon.max_discount_amount);
-        }
-      } else if (coupon.type === 'fixed') {
-        // For fixed amount coupons
-        discountAmount = Math.min(coupon.value, cartTotal);
-      }
-      
-      // Round to 2 decimal places
-      discountAmount = Math.round(discountAmount * 100) / 100;
-      
-      onCouponApplied({
-        coupon: coupon,
-        discountAmount: discountAmount
+      toast('Coupon added to cart!', {
+        description: `₹${discountAmount.toFixed(2)} discount will be applied at checkout.`
       });
       
-      setCouponCode('');
-      toast(`Coupon applied! You saved ₹${discountAmount.toFixed(2)}`);
-    } catch (error) {
-      console.error('Error applying coupon:', error);
-      toast(error.message || 'Invalid coupon code');
-    } finally {
-      setIsValidating(false);
+      // Redirect to cart after a short delay
+      setTimeout(() => {
+        navigate('/cart');
+      }, 1500);
+    } catch (error: any) {
+      toast('Error applying coupon', {
+        description: error.message
+      });
     }
   };
 
-  const handleRemoveCoupon = () => {
-    onCouponRemoved();
-    toast('Coupon removed');
+  const copyCouponCode = (code: string) => {
+    navigator.clipboard.writeText(code);
+    toast('Coupon code copied!', {
+      description: 'You can paste it in the cart.'
+    });
+  };
+
+  const isApplied = (couponId: string) => {
+    return globalCouponState.appliedCoupons.some(c => c.coupon.id === couponId);
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm p-4">
-      <h3 className="font-semibold mb-3">Apply Coupon</h3>
+    <div className="pb-20">
+      <Header />
       
-      {appliedCoupon ? (
-        <div className="space-y-3">
-          <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
-            <div>
-              <Badge variant="outline" className="bg-green-100 text-green-800 border-green-300">
-                {appliedCoupon.coupon.code}
-              </Badge>
-              <p className="text-sm text-green-700 mt-1">
-                {appliedCoupon.coupon.description}
-              </p>
-              <p className="text-sm font-medium text-green-800">
-                You saved ₹{appliedCoupon.discountAmount?.toFixed(2)}
-              </p>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleRemoveCoupon}
-              className="text-red-600 border-red-300 hover:bg-red-50"
-            >
-              Remove
-            </Button>
+      <main className="container px-4 py-4 mx-auto">
+        <div className="py-3 flex items-center">
+          <Link to="/cart" className="flex items-center text-gray-500">
+            <ChevronLeft className="w-5 h-5 mr-1" />
+            <span>Back to Cart</span>
+          </Link>
+        </div>
+        
+        <h1 className="text-2xl font-bold mb-6">Coupons & Offers</h1>
+        
+        {isLoading ? (
+          <div className="space-y-4">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="h-24 bg-gray-100 animate-pulse rounded-lg"></div>
+            ))}
           </div>
-        </div>
-      ) : (
-        <div className="flex gap-2">
-          <Input
-            placeholder="Enter coupon code"
-            value={couponCode}
-            onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-            className="flex-1"
-          />
-          <Button 
-            onClick={handleApplyCoupon}
-            disabled={isValidating}
-            className="bg-brand-blue hover:bg-brand-darkBlue"
-          >
-            {isValidating ? 'Validating...' : 'Apply'}
-          </Button>
-        </div>
-      )}
+        ) : (
+          <div className="space-y-6">
+            {coupons.length === 0 ? (
+              <div className="text-center py-8">
+                <div className="mx-auto w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+                  <Tag className="h-8 w-8 text-gray-400" />
+                </div>
+                <h3 className="text-lg font-medium mb-2">No coupons available</h3>
+                <p className="text-gray-500">Check back later for exciting offers!</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {coupons.map((coupon) => {
+                  const applied = isApplied(coupon.id);
+                  
+                  return (
+                    <div key={coupon.id} className={`bg-white rounded-lg shadow-sm border p-4 ${applied ? 'bg-green-50 border-green-200' : ''}`}>
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center space-x-2">
+                          <Badge variant="outline" className={`${applied ? 'bg-green-100 text-green-700 border-green-300' : 'bg-blue-50 text-blue-700 border-blue-200'}`}>
+                            {coupon.code}
+                          </Badge>
+                          {applied && (
+                            <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300">
+                              Applied
+                            </Badge>
+                          )}
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => copyCouponCode(coupon.code)}
+                          className="text-gray-500 hover:text-gray-700"
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      
+                      <div className="mb-3">
+                        <h3 className="font-medium mb-1">
+                          {coupon.type === 'percentage' ? `${coupon.value}% OFF` : `₹${coupon.value} OFF`}
+                        </h3>
+                        <p className="text-sm text-gray-600">
+                          {coupon.description || `Get ${coupon.type === 'percentage' ? coupon.value + '%' : '₹' + coupon.value} off`}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Min. purchase: ₹{coupon.min_purchase_amount}
+                          {coupon.max_discount_amount && ` • Max discount: ₹${coupon.max_discount_amount}`}
+                        </p>
+                      </div>
+                      
+                      <Button 
+                        onClick={() => handleApplyCoupon(coupon.code)}
+                        disabled={applied}
+                        className={`w-full ${applied ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'}`}
+                      >
+                        {applied ? 'Applied to Cart' : 'Apply Coupon'}
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+      </main>
+      
+      <BottomNavigation />
     </div>
   );
 };
 
-export default CouponApply;
+export default Coupons;

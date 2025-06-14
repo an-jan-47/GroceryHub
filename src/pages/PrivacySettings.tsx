@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronLeft, Save } from 'lucide-react';
@@ -8,7 +7,6 @@ import { Separator } from '@/components/ui/separator';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { toast } from '@/components/ui/sonner';
 import { useUserSettings } from '@/hooks/useUserSettings';
 
 const PrivacySettings = () => {
@@ -20,47 +18,42 @@ const PrivacySettings = () => {
     saveSettings,
     updateSetting
   } = useUserSettings();
-  
+
   const [isSaveComplete, setIsSaveComplete] = useState(false);
-  
+
   const handleSave = async () => {
     const success = await saveSettings();
     if (success) {
       setIsSaveComplete(true);
-      
-      // Reset the save complete status after a while
       setTimeout(() => {
         setIsSaveComplete(false);
       }, 3000);
     }
   };
-  
+
   if (!user) {
     return (
       <div className="pb-20">
         <Header />
-        
         <main className="container px-4 py-4 mx-auto">
           <div className="text-center py-8">
             <h1 className="text-2xl font-bold">Please Sign In</h1>
             <p className="mt-2 text-gray-500">
               You need to be signed in to view and manage your privacy settings.
             </p>
-            <Button asChild className="mt-4">
+            <Button asChild className="mt-4 bg-blue-500 hover:bg-blue-600 text-white">
               <Link to="/login">Sign In</Link>
             </Button>
           </div>
         </main>
-        
         <BottomNavigation />
       </div>
     );
   }
-  
+
   return (
     <div className="pb-20">
       <Header />
-      
       <main className="container px-4 py-4 mx-auto">
         <div className="py-3 flex items-center">
           <Link to="/profile" className="flex items-center text-gray-500">
@@ -68,9 +61,9 @@ const PrivacySettings = () => {
             <span>Back to Profile</span>
           </Link>
         </div>
-        
+
         <h1 className="text-2xl font-bold mb-4">Privacy Settings</h1>
-        
+
         {isLoading ? (
           <div className="space-y-6">
             {[1, 2, 3, 4, 5, 6].map(i => (
@@ -83,100 +76,60 @@ const PrivacySettings = () => {
         ) : (
           <div>
             <div className="space-y-6">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="font-medium">Marketing Emails</h3>
-                  <p className="text-sm text-gray-500">
-                    Receive emails about special offers and promotions
-                  </p>
+              {[
+                {
+                  key: 'marketing_emails',
+                  title: 'Marketing Emails',
+                  description: 'Receive emails about special offers and promotions'
+                },
+                {
+                  key: 'product_updates',
+                  title: 'Product Updates',
+                  description: 'Notifications about new products and features'
+                },
+                {
+                  key: 'order_notifications',
+                  title: 'Order Notifications',
+                  description: 'Updates about your orders, deliveries, and returns'
+                },
+                {
+                  key: 'personalized_recommendations',
+                  title: 'Personalized Recommendations',
+                  description: 'Allow us to use your browsing history to suggest products'
+                },
+                {
+                  key: 'data_sharing',
+                  title: 'Data Sharing',
+                  description: 'Share your data with our trusted partners for improved services'
+                },
+                {
+                  key: 'account_activity_alerts',
+                  title: 'Account Activity Alerts',
+                  description: 'Get notified of login attempts and account changes'
+                }
+              ].map(({ key, title, description }) => (
+                <div key={key}>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="font-medium">{title}</h3>
+                      <p className="text-sm text-gray-500">{description}</p>
+                    </div>
+                    <Switch
+                      checked={settings[key]}
+                      onCheckedChange={(value) => updateSetting(key, value)}
+                      className="bg-blue-500 data-[state=checked]:bg-blue-600"
+                    />
+                  </div>
+                  <Separator />
                 </div>
-                <Switch
-                  checked={settings.marketing_emails}
-                  onCheckedChange={(value) => updateSetting('marketing_emails', value)}
-                />
-              </div>
-              
-              <Separator />
-              
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="font-medium">Product Updates</h3>
-                  <p className="text-sm text-gray-500">
-                    Notifications about new products and features
-                  </p>
-                </div>
-                <Switch
-                  checked={settings.product_updates}
-                  onCheckedChange={(value) => updateSetting('product_updates', value)}
-                />
-              </div>
-              
-              <Separator />
-              
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="font-medium">Order Notifications</h3>
-                  <p className="text-sm text-gray-500">
-                    Updates about your orders, deliveries, and returns
-                  </p>
-                </div>
-                <Switch
-                  checked={settings.order_notifications}
-                  onCheckedChange={(value) => updateSetting('order_notifications', value)}
-                />
-              </div>
-              
-              <Separator />
-              
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="font-medium">Personalized Recommendations</h3>
-                  <p className="text-sm text-gray-500">
-                    Allow us to use your browsing history to suggest products
-                  </p>
-                </div>
-                <Switch
-                  checked={settings.personalized_recommendations}
-                  onCheckedChange={(value) => updateSetting('personalized_recommendations', value)}
-                />
-              </div>
-              
-              <Separator />
-              
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="font-medium">Data Sharing</h3>
-                  <p className="text-sm text-gray-500">
-                    Share your data with our trusted partners for improved services
-                  </p>
-                </div>
-                <Switch
-                  checked={settings.data_sharing}
-                  onCheckedChange={(value) => updateSetting('data_sharing', value)}
-                />
-              </div>
-              
-              <Separator />
-              
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="font-medium">Account Activity Alerts</h3>
-                  <p className="text-sm text-gray-500">
-                    Get notified of login attempts and account changes
-                  </p>
-                </div>
-                <Switch
-                  checked={settings.account_activity_alerts}
-                  onCheckedChange={(value) => updateSetting('account_activity_alerts', value)}
-                />
-              </div>
+              ))}
             </div>
-            
+
             <div className="mt-8">
               <Button
                 onClick={handleSave}
                 disabled={isSaving || isSaveComplete}
-                className="w-full"
+                className="w-full bg-blue-500 hover:bg-blue-600 text-white"
               >
                 {isSaving ? (
                   'Saving...'
@@ -193,7 +146,6 @@ const PrivacySettings = () => {
           </div>
         )}
       </main>
-      
       <BottomNavigation />
     </div>
   );

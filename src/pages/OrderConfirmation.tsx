@@ -44,7 +44,7 @@ const OrderConfirmationPage = () => {
     deliveryStart.setDate(today.getDate() + 3);
     
     const deliveryEnd = new Date(today);
-    deliveryEnd.setDate(today.getDate() + 5);
+    deliveryEnd.setDate(today.getDate() + 7);
     
     const formatDate = (date: Date) => {
       return date.toLocaleDateString('en-US', {
@@ -57,18 +57,16 @@ const OrderConfirmationPage = () => {
   };
 
   useEffect(() => {
-    // Clear cart after successful order
-    clearCart();
+    // Remove the clearCart() call since it's already handled in Payment.tsx
     
     // Reset the order completed flag when user views the confirmation
-    // This allows them to place new orders in the future
     return () => {
       setOrderCompleted(false);
     };
-  }, [clearCart, setOrderCompleted]);
+  }, [setOrderCompleted]);
   
   return (
-    <div className="pb-20">
+    <div className="pb-safe"> {/* Changed from pb-20 to pb-safe */}
       <Header />
       
       <main className="container px-4 py-8 mx-auto">

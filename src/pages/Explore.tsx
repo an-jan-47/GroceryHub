@@ -20,11 +20,11 @@ const Explore = () => {
   });
 
   return (
-    <div className="pb-20">
+    <div className="pb-20 bg-gray-50 min-h-screen">
       <Header />
       
       <main className="container px-4 py-6 mx-auto">
-        <h1 className="text-2xl font-bold mb-6">Explore Products</h1>
+        <h1 className="text-2xl font-bold mb-6 text-gray-800">Explore Products</h1>
         
         <SearchFiltersComponent 
           onFilterChange={setFilters}

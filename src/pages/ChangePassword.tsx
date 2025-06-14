@@ -186,7 +186,7 @@ const ChangePassword = () => {
           <Button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-brand-blue hover:bg-brand-darkBlue"
+            className="w-full bg-primaryBlue hover:bg-primaryBlue-dark text-white"
           >
             {isLoading ? 'Updating...' : 'Update Password'}
           </Button>

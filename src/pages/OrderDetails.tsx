@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ChevronLeft, Package, MapPin, Clock, CreditCard, Truck, CheckCircle, AlertCircle } from 'lucide-react';
@@ -115,24 +114,18 @@ const OrderDetails = () => {
   
   const { order, items } = orderData;
   
-  // Calculate costs with 18% tax logic
-  const taxRate = 0.18; // 18% GST
+  // Calculate costs without GST/tax
   const platformFees = order.platform_fees || 5.00;
   const deliveryFees = 0.00; // Set to 0 as requested
   
-  // Calculate subtotal by removing tax from each item
+  // Calculate subtotal (original item prices without any tax complications)
   const subtotal = items.reduce((total, item) => {
-    const itemPrice = item.price;
-    const priceWithoutTax = itemPrice / (1 + taxRate);
-    return total + (priceWithoutTax * item.quantity);
+    return total + (item.price * item.quantity);
   }, 0);
   
-  // Tax is calculated on original prices
-  const tax = items.reduce((total, item) => {
-    const itemPrice = item.price;
-    const taxAmount = (itemPrice * taxRate) / (1 + taxRate);
-    return total + (taxAmount * item.quantity);
-  }, 0);
+  // Calculate Razorpay transaction fees (2% on subtotal + platform fees)
+  const transactionFeesBase = subtotal + platformFees;
+  const razorpayFees = transactionFeesBase * 0.02; // 2% transaction fees
   
   // Discount amount
   const discountAmount = order.discount_amount || 0;
@@ -245,7 +238,7 @@ const OrderDetails = () => {
           
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Subtotal (excl. tax)</span>
+              <span className="text-gray-500">Subtotal</span>
               <span>{formatCurrency(subtotal)}</span>
             </div>
             
@@ -254,15 +247,17 @@ const OrderDetails = () => {
               <span>{formatCurrency(platformFees)}</span>
             </div>
             
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Delivery Fee</span>
-              <span>{formatCurrency(deliveryFees)}</span>
+            <div className="flex justify-between text-sm text-green-500">
+              <span className="text-green-500">Delivery Fee</span>
+              <span>{"FREE"}</span>
             </div>
             
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Tax (18% GST)</span>
-              <span>{formatCurrency(tax)}</span>
-            </div>
+            {order.payment_method !== 'cod' && (
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Transaction Handling Fee</span>
+                <span>{formatCurrency(razorpayFees)}</span>
+              </div>
+            )}
             
             {discountAmount > 0 && (
               <div className="flex justify-between text-sm text-green-600">

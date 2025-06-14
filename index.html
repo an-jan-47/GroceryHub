@@ -4,11 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>GroceryHub</title>
-    <meta name="description" content="Where convenience and quality meets" />
+    <meta name="description" content="Where convenience and quality meets" />
     <meta name="author" content="GroceryHub" />
 
     <meta property="og:title" content="GroceryHub" />
-    <meta property="og:description" content="Where convenience and quality meets" />
+    <meta property="og:description" content="Where convenience and quality meets" />
     <meta property="og:type" content="website" />
     <meta property="og:image" content="" />
 
@@ -22,5 +22,16 @@
     <!-- IMPORTANT: DO NOT REMOVE THIS SCRIPT TAG OR THIS VERY COMMENT! -->
     <script src="https://cdn.gpteng.co/gptengineer.js" type="module"></script>
     <script type="module" src="/src/main.tsx"></script>
+    
+    <!-- Disable service worker during development -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+          for(let registration of registrations) {
+            registration.unregister();
+          }
+        });
+      }
+    </script>
   </body>
 </html>

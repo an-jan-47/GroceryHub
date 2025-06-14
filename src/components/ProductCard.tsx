@@ -14,6 +14,7 @@ interface ProductCardProps {
   showBuyNow?: boolean;
 }
 
+// Update the discount percentage calculation in the ProductCard component
 const ProductCard = ({ product, className, showBuyNow = false }: ProductCardProps) => {
   const { addToCart, cartItems, updateQuantity } = useCart();
   const navigate = useNavigate();
@@ -76,9 +77,9 @@ const ProductCard = ({ product, className, showBuyNow = false }: ProductCardProp
   
   const quantityInCart = getQuantityInCart();
   
-  // Calculate discount percentage if there's a sale price
+  // Calculate discount percentage if there's a sale price - FIX THE CALCULATION
   const discountPercentage = product.sale_price 
-    ? Math.round((1 - product.sale_price / product.price) * 100) 
+    ? Math.round(((product.price - product.sale_price) / product.price) * 100) 
     : null;
   
   return (

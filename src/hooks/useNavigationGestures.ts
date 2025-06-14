@@ -1,11 +1,26 @@
 
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+
+// Routes where swipe navigation should be disabled
+const DISABLED_ROUTES = [
+  '/login',
+  '/checkout',
+  '/payment',
+  '/address',
+  '/order-confirmation'
+];
 
 export const useNavigationGestures = () => {
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
+    // Don't enable gestures for disabled routes
+    if (DISABLED_ROUTES.some(route => location.pathname.startsWith(route))) {
+      return;
+    }
+
     let startX = 0;
     let startY = 0;
     let isScrolling = false;
@@ -30,6 +45,7 @@ export const useNavigationGestures = () => {
         // Check if movement is significant enough (more than 50px)
         if (Math.abs(diffX) > 50) {
           isScrolling = true;
+          e.preventDefault(); // Prevent default scrolling when swiping
         }
       }
     };
@@ -54,27 +70,14 @@ export const useNavigationGestures = () => {
       isScrolling = false;
     };
 
-    // Add keyboard navigation
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.altKey && e.key === 'ArrowLeft') {
-        e.preventDefault();
-        navigate(-1);
-      } else if (e.altKey && e.key === 'ArrowRight') {
-        e.preventDefault();
-        navigate(1);
-      }
-    };
-
-    document.addEventListener('touchstart', handleTouchStart, { passive: true });
-    document.addEventListener('touchmove', handleTouchMove, { passive: true });
-    document.addEventListener('touchend', handleTouchEnd, { passive: true });
-    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('touchstart', handleTouchStart, { passive: false });
+    document.addEventListener('touchmove', handleTouchMove, { passive: false });
+    document.addEventListener('touchend', handleTouchEnd);
 
     return () => {
       document.removeEventListener('touchstart', handleTouchStart);
       document.removeEventListener('touchmove', handleTouchMove);
       document.removeEventListener('touchend', handleTouchEnd);
-      document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [navigate]);
+  }, [navigate, location.pathname]);
 };

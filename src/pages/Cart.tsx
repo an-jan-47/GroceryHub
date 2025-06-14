@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ChevronLeft, Trash2, Plus, Minus, ShoppingCart } from 'lucide-react';
@@ -12,63 +11,130 @@ import { toast } from '@/components/ui/sonner';
 import { useAuthCheck } from '@/hooks/useAuthCheck';
 import { validateCoupon, calculateDiscount, type Coupon } from '@/services/couponService';
 
+// Create a global state for coupons to share between pages
+const globalCouponState = {
+  appliedCoupons: [] as Array<{ coupon: Coupon; discountAmount: number }>,
+  listeners: [] as Array<() => void>,
+  
+  setCoupons(coupons: Array<{ coupon: Coupon; discountAmount: number }>) {
+    this.appliedCoupons = coupons;
+    this.notifyListeners();
+  },
+  
+  addCoupon(coupon: Coupon, discountAmount: number) {
+    // Check if coupon already exists
+    const existingIndex = this.appliedCoupons.findIndex(c => c.coupon.id === coupon.id);
+    if (existingIndex !== -1) {
+      this.appliedCoupons[existingIndex] = { coupon, discountAmount };
+    } else {
+      this.appliedCoupons.push({ coupon, discountAmount });
+    }
+    this.notifyListeners();
+  },
+  
+  removeCoupon(couponId: string) {
+    this.appliedCoupons = this.appliedCoupons.filter(c => c.coupon.id !== couponId);
+    this.notifyListeners();
+  },
+  
+  clearCoupons() {
+    this.appliedCoupons = [];
+    this.notifyListeners();
+  },
+  
+  subscribe(listener: () => void) {
+    this.listeners.push(listener);
+    return () => {
+      this.listeners = this.listeners.filter(l => l !== listener);
+    };
+  },
+  
+  notifyListeners() {
+    this.listeners.forEach(listener => listener());
+  }
+};
+
 const CartPage = () => {
   const [couponCode, setCouponCode] = useState('');
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
-  const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
-  const [discountAmount, setDiscountAmount] = useState(0);
-  
+  const [appliedCoupons, setAppliedCoupons] = useState<Array<{ coupon: Coupon; discountAmount: number }>>([]);
   const {
     cartItems,
     removeFromCart,
     updateQuantity,
-    cartTotal
+    cartTotal,
+    setCartItems // Added this to fix the clearCart function
   } = useCart();
   const navigate = useNavigate();
   const {
     checkAuthForCheckout
   } = useAuthCheck();
 
-  // New price calculation logic inspired by Flipkart
-  const taxRate = 0.18; // 18% GST
+  // Pricing configuration 
   const platformFees = 5.00;
-  const deliveryFees = 0.00; // Set to 0 by default as requested
+  const deliveryFees = 0.00;
   
-  // Calculate item-wise pricing
+  // Calculate item-wise pricing without tax
   const itemCalculations = cartItems.map(item => {
     const itemPrice = item.salePrice ?? item.price;
     const itemTotal = itemPrice * item.quantity;
-    const itemTax = itemTotal * taxRate; // 18% of item total
-    const itemSubtotal = itemTotal - itemTax; // Price after removing tax
     
     return {
       ...item,
       itemPrice,
-      itemTotal,
-      itemTax,
-      itemSubtotal
+      itemTotal
     };
   });
   
-  // Calculate totals
-  const subtotal = itemCalculations.reduce((total, item) => total + item.itemSubtotal, 0);
-  const totalTax = itemCalculations.reduce((total, item) => total + item.itemTax, 0);
-  const totalBeforeDiscount = subtotal + platformFees + deliveryFees + totalTax;
-  const finalTotal = totalBeforeDiscount - discountAmount;
-
-  // Load applied coupon from localStorage on mount
-  useEffect(() => {
-    const savedCoupon = localStorage.getItem('appliedCoupon');
-    if (savedCoupon) {
-      try {
-        const { coupon, discountAmount: savedDiscount } = JSON.parse(savedCoupon);
-        setAppliedCoupon(coupon);
-        setDiscountAmount(savedDiscount);
-      } catch (error) {
-        localStorage.removeItem('appliedCoupon');
-      }
+  // Calculate totals without tax
+  const subtotal = itemCalculations.reduce((total, item) => total + item.itemTotal, 0);
+  const totalBeforeDiscount = subtotal + platformFees + deliveryFees;
+  
+  // Calculate total discount from all applied coupons
+  const totalDiscountAmount = appliedCoupons.reduce((total, { discountAmount }) => total + discountAmount, 0);
+  const totalAfterDiscount = Math.max(0, totalBeforeDiscount - totalDiscountAmount);
+  
+  // Final total without transaction fee
+  const finalTotal = totalAfterDiscount;
+  
+  // Fixed clearCart function
+  const clearCart = () => {
+    setCartItems([]);
+    globalCouponState.clearCoupons(); // Clear all applied coupons
+    toast("Cart cleared", {
+      description: "All items have been removed from your cart"
+    });
+  };
+  
+  // Add coupon clearing when removing last item
+  const handleRemoveFromCart = (productId: string) => {
+    removeFromCart(productId);
+    if (cartItems.length === 1) { // If this is the last item
+      globalCouponState.clearCoupons();
     }
-  }, []);
+  };
+
+  // Update the useEffect for coupon state synchronization
+  useEffect(() => {
+    const unsubscribe = globalCouponState.subscribe(() => {
+      // Get all coupons from global state
+      const allCoupons = globalCouponState.appliedCoupons;
+      
+      // Recalculate discount amounts for all coupons
+      const updatedCoupons = allCoupons.map(({ coupon }) => {
+        const newDiscountAmount = calculateDiscount(coupon, totalBeforeDiscount);
+        return { coupon, discountAmount: newDiscountAmount };
+      });
+      
+      setAppliedCoupons(updatedCoupons);
+    });
+    
+    // Initialize with current state
+    const initialCoupons = globalCouponState.appliedCoupons;
+    setAppliedCoupons(initialCoupons);
+    
+    return unsubscribe;
+  }, [totalBeforeDiscount]);
 
   const handleCouponApply = async () => {
     if (!couponCode.trim()) {
@@ -76,20 +142,20 @@ const CartPage = () => {
       return;
     }
 
+    // Check if coupon is already applied
+    const isAlreadyApplied = appliedCoupons.some(c => c.coupon.code === couponCode.toUpperCase());
+    if (isAlreadyApplied) {
+      toast("Coupon already applied");
+      return;
+    }
+
     setIsApplyingCoupon(true);
     try {
-      const coupon = await validateCoupon(couponCode, subtotal + platformFees + deliveryFees + totalTax);
-      const discount = calculateDiscount(coupon, subtotal + platformFees + deliveryFees + totalTax);
+      const coupon = await validateCoupon(couponCode, totalBeforeDiscount);
+      const discount = calculateDiscount(coupon, totalBeforeDiscount);
       
-      setAppliedCoupon(coupon);
-      setDiscountAmount(discount);
+      globalCouponState.addCoupon(coupon, discount);
       setCouponCode('');
-      
-      // Store in localStorage
-      localStorage.setItem('appliedCoupon', JSON.stringify({
-        coupon: coupon,
-        discountAmount: discount
-      }));
       
       toast("Coupon applied!", {
         description: `₹${discount.toFixed(2)} discount applied`
@@ -103,10 +169,8 @@ const CartPage = () => {
     }
   };
 
-  const handleRemoveCoupon = () => {
-    setAppliedCoupon(null);
-    setDiscountAmount(0);
-    localStorage.removeItem('appliedCoupon');
+  const handleRemoveCoupon = (couponId: string) => {
+    globalCouponState.removeCoupon(couponId);
     toast("Coupon removed");
   };
 
@@ -120,16 +184,6 @@ const CartPage = () => {
 
     // Check if user is authenticated before proceeding
     if (checkAuthForCheckout()) {
-      // Store applied coupon data for checkout
-      if (appliedCoupon) {
-        localStorage.setItem('appliedCoupon', JSON.stringify({
-          coupon: appliedCoupon,
-          discountAmount: discountAmount
-        }));
-      } else {
-        localStorage.removeItem('appliedCoupon');
-      }
-      
       navigate('/address');
     }
   };
@@ -202,7 +256,7 @@ const CartPage = () => {
                         </button>
                       </div>
                       <button 
-                        onClick={() => removeFromCart(item.id)} 
+                        onClick={() => handleRemoveFromCart(item.id)} 
                         className="p-1 text-gray-400 hover:text-red-500"
                       >
                         <Trash2 className="w-5 h-5" />
@@ -214,23 +268,27 @@ const CartPage = () => {
             </div>
             
             <div className="mt-6">
-              {/* Applied Coupon Display */}
-              {appliedCoupon && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <span className="font-semibold text-blue-800">Coupon Applied: {appliedCoupon.code}</span>
-                      <p className="text-sm text-blue-600">You saved ₹{discountAmount.toFixed(2)}</p>
+              {/* Applied Coupons Display */}
+              {appliedCoupons.length > 0 && (
+                <div className="space-y-3 mb-4">
+                  {appliedCoupons.map(({ coupon, discountAmount }) => (
+                    <div key={coupon.id} className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <span className="font-semibold text-blue-800">Coupon Applied: {coupon.code}</span>
+                          <p className="text-sm text-blue-600">You saved ₹{discountAmount.toFixed(2)}</p>
+                        </div>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => handleRemoveCoupon(coupon.id)}
+                          className="text-red-600 border-red-300 hover:bg-red-50"
+                        >
+                          Remove
+                        </Button>
+                      </div>
                     </div>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={handleRemoveCoupon}
-                      className="text-red-600 border-red-300 hover:bg-red-50"
-                    >
-                      Remove
-                    </Button>
-                  </div>
+                  ))}
                 </div>
               )}
               
@@ -242,6 +300,11 @@ const CartPage = () => {
                     value={couponCode} 
                     onChange={e => setCouponCode(e.target.value.toUpperCase())}
                     className="flex-grow" 
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        handleCouponApply();
+                      }
+                    }}
                   />
                   <Button 
                     onClick={handleCouponApply} 
@@ -273,28 +336,41 @@ const CartPage = () => {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Delivery Fees</span>
-                  <span>₹{deliveryFees.toFixed(2)}</span>
+                  <span>FREE</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Tax (18% GST)</span>
-                  <span>₹{totalTax.toFixed(2)}</span>
-                </div>
-                {discountAmount > 0 && (
-                  <div className="flex justify-between text-green-600">
-                    <span>Coupon Discount</span>
-                    <span>-₹{discountAmount.toFixed(2)}</span>
+                
+                {/* Individual coupon discounts */}
+                {appliedCoupons.map((applied) => (
+                  <div key={applied.coupon.id} className="flex justify-between text-green-600">
+                    <span className="text-sm">{applied.coupon.code} Discount</span>
+                    <span className="text-sm">-₹{applied.discountAmount.toFixed(2)}</span>
+                  </div>
+                ))}
+                
+                {/* Total discount summary */}
+                {totalDiscountAmount > 0 && (
+                  <div className="flex justify-between font-medium text-green-600 border-t border-green-200 pt-2">
+                    <span>Total Coupon Savings</span>
+                    <span>-₹{totalDiscountAmount.toFixed(2)}</span>
                   </div>
                 )}
+                
                 <Separator />
                 <div className="flex justify-between font-bold text-lg">
                   <span>Total</span>
                   <span>₹{finalTotal.toFixed(2)}</span>
                 </div>
+                {totalDiscountAmount > 0 && (
+                  <div className="text-sm text-green-600 text-center">
+                    You saved ₹{totalDiscountAmount.toFixed(2)} on this order!
+                  </div>
+                )}
               </div>
               
               <Button 
                 onClick={handleCheckout} 
                 className="w-full mt-4 bg-brand-blue hover:bg-brand-darkBlue"
+                disabled={cartItems.length === 0}
               >
                 Proceed to Checkout
               </Button>
@@ -308,4 +384,6 @@ const CartPage = () => {
   );
 };
 
+// Export the global coupon state for use in other components
+export { globalCouponState };
 export default CartPage;

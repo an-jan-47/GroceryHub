@@ -9,13 +9,12 @@ const BottomNavigation = () => {
   const location = useLocation();
   const { cartItems, totalItems } = useCart();
   const { user } = useAuth();
-  // Use totalItems instead of cartItems.length
   const cartItemsCount = totalItems;
   
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-100 shadow-md">
+    <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-100 shadow-md pb-safe">
       <div className="grid grid-cols-4 h-16">
         <Link to="/" className={`bottom-nav-item ${isActive('/') ? 'bottom-nav-active' : 'text-gray-500'}`}>
           <Home className="w-6 h-6 mb-1" />

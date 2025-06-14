@@ -1,22 +1,48 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
-import path from "path";
-import { componentTagger } from "lovable-tagger";
+import { fileURLToPath, URL } from "node:url";
 
-// https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   server: {
-    host: "::",
-    port: 8080,
+    hmr: {
+      overlay: true,
+      timeout: 120000
+    },
+    watch: {
+      usePolling: true,
+      interval: 500 // Increased polling frequency
+    }
   },
-  plugins: [
-    react(),
-    mode === 'development' &&
-    componentTagger(),
-  ].filter(Boolean),
+  plugins: [react({
+    fastRefresh: true
+  })],
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
-    },
+      "@": fileURLToPath(new URL('./src', import.meta.url))
+    }
   },
+  build: {
+    outDir: 'dist',
+    emptyOutDir: true,
+    sourcemap: mode === 'development',
+    rollupOptions: {
+      cache: false,
+      output: {
+        manualChunks: undefined
+      }
+    },
+    cssCodeSplit: true,
+    minify: mode !== 'development',
+    write: true,
+    copyPublicDir: true
+  },
+  optimizeDeps: {
+    force: true,
+    esbuildOptions: {
+      define: {
+        global: 'globalThis'
+      }
+    }
+  },
+  clearScreen: false
 }));

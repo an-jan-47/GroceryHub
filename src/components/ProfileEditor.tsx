@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -26,11 +25,11 @@ const ProfileEditor = () => {
   const [phone, setPhone] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
-  
+
   useEffect(() => {
     const fetchProfile = async () => {
       if (!user) return;
-      
+
       try {
         setIsLoading(true);
         const { data, error } = await supabase
@@ -38,9 +37,8 @@ const ProfileEditor = () => {
           .select('*')
           .eq('id', user.id)
           .single();
-        
+
         if (error) {
-          // If profile doesn't exist yet, create one
           if (error.code === 'PGRST116') {
             const newProfile = {
               id: user.id,
@@ -48,7 +46,7 @@ const ProfileEditor = () => {
               phone: user.user_metadata?.phone || '',
               email: user.email
             };
-            
+
             await supabase.from('profiles').insert(newProfile);
             setProfile(newProfile);
             setName(newProfile.name);
@@ -70,59 +68,52 @@ const ProfileEditor = () => {
         setIsLoading(false);
       }
     };
-    
+
     fetchProfile();
   }, [user]);
-  
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!user) return;
-    
-    // Validate inputs
+
     if (!name.trim()) {
       toast("Name required", {
         description: "Please enter your name"
       });
       return;
     }
-    
+
     try {
       setSaveSuccess(false);
       setIsSaving(true);
-      
-      // Sanitize inputs
+
       const sanitizedName = sanitizeInput(name);
       const sanitizedPhone = sanitizeInput(phone);
-      
-      // Update both profiles table and auth user metadata
+
       const { error: profileError } = await supabase
         .from('profiles')
-        .update({ 
+        .update({
           name: sanitizedName,
           phone: sanitizedPhone,
           updated_at: new Date().toISOString()
         })
         .eq('id', user.id);
-      
+
       if (profileError) throw profileError;
-      
-      // Update auth user metadata
+
       const { error: authError } = await supabase.auth.updateUser({
         data: { name: sanitizedName, phone: sanitizedPhone }
       });
-      
+
       if (authError) throw authError;
-      
+
       toast("Profile updated", {
         description: "Your profile has been successfully updated"
       });
-      
+
       setSaveSuccess(true);
-      
-      // Update local profile state
       setProfile(prev => prev ? { ...prev, name: sanitizedName, phone: sanitizedPhone } : null);
-      
+
     } catch (error) {
       console.error('Error updating profile:', error);
       toast("Update failed", {
@@ -132,7 +123,7 @@ const ProfileEditor = () => {
       setIsSaving(false);
     }
   };
-  
+
   if (isLoading) {
     return (
       <Card className="w-full shadow-none border-0 sm:border sm:shadow-sm">
@@ -160,7 +151,7 @@ const ProfileEditor = () => {
       </Card>
     );
   }
-  
+
   return (
     <Card className="w-full shadow-none border-0 sm:border sm:shadow-sm bg-white">
       <CardHeader className="px-4 py-3 sm:p-6 border-b">
@@ -170,7 +161,7 @@ const ProfileEditor = () => {
         </div>
         <CardDescription>Update your personal information</CardDescription>
       </CardHeader>
-      
+
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-4 px-4 pt-4 pb-2 sm:p-6">
           <div className="space-y-2">
@@ -178,7 +169,7 @@ const ProfileEditor = () => {
               <User className="h-4 w-4 opacity-70" />
               Full Name
             </Label>
-            <Input 
+            <Input
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -188,13 +179,13 @@ const ProfileEditor = () => {
               required
             />
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="phone" className="flex items-center gap-2">
               <Phone className="h-4 w-4 opacity-70" />
               Phone Number
             </Label>
-            <Input 
+            <Input
               id="phone"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
@@ -204,7 +195,7 @@ const ProfileEditor = () => {
               autoComplete="tel"
             />
           </div>
-          
+
           {user?.email && (
             <div className="space-y-2">
               <Label htmlFor="email" className="flex items-center gap-2">
@@ -212,7 +203,7 @@ const ProfileEditor = () => {
                 Email
               </Label>
               <div className="relative">
-                <Input 
+                <Input
                   id="email"
                   value={user.email}
                   disabled
@@ -226,7 +217,7 @@ const ProfileEditor = () => {
             </div>
           )}
         </CardContent>
-        
+
         <CardFooter className="px-4 py-3 sm:p-6 flex flex-col sm:flex-row gap-2 sm:items-center justify-between border-t bg-gray-50">
           <div className="text-sm">
             {saveSuccess && (
@@ -236,10 +227,10 @@ const ProfileEditor = () => {
               </p>
             )}
           </div>
-          <Button 
-            type="submit" 
+          <Button
+            type="submit"
             disabled={isSaving}
-            className="w-full sm:w-auto"
+            className="w-full sm:w-auto bg-primaryBlue hover:bg-primaryBlue-dark text-white"
           >
             {isSaving ? 'Saving...' : 'Save Changes'}
           </Button>

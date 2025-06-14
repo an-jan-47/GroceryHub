@@ -62,7 +62,7 @@ const Profile = () => {
         {/* Profile Header */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-4">
           <div className="flex items-center">
-            <div className="h-16 w-16 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 mr-4">
+            <div className="h-16 w-16 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 mr-4 overflow-hidden">
               <User className="h-8 w-8" />
             </div>
             <div>
@@ -112,7 +112,7 @@ const Profile = () => {
                   <span className="text-gray-400">→</span>
                 </div>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
+              <DialogContent className="sm:max-w-md mx-auto my-4 rounded-xl">
                 <DialogHeader>
                   <DialogTitle>Edit Profile</DialogTitle>
                   <DialogDescription>

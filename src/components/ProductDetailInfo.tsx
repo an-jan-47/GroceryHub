@@ -1,6 +1,11 @@
 
 import { Badge } from '@/components/ui/badge';
 import StarRating from '@/components/StarRating';
+import { useState } from 'react';
+import { toast } from '@/components/ui/sonner';
+import { formatCouponForDisplay } from '@/services/couponService';
+import { useEffect } from 'react';
+import { getCouponById } from '@/services/couponService';
 
 interface ProductDetailInfoProps {
   product: {
@@ -13,6 +18,7 @@ interface ProductDetailInfoProps {
     brand: string;
     category: string;
     description: string;
+    applicable_coupons?: string[];
   };
   quantity: number;
   onIncrementQuantity: () => void;
@@ -25,6 +31,31 @@ const ProductDetailInfo = ({
   onIncrementQuantity, 
   onDecrementQuantity 
 }: ProductDetailInfoProps) => {
+  const [coupons, setCoupons] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchCoupons = async () => {
+      if (!product.applicable_coupons?.length) return;
+      
+      try {
+        const couponPromises = product.applicable_coupons.map(id => getCouponById(id));
+        const fetchedCoupons = await Promise.all(couponPromises);
+        setCoupons(fetchedCoupons.filter(Boolean));
+      } catch (error) {
+        console.error('Error fetching coupons:', error);
+      }
+    };
+
+    fetchCoupons();
+  }, [product.applicable_coupons]);
+
+  const copyCouponCode = (code: string) => {
+    navigator.clipboard.writeText(code);
+    toast('Coupon code copied!', {
+      description: 'You can use it at checkout.'
+    });
+  };
+
   return (
     <div className="mb-4">
       <div className="flex justify-between items-start">
@@ -77,6 +108,38 @@ const ProductDetailInfo = ({
         <h2 className="font-semibold mb-2">Description</h2>
         <p className="text-gray-600 text-sm">{product.description}</p>
       </div>
+
+      {/* Coupons Section */}
+      {product.applicable_coupons && product.applicable_coupons.length > 0 && (
+        <div className="mt-4">
+          <h2 className="font-semibold mb-2">Extra Savings for You </h2>
+          <div className="space-y-2">
+            {product.applicable_coupons.map((couponId) => {
+              const coupon = coupons.find(c => c.id === couponId);
+              if (!coupon) return null;
+              
+              const formattedCoupon = formatCouponForDisplay(coupon);
+              return (
+                <div 
+                  key={coupon.id} 
+                  className="p-3 border rounded-lg bg-blue-50 flex justify-between items-center"
+                >
+                  <div>
+                    <p className="font-medium text-blue-600">{formattedCoupon.discountText}</p>
+                    <p className="text-sm text-gray-600">{formattedCoupon.conditionsText}</p>
+                  </div>
+                  <button
+                    onClick={() => copyCouponCode(coupon.code)}
+                    className="px-3 py-1 text-sm bg-white border border-blue-200 rounded-md hover:bg-blue-50 transition-colors"
+                  >
+                    {coupon.code}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
