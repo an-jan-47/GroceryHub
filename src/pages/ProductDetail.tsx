@@ -251,9 +251,10 @@ const ProductDetailPage = () => {
             <div className="grid grid-cols-2 gap-3">
               {relatedProducts.map(relatedProduct => (
                 <ProductCard
-  product={product}
+  product={relatedProduct}
   className="flex-shrink-0"
 />
+
               ))}
             </div>
           </div>
