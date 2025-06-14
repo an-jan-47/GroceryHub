@@ -67,11 +67,6 @@ const SearchPage = () => {
     });
   }, [products, searchTerm, selectedCategory, priceRange, sortBy]);
 
-  const handleSearch = useCallback((value: string) => {
-    setSearchTerm(value);
-    updateSearchParams({ q: value });
-  }, []);
-
   const updateSearchParams = useCallback((updates: Record<string, string>) => {
     const newParams = new URLSearchParams(searchParams);
     Object.entries(updates).forEach(([key, value]) => {
@@ -83,6 +78,11 @@ const SearchPage = () => {
     });
     setSearchParams(newParams);
   }, [searchParams, setSearchParams]);
+
+  const handleSearch = useCallback((value: string) => {
+    setSearchTerm(value);
+    updateSearchParams({ q: value });
+  }, [updateSearchParams]);
 
   const clearFilters = useCallback(() => {
     setSearchTerm('');
