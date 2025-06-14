@@ -121,8 +121,8 @@ const PrivacySettings = () => {
                         <p className="text-sm text-gray-500">{setting.description}</p>
                       </div>
                       <Switch
-                        checked={settings[settingKey]}
-                        onCheckedChange={(value) => updateSetting(settingKey, value)}
+                        checked={settings[settingKey as keyof typeof settings]}
+                        onCheckedChange={(value) => updateSetting(settingKey as keyof typeof settings, value)}
                         className="bg-blue-500 data-[state=checked]:bg-blue-600"
                       />
                     </div>
