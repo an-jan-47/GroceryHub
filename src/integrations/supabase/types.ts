@@ -911,6 +911,15 @@ export type Database = {
           today_revenue: number
         }[]
       }
+      get_low_stock_products: {
+        Args: { stock_threshold?: number }
+        Returns: {
+          product_id: string
+          product_name: string
+          current_stock: number
+          brand: string
+        }[]
+      }
       increase_product_stock: {
         Args: { product_id: string; quantity: number }
         Returns: undefined
