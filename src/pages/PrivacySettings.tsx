@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronLeft, Save } from 'lucide-react';
@@ -78,32 +79,32 @@ const PrivacySettings = () => {
             <div className="space-y-6">
               {[
                 {
-                  key: 'marketing_emails',
+                  key: 'marketing_emails' as keyof typeof settings,
                   title: 'Marketing Emails',
                   description: 'Receive emails about special offers and promotions'
                 },
                 {
-                  key: 'product_updates',
+                  key: 'product_updates' as keyof typeof settings,
                   title: 'Product Updates',
                   description: 'Notifications about new products and features'
                 },
                 {
-                  key: 'order_notifications',
+                  key: 'order_notifications' as keyof typeof settings,
                   title: 'Order Notifications',
                   description: 'Updates about your orders, deliveries, and returns'
                 },
                 {
-                  key: 'personalized_recommendations',
+                  key: 'personalized_recommendations' as keyof typeof settings,
                   title: 'Personalized Recommendations',
                   description: 'Allow us to use your browsing history to suggest products'
                 },
                 {
-                  key: 'data_sharing',
+                  key: 'data_sharing' as keyof typeof settings,
                   title: 'Data Sharing',
                   description: 'Share your data with our trusted partners for improved services'
                 },
                 {
-                  key: 'account_activity_alerts',
+                  key: 'account_activity_alerts' as keyof typeof settings,
                   title: 'Account Activity Alerts',
                   description: 'Get notified of login attempts and account changes'
                 }
