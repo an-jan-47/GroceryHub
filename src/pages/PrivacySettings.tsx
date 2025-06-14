@@ -31,14 +31,15 @@ const PrivacySettings = () => {
     }
   };
 
-  const privacyKeys: (keyof typeof settings)[] = [
+  // Type the keys explicitly
+  const privacyKeys = [
     'marketing_emails',
     'product_updates',
     'order_notifications',
     'personalized_recommendations',
     'data_sharing',
     'account_activity_alerts',
-  ];
+  ] as (keyof typeof settings)[];
 
   if (!user) {
     return (
@@ -111,7 +112,7 @@ const PrivacySettings = () => {
                     title: 'Account Activity Alerts',
                     description: 'Get notified of login attempts and account changes'
                   }
-                }[settingKey];
+                }[settingKey as keyof typeof settings];
                 return (
                   <div key={settingKey}>
                     <div className="flex justify-between items-start">
@@ -120,8 +121,8 @@ const PrivacySettings = () => {
                         <p className="text-sm text-gray-500">{setting.description}</p>
                       </div>
                       <Switch
-                        checked={settings[settingKey]}
-                        onCheckedChange={(value) => updateSetting(settingKey, value)}
+                        checked={settings[settingKey as keyof typeof settings]}
+                        onCheckedChange={(value) => updateSetting(settingKey as keyof typeof settings, value)}
                         className="bg-blue-500 data-[state=checked]:bg-blue-600"
                       />
                     </div>
