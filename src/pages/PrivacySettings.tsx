@@ -79,32 +79,32 @@ const PrivacySettings = () => {
             <div className="space-y-6">
               {[
                 {
-                  key: 'marketing_emails' as keyof typeof settings,
+                  key: 'marketing_emails',
                   title: 'Marketing Emails',
                   description: 'Receive emails about special offers and promotions'
                 },
                 {
-                  key: 'product_updates' as keyof typeof settings,
+                  key: 'product_updates',
                   title: 'Product Updates',
                   description: 'Notifications about new products and features'
                 },
                 {
-                  key: 'order_notifications' as keyof typeof settings,
+                  key: 'order_notifications',
                   title: 'Order Notifications',
                   description: 'Updates about your orders, deliveries, and returns'
                 },
                 {
-                  key: 'personalized_recommendations' as keyof typeof settings,
+                  key: 'personalized_recommendations',
                   title: 'Personalized Recommendations',
                   description: 'Allow us to use your browsing history to suggest products'
                 },
                 {
-                  key: 'data_sharing' as keyof typeof settings,
+                  key: 'data_sharing',
                   title: 'Data Sharing',
                   description: 'Share your data with our trusted partners for improved services'
                 },
                 {
-                  key: 'account_activity_alerts' as keyof typeof settings,
+                  key: 'account_activity_alerts',
                   title: 'Account Activity Alerts',
                   description: 'Get notified of login attempts and account changes'
                 }
@@ -116,8 +116,8 @@ const PrivacySettings = () => {
                       <p className="text-sm text-gray-500">{description}</p>
                     </div>
                     <Switch
-                      checked={settings[key]}
-                      onCheckedChange={(value) => updateSetting(key, value)}
+                      checked={settings[key as keyof typeof settings]}
+                      onCheckedChange={(value) => updateSetting(key as keyof typeof settings, value)}
                       className="bg-blue-500 data-[state=checked]:bg-blue-600"
                     />
                   </div>
