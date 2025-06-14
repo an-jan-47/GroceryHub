@@ -2,13 +2,20 @@
 import { supabase } from '@/integrations/supabase/client';
 import { Product } from '@/types';
 
-export const getProducts = async (): Promise<Product[]> => {
-  console.log('Fetching all products...');
+export const getProducts = async (options?: { featured?: boolean }): Promise<Product[]> => {
+  console.log('Fetching products with options:', options);
   
-  const { data, error } = await supabase
+  let query = supabase
     .from('products')
     .select('*')
     .order('created_at', { ascending: false });
+
+  // If featured is requested, filter by rating
+  if (options?.featured) {
+    query = query.gte('rating', 4.0).order('rating', { ascending: false });
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     console.error('Error fetching products:', error);

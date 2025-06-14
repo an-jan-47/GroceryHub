@@ -57,6 +57,48 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_settings: {
+        Row: {
+          auto_order_processing: boolean
+          created_at: string
+          daily_reports: boolean
+          email_notifications: boolean
+          id: string
+          low_stock_alerts: boolean
+          notification_sound: boolean
+          order_notifications: boolean
+          sms_notifications: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          auto_order_processing?: boolean
+          created_at?: string
+          daily_reports?: boolean
+          email_notifications?: boolean
+          id?: string
+          low_stock_alerts?: boolean
+          notification_sound?: boolean
+          order_notifications?: boolean
+          sms_notifications?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          auto_order_processing?: boolean
+          created_at?: string
+          daily_reports?: boolean
+          email_notifications?: boolean
+          id?: string
+          low_stock_alerts?: boolean
+          notification_sound?: boolean
+          order_notifications?: boolean
+          sms_notifications?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       banners: {
         Row: {
           created_at: string | null
@@ -164,6 +206,13 @@ export type Database = {
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "order_complete_details"
+            referencedColumns: ["order_id"]
+          },
+          {
+            foreignKeyName: "coupon_usage_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "order_summary"
             referencedColumns: ["order_id"]
           },
           {
@@ -296,6 +345,13 @@ export type Database = {
             foreignKeyName: "order_details_order_id_fkey"
             columns: ["order_id"]
             isOneToOne: false
+            referencedRelation: "order_summary"
+            referencedColumns: ["order_id"]
+          },
+          {
+            foreignKeyName: "order_details_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
             referencedRelation: "orders"
             referencedColumns: ["id"]
           },
@@ -345,6 +401,13 @@ export type Database = {
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "order_complete_details"
+            referencedColumns: ["order_id"]
+          },
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "order_summary"
             referencedColumns: ["order_id"]
           },
           {
@@ -440,6 +503,7 @@ export type Database = {
           payment_method: string
           status: string
           updated_at: string | null
+          user_id: string | null
         }
         Insert: {
           amount: number
@@ -451,6 +515,7 @@ export type Database = {
           payment_method: string
           status: string
           updated_at?: string | null
+          user_id?: string | null
         }
         Update: {
           amount?: number
@@ -462,6 +527,7 @@ export type Database = {
           payment_method?: string
           status?: string
           updated_at?: string | null
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -469,6 +535,13 @@ export type Database = {
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "order_complete_details"
+            referencedColumns: ["order_id"]
+          },
+          {
+            foreignKeyName: "payments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "order_summary"
             referencedColumns: ["order_id"]
           },
           {
@@ -511,6 +584,7 @@ export type Database = {
       }
       products: {
         Row: {
+          applicable_coupons: string[] | null
           brand: string
           category: string
           created_at: string | null
@@ -528,6 +602,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          applicable_coupons?: string[] | null
           brand: string
           category: string
           created_at?: string | null
@@ -545,6 +620,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          applicable_coupons?: string[] | null
           brand?: string
           category?: string
           created_at?: string | null
@@ -800,6 +876,21 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      order_summary: {
+        Row: {
+          created_at: string | null
+          customer_name: string | null
+          item_count: number | null
+          order_id: string | null
+          payment_method: string | null
+          status: string | null
+          total_amount: number | null
+          total_quantity: number | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Relationships: []
       }
     }
     Functions: {
