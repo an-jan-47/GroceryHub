@@ -57,16 +57,12 @@ const ProductDetailPage = () => {
   // Check if product is in wishlist on component mount (prevent infinite update)
   useEffect(() => {
     if (productId) {
-      const wish = isInWishlist(productId);
-      setIsFavorite(prev => {
-        if (prev !== wish) return wish;
-        return prev;
-      });
+      // Only set state if needed, don't depend on isInWishlist function reference
+      setIsFavorite(isInWishlist(productId));
     }
-    // Only depend on productId and isInWishlist (not isFavorite)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [productId, isInWishlist]);
-  
+    // Only depend on productId (not isInWishlist, which is unstable)
+  }, [productId]);
+
   // Handle quantity changes
   const incrementQuantity = () => {
     if (product && quantity < product.stock) {

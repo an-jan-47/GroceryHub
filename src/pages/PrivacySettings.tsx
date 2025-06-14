@@ -31,14 +31,14 @@ const PrivacySettings = () => {
     }
   };
 
-  const privacyKeys = [
+  const privacyKeys: (keyof typeof settings)[] = [
     'marketing_emails',
     'product_updates',
     'order_notifications',
     'personalized_recommendations',
     'data_sharing',
     'account_activity_alerts',
-  ] as const;
+  ];
 
   if (!user) {
     return (
@@ -85,8 +85,7 @@ const PrivacySettings = () => {
         ) : (
           <div>
             <div className="space-y-6">
-              {privacyKeys.map((key) => {
-                const settingKey = key as keyof typeof settings;
+              {privacyKeys.map((settingKey) => {
                 const setting = {
                   marketing_emails: {
                     title: 'Marketing Emails',
@@ -112,17 +111,17 @@ const PrivacySettings = () => {
                     title: 'Account Activity Alerts',
                     description: 'Get notified of login attempts and account changes'
                   }
-                }[key];
+                }[settingKey];
                 return (
-                  <div key={key}>
+                  <div key={settingKey}>
                     <div className="flex justify-between items-start">
                       <div>
                         <h3 className="font-medium">{setting.title}</h3>
                         <p className="text-sm text-gray-500">{setting.description}</p>
                       </div>
                       <Switch
-                        checked={settings[settingKey as keyof typeof settings]}
-                        onCheckedChange={(value) => updateSetting(settingKey as keyof typeof settings, value)}
+                        checked={settings[settingKey]}
+                        onCheckedChange={(value) => updateSetting(settingKey, value)}
                         className="bg-blue-500 data-[state=checked]:bg-blue-600"
                       />
                     </div>
