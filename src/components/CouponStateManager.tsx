@@ -12,6 +12,7 @@ interface CouponStateManager {
   addCoupon: (coupon: Coupon, discountAmount: number) => void;
   removeCoupon: (couponId: string) => void;
   clearCoupons: () => void;
+  setCoupons: (coupons: AppliedCouponState[]) => void;
 }
 
 // Create a simple global state for coupons
@@ -36,6 +37,11 @@ const globalCouponState = {
   
   clearCoupons() {
     this.appliedCoupons = [];
+    this.notifyListeners();
+  },
+  
+  setCoupons(coupons: AppliedCouponState[]) {
+    this.appliedCoupons = coupons;
     this.notifyListeners();
   },
   
@@ -70,5 +76,6 @@ export const useCouponState = (): CouponStateManager => {
     addCoupon: globalCouponState.addCoupon.bind(globalCouponState),
     removeCoupon: globalCouponState.removeCoupon.bind(globalCouponState),
     clearCoupons: globalCouponState.clearCoupons.bind(globalCouponState),
+    setCoupons: globalCouponState.setCoupons.bind(globalCouponState),
   };
 };

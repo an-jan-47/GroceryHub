@@ -77,7 +77,7 @@ const ProductsGrid = ({ category, limit, title = 'Products', showCount = true, c
       {products.length > 0 ? (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {products.map(product => (
-            <ProductCard key={product.id} product={product} />
+            <ProductCard product={product} />
           ))}
         </div>
       ) : (

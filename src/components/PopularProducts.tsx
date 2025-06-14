@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getFeaturedProducts } from '@/services/productService';
@@ -31,6 +32,7 @@ const PopularProducts = () => {
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           {featuredProducts.map((product) => (
             <ProductCard
+              key={product.id}
               product={product}
               showBuyNow={false}
             />

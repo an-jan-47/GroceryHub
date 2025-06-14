@@ -28,7 +28,6 @@ import { useCouponState } from '@/components/CouponStateManager';
 const PRICING_CONFIG = {
   platformFees: 5.00,
   deliveryFees: 0.00,
-  taxRate: 0.18, // 18% GST
   transactionFeeRate: 0.02, // 2% transaction fee
   razorpayTestKey: 'rzp_test_NhYbBXqUSxpojf'
 } as const;
@@ -81,27 +80,19 @@ const PaymentMethodsPage = () => {
     }
   }, [cartItems, navigate]);
 
-  // Calculation functions
+  // Calculation functions - NO TAX INCLUDED
   const calculatePricing = () => {
-    // Calculate subtotal by removing tax from each item
+    // Calculate subtotal (no tax calculation)
     const subtotal = cartItems.reduce((total, item) => {
       const itemPrice = item.salePrice || item.price;
-      const priceWithoutTax = itemPrice / (1 + PRICING_CONFIG.taxRate);
-      return total + (priceWithoutTax * item.quantity);
-    }, 0);
-    
-    // Tax is calculated on original prices
-    const tax = cartItems.reduce((total, item) => {
-      const itemPrice = item.salePrice || item.price;
-      const taxAmount = (itemPrice * PRICING_CONFIG.taxRate) / (1 + PRICING_CONFIG.taxRate);
-      return total + (taxAmount * item.quantity);
+      return total + (itemPrice * item.quantity);
     }, 0);
     
     // Calculate total discount from all applied coupons
     const totalDiscountAmount = appliedCoupons.reduce((total, couponData) => total + couponData.discountAmount, 0);
     
     // Calculate total before transaction fee
-    const totalBeforeTransactionFee = subtotal + PRICING_CONFIG.platformFees + PRICING_CONFIG.deliveryFees + tax - totalDiscountAmount;
+    const totalBeforeTransactionFee = subtotal + PRICING_CONFIG.platformFees + PRICING_CONFIG.deliveryFees - totalDiscountAmount;
     
     // Only add transaction fee for Razorpay payment method
     const transactionFee = paymentMethod === 'razorpay' ? Math.round(totalBeforeTransactionFee * PRICING_CONFIG.transactionFeeRate * 100) / 100 : 0;
@@ -111,7 +102,6 @@ const PaymentMethodsPage = () => {
     
     return {
       subtotal,
-      tax,
       totalDiscountAmount,
       totalBeforeTransactionFee,
       transactionFee,
@@ -143,11 +133,10 @@ const PaymentMethodsPage = () => {
       // Calculate subtotal for validation
       const subtotal = cartItems.reduce((total, item) => {
         const itemPrice = item.salePrice || item.price;
-        const priceWithoutTax = itemPrice / (1 + PRICING_CONFIG.taxRate);
-        return total + (priceWithoutTax * item.quantity);
+        return total + (itemPrice * item.quantity);
       }, 0);
       
-      const orderTotal = subtotal + PRICING_CONFIG.platformFees + PRICING_CONFIG.deliveryFees + (subtotal * PRICING_CONFIG.taxRate);
+      const orderTotal = subtotal + PRICING_CONFIG.platformFees + PRICING_CONFIG.deliveryFees;
       
       for (const couponData of couponsToValidate) {
         try {
@@ -233,12 +222,12 @@ const PaymentMethodsPage = () => {
       if (!addressId || !user) throw new Error('No address or user found');
       if (!cartItems || cartItems.length === 0) throw new Error('Cart is empty');
       
-      // Create order first
+      // Create order with the final calculated amount (including all discounts, no tax)
       const orderResult = await createOrder({
         addressId: addressId,
         userId: user.id,
         paymentMethod: paymentData.paymentMethod,
-        totalAmount: pricing.totalAmount,
+        totalAmount: pricing.totalAmount, // This is the final amount with discounts applied
         platformFees: PRICING_CONFIG.platformFees,
         discountAmount: pricing.totalDiscountAmount,
         products: cartItems.map(item => ({
@@ -254,7 +243,7 @@ const PaymentMethodsPage = () => {
         await savePaymentDetails(
           orderResult.orderId,
           paymentData.razorpayPaymentId,
-          pricing.totalAmount,
+          pricing.totalAmount, // Use the final calculated amount
           'completed',
           'razorpay'
         );
@@ -402,11 +391,6 @@ const PaymentMethodsPage = () => {
       <div className="flex justify-between">
         <span className="text-gray-600">Delivery Fees</span>
         <span>{PRICING_CONFIG.deliveryFees === 0 ? 'FREE' : formatCurrency(PRICING_CONFIG.deliveryFees)}</span>
-      </div>
-      
-      <div className="flex justify-between">
-        <span className="text-gray-600">Tax (18% GST)</span>
-        <span>{formatCurrency(pricing.tax)}</span>
       </div>
       
       {pricing.transactionFee > 0 && (
