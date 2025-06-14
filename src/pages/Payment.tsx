@@ -71,6 +71,8 @@ const PaymentMethodsPage = () => {
   useNavigationGestures();
 
   useEffect(() => {
+    console.log('Payment page loaded, cart items:', cartItems.length, 'address:', addressId);
+    
     if (!cartItems || cartItems.length === 0) {
       toast('Your cart is empty', {
         description: 'Please add items to your cart before proceeding to payment.'
@@ -355,6 +357,7 @@ const PaymentMethodsPage = () => {
   };
 
   const handlePayment = () => {
+    console.log('Payment button clicked');
     setIsProcessingPayment(true);
     
     if (!addressId || !user) {
@@ -500,7 +503,7 @@ const PaymentMethodsPage = () => {
           <Button 
             onClick={handlePayment}
             disabled={isProcessingPayment || createOrderMutation.isPending}
-            className="w-full bg-brand-blue hover:bg-brand-darkBlue"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 text-lg"
           >
             {isProcessingPayment || createOrderMutation.isPending ? 'Processing...' : `Pay ${formatCurrency(pricing.totalAmount)}`}
           </Button>

@@ -20,6 +20,8 @@ const OptimizedCheckoutButton: React.FC<OptimizedCheckoutButtonProps> = ({
   const { checkAuthForCheckout } = useAuthCheck();
 
   const handleCheckout = () => {
+    console.log('Checkout button clicked, cart items:', cartItems.length);
+    
     if (cartItems.length === 0) {
       toast("Cart is empty", {
         description: "Add items to your cart before proceeding to checkout."
@@ -29,15 +31,18 @@ const OptimizedCheckoutButton: React.FC<OptimizedCheckoutButtonProps> = ({
 
     // Check if user is authenticated before proceeding
     if (checkAuthForCheckout()) {
-      // Use replace to avoid adding to history stack for faster navigation
+      console.log('User authenticated, navigating to address page');
+      // Use navigate with replace to avoid adding to history stack
       navigate('/address', { replace: true });
+    } else {
+      console.log('User not authenticated');
     }
   };
 
   return (
     <Button 
       onClick={handleCheckout} 
-      className={`w-full mt-4 bg-brand-blue hover:bg-brand-darkBlue ${className}`}
+      className={`w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white font-medium ${className}`}
       disabled={disabled || cartItems.length === 0}
     >
       Proceed to Checkout
