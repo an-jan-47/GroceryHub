@@ -89,6 +89,9 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const clearCart = () => {
     setCartItems([]);
+    // Clear applied coupons when cart is cleared
+    localStorage.removeItem('appliedCoupon');
+    console.log('Cart cleared, coupons removed');
   };
 
   const cartTotal = cartItems.reduce((total, item) => {

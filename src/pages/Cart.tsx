@@ -22,8 +22,13 @@ const CartPage = () => {
     cartTotal,
     setCartItems
   } = useCart();
-  const { appliedCoupons, addCoupon, removeCoupon, clearCoupons } = useCouponState();
+  const { appliedCoupons, addCoupon, removeCoupon, clearCoupons, checkCartAndClearCoupons } = useCouponState();
   const navigate = useNavigate();
+
+  // Check if cart is empty and clear coupons accordingly
+  useEffect(() => {
+    checkCartAndClearCoupons(cartItems.length);
+  }, [cartItems.length, checkCartAndClearCoupons]);
 
   // Pricing configuration 
   const platformFees = 5.00;
@@ -64,35 +69,38 @@ const CartPage = () => {
   // Add coupon clearing when removing last item
   const handleRemoveFromCart = (productId: string) => {
     removeFromCart(productId);
-    if (cartItems.length === 1) { // If this is the last item
+    // Check if this was the last item and clear coupons if needed
+    if (cartItems.length === 1) {
       clearCoupons();
     }
   };
 
-  // Load coupons from localStorage on component mount
+  // Only load coupons if cart has items
   useEffect(() => {
-    const storedCouponData = localStorage.getItem('appliedCoupon');
-    if (storedCouponData && cartItems.length > 0) {
-      try {
-        const parsedData = JSON.parse(storedCouponData);
-        let couponsToLoad: any[] = [];
-        
-        if (Array.isArray(parsedData)) {
-          couponsToLoad = parsedData;
-        } else if (parsedData.coupon) {
-          couponsToLoad = [parsedData];
+    if (cartItems.length > 0) {
+      const storedCouponData = localStorage.getItem('appliedCoupon');
+      if (storedCouponData) {
+        try {
+          const parsedData = JSON.parse(storedCouponData);
+          let couponsToLoad: any[] = [];
+          
+          if (Array.isArray(parsedData)) {
+            couponsToLoad = parsedData;
+          } else if (parsedData.coupon) {
+            couponsToLoad = [parsedData];
+          }
+          
+          // Load coupons into global state
+          couponsToLoad.forEach(({ coupon, discountAmount }) => {
+            addCoupon(coupon, discountAmount);
+          });
+        } catch (error) {
+          console.error('Error loading coupons from localStorage:', error);
+          localStorage.removeItem('appliedCoupon');
         }
-        
-        // Load coupons into global state
-        couponsToLoad.forEach(({ coupon, discountAmount }) => {
-          addCoupon(coupon, discountAmount);
-        });
-      } catch (error) {
-        console.error('Error loading coupons from localStorage:', error);
-        localStorage.removeItem('appliedCoupon');
       }
     }
-  }, [cartItems, addCoupon]);
+  }, [cartItems.length, addCoupon]);
 
   const handleCouponApply = async () => {
     if (!couponCode.trim()) {

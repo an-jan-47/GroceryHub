@@ -47,6 +47,7 @@ class CouponStateManager {
       this.appliedCoupons = [];
       this.updateLocalStorage();
       this.notifyListeners();
+      console.log('CouponStateManager: All coupons cleared');
     }
   }
 
@@ -91,6 +92,14 @@ class CouponStateManager {
       console.error('Error updating localStorage:', error);
     }
   }
+
+  // Add method to check if cart is empty and clear coupons
+  checkCartAndClearCoupons(cartItemsLength: number) {
+    if (cartItemsLength === 0 && this.appliedCoupons.length > 0) {
+      console.log('Cart is empty, clearing all coupons');
+      this.clearCoupons();
+    }
+  }
 }
 
 const couponStateManager = new CouponStateManager();
@@ -114,6 +123,8 @@ export const useCouponState = () => {
       couponStateManager.addCoupon(coupon, discountAmount),
     removeCoupon: (couponId: string) => couponStateManager.removeCoupon(couponId),
     clearCoupons: () => couponStateManager.clearCoupons(),
-    setCoupons: (coupons: AppliedCouponState[]) => couponStateManager.setCoupons(coupons)
+    setCoupons: (coupons: AppliedCouponState[]) => couponStateManager.setCoupons(coupons),
+    checkCartAndClearCoupons: (cartItemsLength: number) => 
+      couponStateManager.checkCartAndClearCoupons(cartItemsLength)
   };
 };
