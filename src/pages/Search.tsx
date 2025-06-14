@@ -11,7 +11,19 @@ import { getProducts } from '@/services/productService';
 import ProductCard from '@/components/ProductCard';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
-import { Product } from '@/types/product';
+
+interface Product {
+  id: string;
+  name: string;
+  price: number;
+  sale_price?: number;
+  description?: string;
+  images?: string[];
+  category: string;
+  brand?: string;
+  rating: number;
+  stock: number;
+}
 
 const SearchPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -46,7 +58,7 @@ const SearchPage = () => {
 
     if (priceRange !== 'all') {
       filtered = filtered.filter((product: Product) => {
-        const price = product.salePrice || product.price;
+        const price = product.sale_price || product.price;
         switch (priceRange) {
           case 'under-50': return price < 50;
           case '50-100': return price >= 50 && price <= 100;
@@ -59,8 +71,8 @@ const SearchPage = () => {
 
     return filtered.sort((a: Product, b: Product) => {
       switch (sortBy) {
-        case 'price-low': return (a.salePrice || a.price) - (b.salePrice || b.price);
-        case 'price-high': return (b.salePrice || b.price) - (a.salePrice || a.price);
+        case 'price-low': return (a.sale_price || a.price) - (b.sale_price || b.price);
+        case 'price-high': return (b.sale_price || b.price) - (a.sale_price || a.price);
         case 'name': return a.name.localeCompare(b.name);
         default: return 0;
       }

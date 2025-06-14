@@ -3,11 +3,19 @@ import React from 'react';
 import ProductCard from './ProductCard';
 
 interface ProductsGridProps {
-  products: any[];
+  products?: any[];
+  customProducts?: any[];
   isLoading?: boolean;
 }
 
-const ProductsGrid: React.FC<ProductsGridProps> = ({ products, isLoading }) => {
+const ProductsGrid: React.FC<ProductsGridProps> = ({ 
+  products = [], 
+  customProducts, 
+  isLoading 
+}) => {
+  // Use customProducts if provided, otherwise use products, with fallback to empty array
+  const displayProducts = customProducts || products || [];
+
   if (isLoading) {
     return (
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -26,7 +34,7 @@ const ProductsGrid: React.FC<ProductsGridProps> = ({ products, isLoading }) => {
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-      {products.map((product) => (
+      {displayProducts.map((product) => (
         <ProductCard
           key={product.id}
           product={product}
