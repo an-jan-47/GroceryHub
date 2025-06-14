@@ -26,11 +26,14 @@ const SearchPage = () => {
   });
 
   const categories = useMemo(() => {
+    if (!products || products.length === 0) return [];
     const categorySet = new Set(products.map((product: Product) => product.category));
     return Array.from(categorySet);
   }, [products]);
 
   const filteredProducts = useMemo(() => {
+    if (!products || products.length === 0) return [];
+    
     let filtered = products as Product[];
 
     if (searchTerm) {
@@ -92,7 +95,9 @@ const SearchPage = () => {
     setSearchParams({});
   }, [setSearchParams]);
 
-  const activeFiltersCount = [selectedCategory, priceRange, sortBy].filter(f => f !== 'all' && f !== 'name').length;
+  const activeFiltersCount = useMemo(() => {
+    return [selectedCategory, priceRange, sortBy].filter(f => f !== 'all' && f !== 'name').length;
+  }, [selectedCategory, priceRange, sortBy]);
 
   return (
     <div className="pb-20">
