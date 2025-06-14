@@ -1,6 +1,6 @@
 
-import { useState } from 'react';
-import { useSearchParams as useSearchParamsPolyfill } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
 import ProductsGrid from '@/components/ProductsGrid';
@@ -9,9 +9,26 @@ import { useQuery } from '@tanstack/react-query';
 import { searchProducts, type SearchFilters as SearchFiltersType } from '@/services/searchService';
 
 const Explore = () => {
-  const [searchParams] = useSearchParamsPolyfill();
+  const [searchParams] = useSearchParams();
   const initialQuery = searchParams.get('q') || '';
-  const [filters, setFilters] = useState<SearchFiltersType>({ query: initialQuery });
+  const initialCategory = searchParams.get('category') || '';
+  
+  const [filters, setFilters] = useState<SearchFiltersType>({ 
+    query: initialQuery,
+    category: initialCategory 
+  });
+
+  // Update filters when URL params change
+  useEffect(() => {
+    const newQuery = searchParams.get('q') || '';
+    const newCategory = searchParams.get('category') || '';
+    
+    setFilters(prev => ({
+      ...prev,
+      query: newQuery,
+      category: newCategory
+    }));
+  }, [searchParams]);
 
   const { data: products = [], isLoading } = useQuery({
     queryKey: ['searchProducts', filters],
@@ -19,16 +36,28 @@ const Explore = () => {
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
+  const pageTitle = initialCategory 
+    ? `${initialCategory} Products` 
+    : 'Explore Products';
+
   return (
     <div className="pb-20 bg-gray-50 min-h-screen">
       <Header />
       
       <main className="container px-4 py-6 mx-auto">
-        <h1 className="text-2xl font-bold mb-6 text-gray-800">Explore Products</h1>
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-bold text-gray-800">{pageTitle}</h1>
+          {initialCategory && (
+            <span className="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+              Category: {initialCategory}
+            </span>
+          )}
+        </div>
         
         <SearchFiltersComponent 
           onFilterChange={setFilters}
           initialQuery={initialQuery}
+          initialCategory={initialCategory}
         />
         
         {isLoading ? (
@@ -41,13 +70,21 @@ const Explore = () => {
           <div className="mt-6">
             {products.length > 0 ? (
               <>
-                <p className="text-gray-600 mb-4">{products.length} products found</p>
+                <p className="text-gray-600 mb-4">
+                  {products.length} product{products.length !== 1 ? 's' : ''} found
+                  {initialCategory && ` in ${initialCategory}`}
+                </p>
                 <ProductsGrid customProducts={products} />
               </>
             ) : (
               <div className="text-center py-12">
                 <p className="text-gray-500 text-lg">No products found</p>
-                <p className="text-gray-400">Try adjusting your search or filters</p>
+                <p className="text-gray-400">
+                  {initialCategory 
+                    ? `No products available in ${initialCategory} category`
+                    : 'Try adjusting your search or filters'
+                  }
+                </p>
               </div>
             )}
           </div>

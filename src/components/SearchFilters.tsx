@@ -1,148 +1,147 @@
 
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
+import React, { useState, useEffect } from 'react';
+import { Search as SearchIcon, Filter, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Filter, X, Search as SearchIcon } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
-import { getCategories } from '@/services/categoryService';
-import { Slider } from "@/components/ui/slider";
+import { Badge } from '@/components/ui/badge';
 
-interface SearchFiltersProps {
-  onFilterChange: (filters: {
-    query?: string;
-    category?: string;
-    minPrice?: number;
-    maxPrice?: number;
-  }) => void;
-  initialQuery?: string;
+export interface SearchFilters {
+  query?: string;
+  category?: string;
+  priceRange?: string;
+  sortBy?: string;
 }
 
-const SearchFilters = ({ onFilterChange, initialQuery = '' }: SearchFiltersProps) => {
-  const [showFilters, setShowFilters] = useState(false);
-  const [query, setQuery] = useState(initialQuery);
-  const [category, setCategory] = useState('all');
-  const [priceRange, setPriceRange] = useState([0, 10000]);
-  
-  const { data: categories = [] } = useQuery({
-    queryKey: ['categories'],
-    queryFn: getCategories
-  });
-  
-  const handlePriceChange = (value: number[]) => {
-    setPriceRange(value);
-    applyFilters(value);
-  };
+interface SearchFiltersComponentProps {
+  onFilterChange: (filters: SearchFilters) => void;
+  initialQuery?: string;
+  initialCategory?: string;
+}
 
-  const applyFilters = (priceValues = priceRange) => {
+const SearchFiltersComponent: React.FC<SearchFiltersComponentProps> = ({
+  onFilterChange,
+  initialQuery = '',
+  initialCategory = ''
+}) => {
+  const [searchTerm, setSearchTerm] = useState(initialQuery);
+  const [selectedCategory, setSelectedCategory] = useState(initialCategory || 'all');
+  const [priceRange, setPriceRange] = useState('all');
+  const [sortBy, setSortBy] = useState('name');
+
+  // Available categories (in a real app, this would come from your backend)
+  const categories = ['Nestle', 'Cadbury', 'Haldiram', 'Books', 'Sports', 'Beauty'];
+
+  useEffect(() => {
+    setSearchTerm(initialQuery);
+  }, [initialQuery]);
+
+  useEffect(() => {
+    setSelectedCategory(initialCategory || 'all');
+  }, [initialCategory]);
+
+  useEffect(() => {
     onFilterChange({
-      query: query.trim() || undefined,
-      category: category === 'all' ? undefined : category,
-      minPrice: priceValues[0],
-      maxPrice: priceValues[1]
+      query: searchTerm,
+      category: selectedCategory === 'all' ? '' : selectedCategory,
+      priceRange: priceRange === 'all' ? '' : priceRange,
+      sortBy: sortBy === 'name' ? '' : sortBy
     });
-  };
+  }, [searchTerm, selectedCategory, priceRange, sortBy, onFilterChange]);
 
-  const handleSearch = () => {
-    applyFilters();
+  const handleSearch = (value: string) => {
+    setSearchTerm(value);
   };
 
   const clearFilters = () => {
-    setQuery('');
-    setCategory('all');
-    setPriceRange([0, 10000]);
-    onFilterChange({});
+    setSearchTerm('');
+    setSelectedCategory('all');
+    setPriceRange('all');
+    setSortBy('name');
   };
+
+  const activeFiltersCount = [
+    selectedCategory !== 'all' ? selectedCategory : null,
+    priceRange !== 'all' ? priceRange : null,
+    sortBy !== 'name' ? sortBy : null
+  ].filter(Boolean).length;
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-2">
-        <div className="flex-1 relative">
-          <Input
-            placeholder="Search products..."
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-            className="pl-10 border-blue-200 focus:border-blue-400 rounded-full"
-          />
-          <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-blue-500" />
-        </div>
-        <Button 
-          onClick={() => setShowFilters(!showFilters)} 
-          variant="outline" 
-          size="icon"
-          className="rounded-full border-blue-200 hover:bg-blue-50 hover:text-blue-600"
-        >
-          <Filter className="h-4 w-4" />
-        </Button>
+      <div className="relative">
+        <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+        <Input
+          type="text"
+          placeholder="Search products..."
+          value={searchTerm}
+          onChange={(e) => handleSearch(e.target.value)}
+          className="pl-10 pr-4"
+        />
       </div>
 
-      {showFilters && (
-        <div className="bg-white p-4 rounded-xl shadow-md space-y-4 border border-blue-100">
-          <div className="flex justify-between items-center">
-            <h3 className="font-medium text-blue-800">Filters</h3>
-            <Button onClick={() => setShowFilters(false)} variant="ghost" size="sm" className="text-gray-500 hover:text-gray-700">
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-          
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="category" className="text-gray-700">Category</Label>
-              <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger className="mt-1 border-blue-200 focus:border-blue-400 rounded-lg">
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Categories</SelectItem>
-                  {categories.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.name}>
-                      {cat.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="space-y-2">
-              <Label className="text-gray-700">Price Range</Label>
-              <div className="pt-6 px-2">
-                <Slider
-                  defaultValue={[0, 10000]}
-                  max={10000}
-                  step={100}
-                  value={priceRange}
-                  onValueChange={handlePriceChange}
-                  className="w-full"
-                />
-                <div className="flex justify-between mt-2 text-sm text-gray-500">
-                  <span>₹{priceRange[0]}</span>
-                  <span>₹{priceRange[1]}</span>
-                </div>
-              </div>
-            </div>
+      <div className="flex flex-wrap gap-2 items-center">
+        <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+          <SelectTrigger className="w-40">
+            <SelectValue placeholder="Category" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Categories</SelectItem>
+            {categories.map((category) => (
+              <SelectItem key={category} value={category}>
+                {category}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-            <div className="flex gap-2">
-              <Button 
-                onClick={handleSearch} 
-                className="flex-1 bg-blue-600 hover:bg-blue-700"
-              >
-                Apply Filters
-              </Button>
-              <Button 
-                onClick={clearFilters} 
-                variant="outline"
-                className="border-blue-200 text-blue-600 hover:bg-blue-50"
-              >
-                Clear
-              </Button>
-            </div>
-          </div>
+        <Select value={priceRange} onValueChange={setPriceRange}>
+          <SelectTrigger className="w-32">
+            <SelectValue placeholder="Price" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Prices</SelectItem>
+            <SelectItem value="under-50">Under ₹50</SelectItem>
+            <SelectItem value="50-100">₹50 - ₹100</SelectItem>
+            <SelectItem value="100-200">₹100 - ₹200</SelectItem>
+            <SelectItem value="over-200">Over ₹200</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select value={sortBy} onValueChange={setSortBy}>
+          <SelectTrigger className="w-36">
+            <SelectValue placeholder="Sort by" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="name">Name</SelectItem>
+            <SelectItem value="price-low">Price: Low to High</SelectItem>
+            <SelectItem value="price-high">Price: High to Low</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {activeFiltersCount > 0 && (
+          <Button variant="outline" size="sm" onClick={clearFilters}>
+            <X className="w-4 h-4 mr-1" />
+            Clear ({activeFiltersCount})
+          </Button>
+        )}
+      </div>
+
+      {(searchTerm || selectedCategory !== 'all') && (
+        <div className="flex flex-wrap gap-2">
+          {searchTerm && (
+            <Badge variant="secondary">
+              Search: "{searchTerm}"
+            </Badge>
+          )}
+          {selectedCategory !== 'all' && (
+            <Badge variant="secondary">
+              Category: {selectedCategory}
+            </Badge>
+          )}
         </div>
       )}
     </div>
   );
 };
 
-export default SearchFilters;
+export default SearchFiltersComponent;

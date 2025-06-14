@@ -10,7 +10,7 @@ interface CategoryCardProps {
   };
 }
 
-const CategoryCard = ({ category }) => (
+const CategoryCard = ({ category }: CategoryCardProps) => (
   <Link
     to={`/explore?category=${encodeURIComponent(category.name)}`}
     className="block group"

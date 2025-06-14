@@ -1,63 +1,72 @@
 
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from '@/integrations/supabase/client';
 
 export interface SearchFilters {
   query?: string;
   category?: string;
-  minPrice?: number;
-  maxPrice?: number;
+  priceRange?: string;
+  sortBy?: string;
 }
 
 export const searchProducts = async (filters: SearchFilters) => {
   let query = supabase
     .from('products')
     .select('*')
-    .order('name');
+    .eq('is_active', true);
 
-  // Apply text search
+  // Apply search query filter
   if (filters.query) {
-    query = query.ilike('name', `%${filters.query}%`);
+    query = query.or(`name.ilike.%${filters.query}%,description.ilike.%${filters.query}%`);
   }
 
   // Apply category filter
-  if (filters.category && filters.category !== 'all') {
+  if (filters.category) {
     query = query.eq('category', filters.category);
   }
 
-  // Apply price filters
-  if (filters.minPrice !== undefined) {
-    query = query.gte('price', filters.minPrice);
+  // Apply price range filter
+  if (filters.priceRange) {
+    switch (filters.priceRange) {
+      case 'under-50':
+        query = query.lt('price', 50);
+        break;
+      case '50-100':
+        query = query.gte('price', 50).lte('price', 100);
+        break;
+      case '100-200':
+        query = query.gt('price', 100).lte('price', 200);
+        break;
+      case 'over-200':
+        query = query.gt('price', 200);
+        break;
+    }
   }
 
-  if (filters.maxPrice !== undefined) {
-    query = query.lte('price', filters.maxPrice);
+  // Apply sorting
+  if (filters.sortBy) {
+    switch (filters.sortBy) {
+      case 'price-low':
+        query = query.order('price', { ascending: true });
+        break;
+      case 'price-high':
+        query = query.order('price', { ascending: false });
+        break;
+      case 'name':
+        query = query.order('name', { ascending: true });
+        break;
+      default:
+        query = query.order('created_at', { ascending: false });
+    }
+  } else {
+    query = query.order('created_at', { ascending: false });
   }
 
   const { data, error } = await query;
-  
+
   if (error) {
     console.error('Error searching products:', error);
-    throw error;
+    return [];
   }
 
-  // Convert features from Json to string[] to match Product type
-  return data?.map(product => ({
-    ...product,
-    features: Array.isArray(product.features) ? product.features.map(f => String(f)) : []
-  })) || [];
-};
-
-export const getCategories = async () => {
-  const { data, error } = await supabase
-    .from('categories')
-    .select('*')
-    .eq('is_active', true)
-    .order('display_order');
-    
-  if (error) {
-    console.error('Error fetching categories:', error);
-    throw error;
-  }
-  
   return data || [];
 };
