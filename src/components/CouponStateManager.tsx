@@ -2,9 +2,10 @@
 import { useState, useEffect } from 'react';
 import { type Coupon } from '@/services/couponService';
 
-interface AppliedCouponState {
+export interface AppliedCouponState {
   coupon: Coupon;
   discountAmount: number;
+  appliedToTotal?: number; // Make this optional to match AppliedCoupon interface
 }
 
 interface CouponStateManager {
@@ -27,22 +28,36 @@ const globalCouponState = {
     } else {
       this.appliedCoupons.push({ coupon, discountAmount });
     }
+    this.saveToLocalStorage();
     this.notifyListeners();
   },
   
   removeCoupon(couponId: string) {
+    console.log('Removing coupon with ID:', couponId, 'Current coupons:', this.appliedCoupons);
     this.appliedCoupons = this.appliedCoupons.filter(c => c.coupon.id !== couponId);
+    console.log('After removal:', this.appliedCoupons);
+    this.saveToLocalStorage();
     this.notifyListeners();
   },
   
   clearCoupons() {
     this.appliedCoupons = [];
+    this.saveToLocalStorage();
     this.notifyListeners();
   },
   
   setCoupons(coupons: AppliedCouponState[]) {
     this.appliedCoupons = coupons;
+    this.saveToLocalStorage();
     this.notifyListeners();
+  },
+  
+  saveToLocalStorage() {
+    if (this.appliedCoupons.length > 0) {
+      localStorage.setItem('appliedCoupon', JSON.stringify(this.appliedCoupons));
+    } else {
+      localStorage.removeItem('appliedCoupon');
+    }
   },
   
   subscribe(listener: () => void) {

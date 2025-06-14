@@ -96,15 +96,6 @@ const CartPage = () => {
     }
   }, [cartItems, addCoupon]);
 
-  // Save coupons to localStorage whenever they change
-  useEffect(() => {
-    if (appliedCoupons.length > 0) {
-      localStorage.setItem('appliedCoupon', JSON.stringify(appliedCoupons));
-    } else {
-      localStorage.removeItem('appliedCoupon');
-    }
-  }, [appliedCoupons]);
-
   const handleCouponApply = async () => {
     if (!couponCode.trim()) {
       toast("Please enter a coupon code");
@@ -120,7 +111,13 @@ const CartPage = () => {
 
     setIsApplyingCoupon(true);
     try {
-      const coupon = await validateCoupon(couponCode, totalBeforeDiscount, appliedCoupons);
+      // Convert AppliedCouponState to AppliedCoupon format for validation
+      const appliedCouponsForValidation = appliedCoupons.map(c => ({
+        ...c,
+        appliedToTotal: c.appliedToTotal || totalBeforeDiscount
+      }));
+      
+      const coupon = await validateCoupon(couponCode, totalBeforeDiscount, appliedCouponsForValidation);
       const discount = calculateDiscount(coupon, totalBeforeDiscount);
       
       addCoupon(coupon, discount);
@@ -139,6 +136,7 @@ const CartPage = () => {
   };
 
   const handleRemoveCoupon = (couponId: string) => {
+    console.log('Cart: Removing coupon with ID:', couponId);
     removeCoupon(couponId);
     toast("Coupon removed");
   };

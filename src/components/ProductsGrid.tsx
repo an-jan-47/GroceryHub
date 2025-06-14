@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { getProducts, getProductCount, subscribeToProductChanges, Product } from '@/services/productService';
 import ProductCard from '@/components/ProductCard';
