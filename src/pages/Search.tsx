@@ -1,7 +1,7 @@
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search as SearchIcon, Filter, X } from 'lucide-react';
+import { Search as SearchIcon, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -67,12 +67,12 @@ const SearchPage = () => {
     });
   }, [products, searchTerm, selectedCategory, priceRange, sortBy]);
 
-  const handleSearch = (value: string) => {
+  const handleSearch = useCallback((value: string) => {
     setSearchTerm(value);
     updateSearchParams({ q: value });
-  };
+  }, []);
 
-  const updateSearchParams = (updates: Record<string, string>) => {
+  const updateSearchParams = useCallback((updates: Record<string, string>) => {
     const newParams = new URLSearchParams(searchParams);
     Object.entries(updates).forEach(([key, value]) => {
       if (value && value !== 'all') {
@@ -82,15 +82,15 @@ const SearchPage = () => {
       }
     });
     setSearchParams(newParams);
-  };
+  }, [searchParams, setSearchParams]);
 
-  const clearFilters = () => {
+  const clearFilters = useCallback(() => {
     setSearchTerm('');
     setSelectedCategory('all');
     setPriceRange('all');
     setSortBy('name');
     setSearchParams({});
-  };
+  }, [setSearchParams]);
 
   const activeFiltersCount = [selectedCategory, priceRange, sortBy].filter(f => f !== 'all' && f !== 'name').length;
 
