@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { getProducts, getProductCount, subscribeToProductChanges, Product } from '@/services/productService';
 import ProductCard from '@/components/ProductCard';
 
@@ -77,7 +78,7 @@ const ProductsGrid = ({ category, limit, title = 'Products', showCount = true, c
       {products.length > 0 ? (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {products.map(product => (
-            <ProductCard product={product} />
+            <ProductCard key={product.id} product={product} />
           ))}
         </div>
       ) : (

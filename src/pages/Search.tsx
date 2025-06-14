@@ -6,8 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
-import { getProducts, getCategories } from '@/services/productService';
-import { getCategoryNames } from '@/services/categoryService';
+import { getProducts } from '@/services/productService';
 import ProductCard from '@/components/ProductCard';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
@@ -36,13 +35,6 @@ const Search = () => {
   const { data: allProducts = [], isLoading: productsLoading } = useQuery({
     queryKey: ['products'],
     queryFn: () => getProducts(),
-    staleTime: 1000 * 60 * 10, // 10 minutes
-  });
-
-  // Fetch categories for filter
-  const { data: categoryData = [], isLoading: categoriesLoading } = useQuery({
-    queryKey: ['categories'],
-    queryFn: getCategoryNames,
     staleTime: 1000 * 60 * 10, // 10 minutes
   });
 
@@ -198,7 +190,7 @@ const Search = () => {
           <div className="mb-4 flex flex-wrap gap-2 items-center">
             <span className="text-sm text-gray-600">Active filters:</span>
             {selectedCategories.map(category => (
-              <Badge variant="secondary" className="cursor-pointer">
+              <Badge key={category} variant="secondary" className="cursor-pointer">
                 {category}
                 <X 
                   className="w-3 h-3 ml-1" 
@@ -207,7 +199,7 @@ const Search = () => {
               </Badge>
             ))}
             {selectedBrands.map(brand => (
-              <Badge variant="secondary" className="cursor-pointer">
+              <Badge key={brand} variant="secondary" className="cursor-pointer">
                 {brand}
                 <X 
                   className="w-3 h-3 ml-1" 
@@ -232,6 +224,7 @@ const Search = () => {
               <div className="flex flex-wrap gap-2">
                 {uniqueCategories.map((category) => (
                   <Badge
+                    key={category}
                     variant={selectedCategories.includes(category) ? "default" : "outline"}
                     className="cursor-pointer"
                     onClick={() => handleCategoryFilter(category)}
@@ -248,6 +241,7 @@ const Search = () => {
               <div className="flex flex-wrap gap-2">
                 {uniqueBrands.map((brand) => (
                   <Badge
+                    key={brand}
                     variant={selectedBrands.includes(brand) ? "default" : "outline"}
                     className="cursor-pointer"
                     onClick={() => handleBrandFilter(brand)}
@@ -270,6 +264,7 @@ const Search = () => {
                   { value: 'newest', label: 'Newest' },
                 ].map((option) => (
                   <Badge
+                    key={option.value}
                     variant={sortBy === option.value ? "default" : "outline"}
                     className="cursor-pointer"
                     onClick={() => setSortBy(option.value as SearchFilters['sortBy'])}
