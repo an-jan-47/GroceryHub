@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ChevronLeft, Trash2, Plus, Minus, ShoppingCart } from 'lucide-react';
@@ -8,8 +7,8 @@ import { Separator } from '@/components/ui/separator';
 import { useCart } from '@/hooks/useCart';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
+import OptimizedCheckoutButton from '@/components/OptimizedCheckoutButton';
 import { toast } from '@/components/ui/sonner';
-import { useAuthCheck } from '@/hooks/useAuthCheck';
 import { validateCoupon, calculateDiscount } from '@/services/couponService';
 import { useCouponState } from '@/components/CouponStateManager';
 
@@ -25,7 +24,6 @@ const CartPage = () => {
   } = useCart();
   const { appliedCoupons, addCoupon, removeCoupon, clearCoupons } = useCouponState();
   const navigate = useNavigate();
-  const { checkAuthForCheckout } = useAuthCheck();
 
   // Pricing configuration 
   const platformFees = 5.00;
@@ -139,20 +137,6 @@ const CartPage = () => {
     console.log('Cart: Removing coupon with ID:', couponId);
     removeCoupon(couponId);
     toast("Coupon removed");
-  };
-
-  const handleCheckout = () => {
-    if (cartItems.length === 0) {
-      toast("Cart is empty", {
-        description: "Add items to your cart before proceeding to checkout."
-      });
-      return;
-    }
-
-    // Check if user is authenticated before proceeding
-    if (checkAuthForCheckout()) {
-      navigate('/address');
-    }
   };
 
   return (
@@ -334,13 +318,7 @@ const CartPage = () => {
                 )}
               </div>
               
-              <Button 
-                onClick={handleCheckout} 
-                className="w-full mt-4 bg-brand-blue hover:bg-brand-darkBlue"
-                disabled={cartItems.length === 0}
-              >
-                Proceed to Checkout
-              </Button>
+              <OptimizedCheckoutButton cartItems={cartItems} />
             </div>
           </>
         )}

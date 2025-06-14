@@ -69,8 +69,14 @@ const CouponApply = () => {
         return total + (itemPrice * item.quantity);
       }, 0);
       
+      // Convert AppliedCouponState to AppliedCoupon format for validation
+      const appliedCouponsForValidation = appliedCoupons.map(c => ({
+        ...c,
+        appliedToTotal: c.appliedToTotal || cartTotal
+      }));
+      
       // Validate the coupon before applying
-      await validateCoupon(couponCode, cartTotal, appliedCoupons);
+      await validateCoupon(couponCode, cartTotal, appliedCouponsForValidation);
       const discountAmount = calculateDiscount(typedCoupon, cartTotal);
       
       // Add coupon to global state

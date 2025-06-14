@@ -1,326 +1,387 @@
 
-import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { Search as SearchIcon, SlidersHorizontal, X } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Search as SearchIcon, X, SlidersHorizontal } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useQuery } from '@tanstack/react-query';
-import { getProducts } from '@/services/productService';
-import ProductCard from '@/components/ProductCard';
+import { Separator } from '@/components/ui/separator';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
-import ProductsGrid from '@/components/ProductsGrid';
+import ProductCard from '@/components/ProductCard';
+import { getCategories } from '@/services/categoryService';
+import { getProducts, searchProducts, Product } from '@/services/productService';
+import { useQuery } from '@tanstack/react-query';
 
-interface SearchFilters {
-  category: string[];
-  brand: string[];
-  priceRange: {
-    min: number;
-    max: number;
-  };
-  sortBy: 'relevance' | 'price-low' | 'price-high' | 'rating' | 'newest';
-}
-
-const Search = () => {
+const SearchPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
-  const [showFilters, setShowFilters] = useState(false);
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
-  const [priceRange, setPriceRange] = useState({ min: 0, max: 10000 });
-  const [sortBy, setSortBy] = useState<SearchFilters['sortBy']>('relevance');
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('query') || '');
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [selectedBrand, setSelectedBrand] = useState<string>('');
+  const [priceRange, setPriceRange] = useState<{ min: number; max: number }>({ min: 0, max: 5000 });
+  const [sortBy, setSortBy] = useState<string>('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
+  const navigate = useNavigate();
 
-  // Fetch products
-  const { data: allProducts = [], isLoading: productsLoading } = useQuery({
-    queryKey: ['products'],
-    queryFn: () => getProducts(),
-    staleTime: 1000 * 60 * 10, // 10 minutes
+  // Fetch categories
+  const { data: categories = [] } = useQuery({
+    queryKey: ['categories'],
+    queryFn: getCategories,
+  });
+
+  // Fetch all products for filtering
+  const { data: allProducts = [], isLoading: isLoadingProducts } = useQuery({
+    queryKey: ['all-products'],
+    queryFn: getProducts,
   });
 
   // Extract unique brands from products
-  useEffect(() => {
-    if (allProducts && Array.isArray(allProducts)) {
-      const brands = allProducts.map((product: any) => product.brand);
-      const uniqueBrands = [...new Set(brands)];
-      setSelectedBrands(prev => prev.filter(brand => uniqueBrands.includes(brand)));
-    }
-  }, [allProducts]);
+  const brands = [...new Set(allProducts.map(p => p.brand).filter(Boolean))];
 
-  // Extract unique categories from products
+  // Search and filter products
   useEffect(() => {
-    if (allProducts && Array.isArray(allProducts)) {
-      const categories = allProducts.map((product: any) => product.category);
-      const uniqueCategories = [...new Set(categories)];
-      setSelectedCategories(prev => prev.filter(cat => uniqueCategories.includes(cat)));
-    }
-  }, [allProducts]);
+    let products = allProducts;
 
-  // Update search query from URL params
-  useEffect(() => {
-    const query = searchParams.get('q') || '';
-    setSearchQuery(query);
-  }, [searchParams]);
-
-  const handleSearch = () => {
+    // Apply search query
     if (searchQuery.trim()) {
-      setSearchParams({ q: searchQuery.trim() });
+      products = products.filter(product =>
+        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        product.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        product.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        product.brand?.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    // Apply category filter
+    if (selectedCategory) {
+      products = products.filter(product => product.category === selectedCategory);
+    }
+
+    // Apply brand filter
+    if (selectedBrand) {
+      products = products.filter(product => product.brand === selectedBrand);
+    }
+
+    // Apply price range filter
+    products = products.filter(product => {
+      const price = product.salePrice || product.price;
+      return price >= priceRange.min && price <= priceRange.max;
+    });
+
+    // Apply sorting
+    products.sort((a, b) => {
+      let aValue: any;
+      let bValue: any;
+
+      switch (sortBy) {
+        case 'price':
+          aValue = a.salePrice || a.price;
+          bValue = b.salePrice || b.price;
+          break;
+        case 'name':
+          aValue = a.name.toLowerCase();
+          bValue = b.name.toLowerCase();
+          break;
+        default:
+          aValue = a.name.toLowerCase();
+          bValue = b.name.toLowerCase();
+      }
+
+      if (aValue < bValue) return sortOrder === 'asc' ? -1 : 1;
+      if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+    setFilteredProducts(products);
+  }, [allProducts, searchQuery, selectedCategory, selectedBrand, priceRange, sortBy, sortOrder]);
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    if (query.trim()) {
+      setSearchParams({ query });
     } else {
       setSearchParams({});
     }
   };
 
-  const handleCategoryFilter = (category: string) => {
-    setSelectedCategories(prev => 
-      prev.includes(category) 
-        ? prev.filter(c => c !== category)
-        : [...prev, category]
-    );
-  };
-
-  const handleBrandFilter = (brand: string) => {
-    setSelectedBrands(prev => 
-      prev.includes(brand) 
-        ? prev.filter(b => b !== brand)
-        : [...prev, brand]
-    );
-  };
-
   const clearFilters = () => {
-    setSelectedCategories([]);
-    setSelectedBrands([]);
-    setPriceRange({ min: 0, max: 10000 });
-    setSortBy('relevance');
+    setSelectedCategory('');
+    setSelectedBrand('');
+    setPriceRange({ min: 0, max: 5000 });
+    setSortBy('name');
+    setSortOrder('asc');
   };
 
-  const applyFilters = (products: any[]) => {
-    if (!Array.isArray(products)) return [];
-    
-    let filtered = [...products];
+  const hasActiveFilters = selectedCategory || selectedBrand || priceRange.min > 0 || priceRange.max < 5000;
 
-    // Apply search query filter
-    if (searchQuery) {
-      filtered = filtered.filter(product =>
-        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        product.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        product.brand.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        product.category.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
+  const FilterContent = () => (
+    <div className="space-y-6">
+      {/* Category Filter */}
+      <div>
+        <h3 className="font-semibold mb-3">Category</h3>
+        <div className="space-y-2">
+          <Button
+            variant={selectedCategory === '' ? 'default' : 'outline'}
+            onClick={() => setSelectedCategory('')}
+            className="w-full justify-start"
+          >
+            All Categories
+          </Button>
+          {categories.map((category) => (
+            <Button
+              key={category.id}
+              variant={selectedCategory === category.name ? 'default' : 'outline'}
+              onClick={() => setSelectedCategory(category.name)}
+              className="w-full justify-start"
+            >
+              {category.name}
+            </Button>
+          ))}
+        </div>
+      </div>
 
-    // Apply category filter
-    if (selectedCategories.length > 0) {
-      filtered = filtered.filter(product => 
-        selectedCategories.includes(product.category)
-      );
-    }
+      <Separator />
 
-    // Apply brand filter
-    if (selectedBrands.length > 0) {
-      filtered = filtered.filter(product => 
-        selectedBrands.includes(product.brand)
-      );
-    }
+      {/* Brand Filter */}
+      <div>
+        <h3 className="font-semibold mb-3">Brand</h3>
+        <div className="space-y-2">
+          <Button
+            variant={selectedBrand === '' ? 'default' : 'outline'}
+            onClick={() => setSelectedBrand('')}
+            className="w-full justify-start"
+          >
+            All Brands
+          </Button>
+          {brands.map((brand) => (
+            <Button
+              key={brand}
+              variant={selectedBrand === brand ? 'default' : 'outline'}
+              onClick={() => setSelectedBrand(brand)}
+              className="w-full justify-start"
+            >
+              {brand}
+            </Button>
+          ))}
+        </div>
+      </div>
 
-    // Apply price range filter
-    filtered = filtered.filter(product => {
-      const price = product.sale_price || product.price;
-      return price >= priceRange.min && price <= priceRange.max;
-    });
+      <Separator />
 
-    // Apply sorting
-    filtered.sort((a, b) => {
-      switch (sortBy) {
-        case 'price-low':
-          return (a.sale_price || a.price) - (b.sale_price || b.price);
-        case 'price-high':
-          return (b.sale_price || b.price) - (a.sale_price || a.price);
-        case 'rating':
-          return b.rating - a.rating;
-        case 'newest':
-          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-        default:
-          return 0;
-      }
-    });
+      {/* Price Range */}
+      <div>
+        <h3 className="font-semibold mb-3">Price Range</h3>
+        <div className="space-y-2">
+          <div className="flex items-center space-x-2">
+            <Input
+              type="number"
+              placeholder="Min"
+              value={priceRange.min}
+              onChange={(e) => setPriceRange(prev => ({ ...prev, min: Number(e.target.value) }))}
+            />
+            <span>-</span>
+            <Input
+              type="number"
+              placeholder="Max"
+              value={priceRange.max}
+              onChange={(e) => setPriceRange(prev => ({ ...prev, max: Number(e.target.value) }))}
+            />
+          </div>
+        </div>
+      </div>
 
-    return filtered;
-  };
+      <Separator />
 
-  const filteredProducts = applyFilters(allProducts);
-  const hasActiveFilters = selectedCategories.length > 0 || selectedBrands.length > 0 || priceRange.min > 0 || priceRange.max < 10000 || sortBy !== 'relevance';
-  const uniqueBrands = Array.isArray(allProducts) ? [...new Set(allProducts.map((p: any) => p.brand))] : [];
-  const uniqueCategories = Array.isArray(allProducts) ? [...new Set(allProducts.map((p: any) => p.category))] : [];
+      {/* Sort Options */}
+      <div>
+        <h3 className="font-semibold mb-3">Sort By</h3>
+        <div className="space-y-2">
+          <Button
+            variant={sortBy === 'name' && sortOrder === 'asc' ? 'default' : 'outline'}
+            onClick={() => { setSortBy('name'); setSortOrder('asc'); }}
+            className="w-full justify-start"
+          >
+            Name (A-Z)
+          </Button>
+          <Button
+            variant={sortBy === 'name' && sortOrder === 'desc' ? 'default' : 'outline'}
+            onClick={() => { setSortBy('name'); setSortOrder('desc'); }}
+            className="w-full justify-start"
+          >
+            Name (Z-A)
+          </Button>
+          <Button
+            variant={sortBy === 'price' && sortOrder === 'asc' ? 'default' : 'outline'}
+            onClick={() => { setSortBy('price'); setSortOrder('asc'); }}
+            className="w-full justify-start"
+          >
+            Price (Low to High)
+          </Button>
+          <Button
+            variant={sortBy === 'price' && sortOrder === 'desc' ? 'default' : 'outline'}
+            onClick={() => { setSortBy('price'); setSortOrder('desc'); }}
+            className="w-full justify-start"
+          >
+            Price (High to Low)
+          </Button>
+        </div>
+      </div>
+
+      {hasActiveFilters && (
+        <Button onClick={clearFilters} variant="outline" className="w-full">
+          Clear All Filters
+        </Button>
+      )}
+    </div>
+  );
 
   return (
-    <div className="pb-20 min-h-screen bg-gray-50">
+    <div className="pb-20 bg-gray-50 min-h-screen">
       <Header />
       
-      <main className="container px-4 py-6 mx-auto">
-        {/* Search Bar */}
-        <div className="mb-6">
-          <div className="flex gap-2">
-            <div className="flex-1 relative">
-              <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+      <div className="bg-white sticky top-16 z-10 shadow-sm">
+        <div className="container px-4 py-4 mx-auto">
+          <div className="flex items-center space-x-2">
+            <div className="relative flex-1">
+              <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <Input
                 type="text"
-                placeholder="Search products..."
+                placeholder="Search for products..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                className="pl-10"
+                onChange={(e) => handleSearch(e.target.value)}
+                className="pl-10 pr-10"
               />
-            </div>
-            <Button onClick={handleSearch}>Search</Button>
-            <Button 
-              variant="outline" 
-              onClick={() => setShowFilters(!showFilters)}
-              className="relative"
-            >
-              <SlidersHorizontal className="w-4 h-4" />
-              {hasActiveFilters && (
-                <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full"></div>
+              {searchQuery && (
+                <button
+                  onClick={() => handleSearch('')}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-5 h-5" />
+                </button>
               )}
-            </Button>
-          </div>
-        </div>
-
-        {/* Active Filters */}
-        {hasActiveFilters && (
-          <div className="mb-4 flex flex-wrap gap-2 items-center">
-            <span className="text-sm text-gray-600">Active filters:</span>
-            {selectedCategories.map(category => (
-              <Badge key={category} variant="secondary" className="cursor-pointer">
-                {category}
-                <X 
-                  className="w-3 h-3 ml-1" 
-                  onClick={() => handleCategoryFilter(category)}
-                />
-              </Badge>
-            ))}
-            {selectedBrands.map(brand => (
-              <Badge key={brand} variant="secondary" className="cursor-pointer">
-                {brand}
-                <X 
-                  className="w-3 h-3 ml-1" 
-                  onClick={() => handleBrandFilter(brand)}
-                />
-              </Badge>
-            ))}
-            <Button variant="outline" size="sm" onClick={clearFilters}>
-              Clear all
-            </Button>
-          </div>
-        )}
-
-        {/* Filters Panel */}
-        {showFilters && (
-          <div className="mb-6 bg-white rounded-lg p-4 shadow-sm border">
-            <h3 className="font-semibold mb-4">Filters</h3>
+            </div>
             
-            {/* Categories */}
-            <div className="mb-4">
-              <h4 className="font-medium mb-2">Categories</h4>
-              <div className="flex flex-wrap gap-2">
-                {uniqueCategories.map((category) => (
-                  <Badge
-                    key={category}
-                    variant={selectedCategories.includes(category) ? "default" : "outline"}
-                    className="cursor-pointer"
-                    onClick={() => handleCategoryFilter(category)}
-                  >
-                    {category}
-                  </Badge>
-                ))}
-              </div>
-            </div>
+            {/* Mobile Filter */}
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="icon" className="md:hidden">
+                  <SlidersHorizontal className="w-4 h-4" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-80">
+                <SheetHeader>
+                  <SheetTitle>Filters</SheetTitle>
+                </SheetHeader>
+                <div className="mt-6">
+                  <FilterContent />
+                </div>
+              </SheetContent>
+            </Sheet>
 
-            {/* Brands */}
-            <div className="mb-4">
-              <h4 className="font-medium mb-2">Brands</h4>
-              <div className="flex flex-wrap gap-2">
-                {uniqueBrands.map((brand) => (
-                  <Badge
-                    key={brand}
-                    variant={selectedBrands.includes(brand) ? "default" : "outline"}
-                    className="cursor-pointer"
-                    onClick={() => handleBrandFilter(brand)}
-                  >
-                    {brand}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-
-            {/* Sort Options */}
-            <div className="mb-4">
-              <h4 className="font-medium mb-2">Sort By</h4>
-              <div className="flex flex-wrap gap-2">
-                {[
-                  { value: 'relevance', label: 'Relevance' },
-                  { value: 'price-low', label: 'Price: Low to High' },
-                  { value: 'price-high', label: 'Price: High to Low' },
-                  { value: 'rating', label: 'Rating' },
-                  { value: 'newest', label: 'Newest' },
-                ].map((option) => (
-                  <Badge
-                    key={option.value}
-                    variant={sortBy === option.value ? "default" : "outline"}
-                    className="cursor-pointer"
-                    onClick={() => setSortBy(option.value as SearchFilters['sortBy'])}
-                  >
-                    {option.label}
-                  </Badge>
-                ))}
-              </div>
-            </div>
+            {/* Desktop Filter */}
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="hidden md:flex items-center space-x-2">
+                  <SlidersHorizontal className="w-4 h-4" />
+                  <span>Filters</span>
+                  {hasActiveFilters && (
+                    <Badge variant="secondary" className="ml-1">
+                      {[selectedCategory, selectedBrand, priceRange.min > 0 || priceRange.max < 5000 ? 'Price' : null]
+                        .filter(Boolean).length}
+                    </Badge>
+                  )}
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Filters</DialogTitle>
+                </DialogHeader>
+                <FilterContent />
+              </DialogContent>
+            </Dialog>
           </div>
-        )}
 
-        {/* Results */}
-        <div className="mb-4">
-          <h2 className="text-xl font-bold">
-            {searchQuery ? `Search results for "${searchQuery}"` : 'All Products'}
-          </h2>
-          <p className="text-gray-600">
-            {productsLoading ? 'Loading...' : `${filteredProducts.length} products found`}
-          </p>
+          {/* Active Filters */}
+          {hasActiveFilters && (
+            <div className="flex flex-wrap gap-2 mt-3">
+              {selectedCategory && (
+                <Badge variant="secondary" className="flex items-center space-x-1">
+                  <span>{selectedCategory}</span>
+                  <button onClick={() => setSelectedCategory('')}>
+                    <X className="w-3 h-3" />
+                  </button>
+                </Badge>
+              )}
+              {selectedBrand && (
+                <Badge variant="secondary" className="flex items-center space-x-1">
+                  <span>{selectedBrand}</span>
+                  <button onClick={() => setSelectedBrand('')}>
+                    <X className="w-3 h-3" />
+                  </button>
+                </Badge>
+              )}
+              {(priceRange.min > 0 || priceRange.max < 5000) && (
+                <Badge variant="secondary" className="flex items-center space-x-1">
+                  <span>₹{priceRange.min} - ₹{priceRange.max}</span>
+                  <button onClick={() => setPriceRange({ min: 0, max: 5000 })}>
+                    <X className="w-3 h-3" />
+                  </button>
+                </Badge>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <main className="container px-4 py-6 mx-auto">
+        <div className="flex justify-between items-center mb-4">
+          <h1 className="text-xl font-bold">
+            {searchQuery ? `Results for "${searchQuery}"` : 'All Products'}
+          </h1>
+          <span className="text-sm text-gray-500">
+            {filteredProducts.length} products found
+          </span>
         </div>
 
-        {/* Products Grid */}
-        {productsLoading ? (
+        {isLoadingProducts ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {[...Array(8)].map((_, i) => (
-              <div key={i} className="bg-gray-200 animate-pulse rounded-lg aspect-square"></div>
+              <div key={i} className="h-64 bg-gray-200 animate-pulse rounded-lg"></div>
+            ))}
+          </div>
+        ) : filteredProducts.length > 0 ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {filteredProducts.map((product) => (
+              <ProductCard product={product} />
             ))}
           </div>
         ) : (
-          <ProductsGrid 
-            customProducts={filteredProducts} 
-            title="" 
-            showCount={false}
-          />
-        )}
-
-        {!productsLoading && filteredProducts.length === 0 && (
-          <div className="text-center py-12">
-            <SearchIcon className="mx-auto w-16 h-16 text-gray-400 mb-4" />
-            <h3 className="text-lg font-medium mb-2">No products found</h3>
-            <p className="text-gray-500 mb-4">
-              Try adjusting your search or filters to find what you're looking for.
+          <div className="text-center py-8">
+            <div className="mx-auto w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+              <SearchIcon className="h-12 w-12 text-gray-400" />
+            </div>
+            <h2 className="text-xl font-medium mb-2">No products found</h2>
+            <p className="text-gray-500 mb-6">
+              {searchQuery 
+                ? `We couldn't find any products matching "${searchQuery}"`
+                : "No products match your current filters"
+              }
             </p>
             {hasActiveFilters && (
-              <Button variant="outline" onClick={clearFilters}>
-                Clear all filters
+              <Button onClick={clearFilters} variant="outline">
+                Clear Filters
               </Button>
             )}
           </div>
         )}
       </main>
-      
+
       <BottomNavigation />
     </div>
   );
 };
 
-export default Search;
+export default SearchPage;
