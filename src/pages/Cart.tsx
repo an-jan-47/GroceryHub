@@ -63,7 +63,7 @@ const CartPage = () => {
     removeFromCart,
     updateQuantity,
     cartTotal,
-    setCartItems // Added this to fix the clearCart function
+    setCartItems
   } = useCart();
   const navigate = useNavigate();
   const {
@@ -215,6 +215,7 @@ const CartPage = () => {
           </div>
         ) : (
           <>
+            {/* ... keep existing code (cart items display) */}
             <div className="divide-y">
               {cartItems.map(item => (
                 <div key={item.id} className="py-4 flex items-center">
@@ -267,6 +268,7 @@ const CartPage = () => {
               ))}
             </div>
             
+            {/* ... keep existing code (rest of the cart page) */}
             <div className="mt-6">
               {/* Applied Coupons Display */}
               {appliedCoupons.length > 0 && (

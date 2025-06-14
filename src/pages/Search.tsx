@@ -39,7 +39,7 @@ const SearchPage = () => {
   // Fetch all products
   const { data: products, isLoading } = useQuery({
     queryKey: ['searchProducts'],
-    queryFn: getProducts
+    queryFn: () => getProducts()
   });
   
   // Initialize from URL params
@@ -62,7 +62,7 @@ const SearchPage = () => {
   
   // Extract categories and brands
   useEffect(() => {
-    if (products) {
+    if (products && Array.isArray(products)) {
       // Get unique categories
       const categories = [...new Set(products.map(p => p.category))];
       setAllCategories(categories);
@@ -90,7 +90,7 @@ const SearchPage = () => {
 
   // Apply filters and search
   useEffect(() => {
-    if (!products) return;
+    if (!products || !Array.isArray(products)) return;
     
     let results = [...products];
     
@@ -253,8 +253,8 @@ const SearchPage = () => {
                       className="mb-4"
                     />
                     <div className="flex items-center justify-between">
-                      <span className="text-sm">${priceRange[0]}</span>
-                      <span className="text-sm">${priceRange[1]}</span>
+                      <span className="text-sm">₹{priceRange[0]}</span>
+                      <span className="text-sm">₹{priceRange[1]}</span>
                     </div>
                   </div>
                   
@@ -400,7 +400,7 @@ const SearchPage = () => {
                   variant="secondary"
                   className="flex items-center px-2 py-1"
                 >
-                  <span>${priceRange[0]} - ${priceRange[1]}</span>
+                  <span>₹{priceRange[0]} - ₹{priceRange[1]}</span>
                   <button onClick={() => setPriceRange([minPrice, maxPrice])} className="ml-1">
                     <X className="h-3 w-3" />
                   </button>

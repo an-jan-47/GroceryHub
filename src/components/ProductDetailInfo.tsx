@@ -125,8 +125,8 @@ const ProductDetailInfo = ({
                   className="p-3 border rounded-lg bg-blue-50 flex justify-between items-center"
                 >
                   <div>
-                    <p className="font-medium text-blue-600">{formattedCoupon.discountText}</p>
-                    <p className="text-sm text-gray-600">{formattedCoupon.conditionsText}</p>
+                    <p className="font-medium text-blue-600">{formattedCoupon.formattedDiscount}</p>
+                    <p className="text-sm text-gray-600">{formattedCoupon.formattedMinPurchase}</p>
                   </div>
                   <button
                     onClick={() => copyCouponCode(coupon.code)}

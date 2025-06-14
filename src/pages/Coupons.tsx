@@ -9,14 +9,14 @@ import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/sonner';
-import { calculateDiscount } from '@/services/couponService';
+import { calculateDiscount, type Coupon } from '@/services/couponService';
 import { useCouponState } from '@/components/CouponStateManager';
-import { useCart } from '@/hooks/useCart'; // Add this import
+import { useCart } from '@/hooks/useCart';
 
 const Coupons = () => {
   const navigate = useNavigate();
   const { addCoupon } = useCouponState();
-  const { cartItems } = useCart(); // Add this line to get cartItems
+  const { cartItems } = useCart();
 
   // Fetch all active coupons
   const { data: coupons = [], isLoading } = useQuery({
@@ -44,14 +44,20 @@ const Coupons = () => {
 
     const couponData = coupons.find(c => c.code === couponCode);
     if (couponData) {
+      // Type assertion to ensure compatibility
+      const typedCoupon: Coupon = {
+        ...couponData,
+        type: couponData.type as 'percentage' | 'fixed'
+      };
+      
       const cartTotal = cartItems.reduce((total, item) => {
         const itemPrice = item.salePrice || item.price;
         return total + (itemPrice * item.quantity);
       }, 0);
       
-      const discountAmount = calculateDiscount(couponData, cartTotal);
+      const discountAmount = calculateDiscount(typedCoupon, cartTotal);
       
-      addCoupon(couponData, discountAmount);
+      addCoupon(typedCoupon, discountAmount);
       
       toast('Coupon applied! Redirecting to cart...', {
         description: `₹${discountAmount.toFixed(2)} discount will be applied at checkout.`

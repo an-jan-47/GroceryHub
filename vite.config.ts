@@ -1,9 +1,11 @@
+
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import { fileURLToPath, URL } from "node:url";
 
 export default defineConfig(({ mode }) => ({
   server: {
+    port: 8080,
     hmr: {
       overlay: true,
       timeout: 120000
@@ -13,9 +15,7 @@ export default defineConfig(({ mode }) => ({
       interval: 500 // Increased polling frequency
     }
   },
-  plugins: [react({
-    fastRefresh: true
-  })],
+  plugins: [react()],
   resolve: {
     alias: {
       "@": fileURLToPath(new URL('./src', import.meta.url))

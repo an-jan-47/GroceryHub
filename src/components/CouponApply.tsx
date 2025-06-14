@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ChevronLeft, Tag, Copy } from 'lucide-react';
@@ -8,11 +9,12 @@ import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/sonner';
-import { calculateDiscount } from '@/services/couponService';
-import { globalCouponState } from './Cart'; // Import the global state
+import { calculateDiscount, type Coupon } from '@/services/couponService';
+import { useCouponState } from '@/components/CouponStateManager';
 
-const Coupons = () => {
+const CouponApply = () => {
   const navigate = useNavigate();
+  const { addCoupon, appliedCoupons } = useCouponState();
 
   // Fetch all active coupons
   const { data: coupons = [], isLoading } = useQuery({
@@ -37,8 +39,14 @@ const Coupons = () => {
       return;
     }
 
+    // Type assertion to ensure compatibility
+    const typedCoupon: Coupon = {
+      ...couponData,
+      type: couponData.type as 'percentage' | 'fixed'
+    };
+
     // Check if coupon is already applied
-    const isAlreadyApplied = globalCouponState.appliedCoupons.some(c => c.coupon.id === couponData.id);
+    const isAlreadyApplied = appliedCoupons.some(c => c.coupon.id === typedCoupon.id);
     if (isAlreadyApplied) {
       toast('Coupon already applied', {
         description: 'This coupon is already in your cart.'
@@ -50,10 +58,10 @@ const Coupons = () => {
       // For simplicity, we'll use a base amount for calculation
       // In a real app, you'd want to get the actual cart total
       const baseAmount = 1000; // This should come from your cart context
-      const discountAmount = calculateDiscount(couponData, baseAmount);
+      const discountAmount = calculateDiscount(typedCoupon, baseAmount);
       
       // Add coupon to global state
-      globalCouponState.addCoupon(couponData, discountAmount);
+      addCoupon(typedCoupon, discountAmount);
       
       toast('Coupon added to cart!', {
         description: `₹${discountAmount.toFixed(2)} discount will be applied at checkout.`
@@ -78,7 +86,7 @@ const Coupons = () => {
   };
 
   const isApplied = (couponId: string) => {
-    return globalCouponState.appliedCoupons.some(c => c.coupon.id === couponId);
+    return appliedCoupons.some(c => c.coupon.id === couponId);
   };
 
   return (
@@ -173,4 +181,4 @@ const Coupons = () => {
   );
 };
 
-export default Coupons;
+export default CouponApply;
