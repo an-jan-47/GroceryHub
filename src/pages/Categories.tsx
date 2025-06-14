@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
@@ -28,7 +27,7 @@ const Categories = () => {
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {categories.map((category) => (
-              <CategoryCard key={category.id} category={category} />
+              <CategoryCard category={category} />
             ))}
           </div>
         )}

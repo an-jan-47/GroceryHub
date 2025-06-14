@@ -2,9 +2,11 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import { fileURLToPath, URL } from "node:url";
+import { componentTagger } from "lovable-tagger";
 
 export default defineConfig(({ mode }) => ({
   server: {
+    host: "::",
     port: 8080,
     hmr: {
       overlay: true,
@@ -12,10 +14,13 @@ export default defineConfig(({ mode }) => ({
     },
     watch: {
       usePolling: true,
-      interval: 500 // Increased polling frequency
+      interval: 500
     }
   },
-  plugins: [react()],
+  plugins: [
+    react(),
+    mode === 'development' && componentTagger(),
+  ].filter(Boolean),
   resolve: {
     alias: {
       "@": fileURLToPath(new URL('./src', import.meta.url))
