@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -9,7 +10,6 @@ const BannerCarousel = () => {
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const isMountedRef = useRef(true);
   
   const { data: banners = [], isLoading } = useQuery({
     queryKey: ['banners'],
@@ -17,67 +17,50 @@ const BannerCarousel = () => {
     staleTime: 1000 * 60 * 10, // 10 minutes
   });
 
-  // Memoized navigation functions to prevent unnecessary re-renders
+  // Memoized navigation functions
   const goToNextSlide = useCallback(() => {
-    if (!isMountedRef.current || banners.length <= 1) return;
+    if (banners.length <= 1) return;
     setCurrentSlide((prev) => (prev + 1) % banners.length);
   }, [banners.length]);
 
   const goToPrevSlide = useCallback(() => {
-    if (!isMountedRef.current || banners.length <= 1) return;
+    if (banners.length <= 1) return;
     setCurrentSlide((prev) => (prev - 1 + banners.length) % banners.length);
   }, [banners.length]);
 
   const goToSlide = useCallback((index: number) => {
-    if (!isMountedRef.current || index < 0 || index >= banners.length) return;
+    if (index < 0 || index >= banners.length) return;
     setCurrentSlide(index);
   }, [banners.length]);
 
-  // Reset current slide if it's out of bounds
+  // Handle slide bounds when banners change
   useEffect(() => {
     if (banners.length > 0 && currentSlide >= banners.length) {
       setCurrentSlide(0);
     }
   }, [banners.length, currentSlide]);
 
-  // Auto-advance timer effect - Fixed to prevent infinite loops
+  // Auto-advance timer - simplified to prevent loops
   useEffect(() => {
-    // Clear any existing timer
+    // Clear existing timer
     if (timerRef.current) {
       clearInterval(timerRef.current);
-      timerRef.current = null;
     }
 
-    // Only start timer if we have multiple banners and component is mounted
-    if (banners.length > 1 && isMountedRef.current) {
+    // Only create timer if we have multiple banners
+    if (banners.length > 1) {
       timerRef.current = setInterval(() => {
-        if (isMountedRef.current) {
-          setCurrentSlide((prev) => (prev + 1) % banners.length);
-        }
+        setCurrentSlide((prev) => (prev + 1) % banners.length);
       }, 5000);
     }
 
-    // Cleanup function
+    // Cleanup on unmount or dependency change
     return () => {
       if (timerRef.current) {
         clearInterval(timerRef.current);
-        timerRef.current = null;
       }
     };
-  }, [banners.length]); // Removed clearTimer from dependencies to prevent infinite loop
-
-  // Component lifecycle management
-  useEffect(() => {
-    isMountedRef.current = true;
-    
-    return () => {
-      isMountedRef.current = false;
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
-    };
-  }, []); // Empty dependency array
+  }, [banners.length]);
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
@@ -90,7 +73,7 @@ const BannerCarousel = () => {
   const handleTouchEnd = useCallback(() => {
     const diffX = touchStartX.current - touchEndX.current;
 
-    if (Math.abs(diffX) > 50) { // Minimum swipe distance
+    if (Math.abs(diffX) > 50) {
       if (diffX > 0) {
         goToNextSlide();
       } else {
@@ -99,7 +82,7 @@ const BannerCarousel = () => {
     }
   }, [goToNextSlide, goToPrevSlide]);
 
-  // Don't render if loading or no banners
+  // Loading state
   if (isLoading || banners.length === 0) {
     return (
       <div className="w-full mb-6 aspect-[16/9] bg-gray-200 rounded-lg animate-pulse">
@@ -125,7 +108,7 @@ const BannerCarousel = () => {
             width: `${banners.length * 100}%`
           }}
         >
-          {banners.map((banner, index) => (
+          {banners.map((banner) => (
             <div 
               key={banner.id}
               className="w-full flex-shrink-0"
@@ -135,37 +118,35 @@ const BannerCarousel = () => {
           ))}
         </div>
 
-        {/* Left Arrow - only show if more than 1 banner */}
+        {/* Navigation arrows */}
         {banners.length > 1 && (
-          <button
-            type="button"
-            onClick={goToPrevSlide}
-            className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10"
-            aria-label="Previous banner"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-        )}
-
-        {/* Right Arrow - only show if more than 1 banner */}
-        {banners.length > 1 && (
-          <button
-            type="button"
-            onClick={goToNextSlide}
-            className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10"
-            aria-label="Next banner"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
+          <>
+            <button
+              type="button"
+              onClick={goToPrevSlide}
+              className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10"
+              aria-label="Previous banner"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <button
+              type="button"
+              onClick={goToNextSlide}
+              className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10"
+              aria-label="Next banner"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </>
         )}
       </div>
 
-      {/* Navigation dots - only show if more than 1 banner */}
+      {/* Navigation dots */}
       {banners.length > 1 && (
         <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
           {banners.map((_, index) => (
             <button
-              key={`dot-${index}`}
+              key={index}
               type="button"
               className={`w-2 h-2 rounded-full transition-colors duration-200 ${
                 index === currentSlide ? 'bg-white' : 'bg-white/50'
