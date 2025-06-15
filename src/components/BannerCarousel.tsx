@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import BannerCard from './BannerCard';
@@ -23,18 +23,25 @@ const BannerCarousel = () => {
 
   const totalBanners = banners.length;
 
-  // Memoized navigation functions
+  // Memoized navigation functions with safe bounds checking
   const goToNextSlide = useCallback(() => {
     if (totalBanners <= 1) return;
-    setCurrentSlide(prev => (prev + 1) % totalBanners);
+    setCurrentSlide(prev => {
+      const nextSlide = (prev + 1) % totalBanners;
+      return nextSlide;
+    });
   }, [totalBanners]);
 
   const goToPrevSlide = useCallback(() => {
     if (totalBanners <= 1) return;
-    setCurrentSlide(prev => (prev - 1 + totalBanners) % totalBanners);
+    setCurrentSlide(prev => {
+      const prevSlide = (prev - 1 + totalBanners) % totalBanners;
+      return prevSlide;
+    });
   }, [totalBanners]);
 
   const goToSlide = useCallback((index) => {
+    if (totalBanners <= 1) return;
     if (index >= 0 && index < totalBanners) {
       setCurrentSlide(index);
     }
@@ -51,7 +58,11 @@ const BannerCarousel = () => {
     // Only start auto-advance if we have multiple banners and auto-play is enabled
     if (totalBanners > 1 && isAutoPlaying) {
       intervalRef.current = setInterval(() => {
-        setCurrentSlide(prev => (prev + 1) % totalBanners);
+        setCurrentSlide(prev => {
+          // Safe bounds checking within the state update
+          const nextSlide = (prev + 1) % totalBanners;
+          return nextSlide;
+        });
       }, 5000);
     }
 
@@ -64,12 +75,17 @@ const BannerCarousel = () => {
     };
   }, [totalBanners, isAutoPlaying]);
 
-  // Reset slide if it's out of bounds - separate effect
+  // Initialize currentSlide when banners first load - no state update loop
   useEffect(() => {
-    if (currentSlide >= totalBanners && totalBanners > 0) {
-      setCurrentSlide(0);
+    if (totalBanners > 0 && currentSlide >= totalBanners) {
+      // Use setTimeout to avoid direct state update during render
+      const timeoutId = setTimeout(() => {
+        setCurrentSlide(0);
+      }, 0);
+      
+      return () => clearTimeout(timeoutId);
     }
-  }, [totalBanners]); // Only depend on totalBanners, not currentSlide
+  }, [totalBanners]); // Only run when totalBanners changes
 
   // Touch event handlers
   const handleTouchStart = useCallback((e) => {
@@ -122,8 +138,11 @@ const BannerCarousel = () => {
     );
   }
 
-  // Ensure currentSlide is within bounds
-  const safeCurrentSlide = Math.min(currentSlide, totalBanners - 1);
+  // Ensure currentSlide is within bounds - no state updates, just safe rendering
+  const safeCurrentSlide = useMemo(() => {
+    if (totalBanners === 0) return 0;
+    return Math.max(0, Math.min(currentSlide, totalBanners - 1));
+  }, [currentSlide, totalBanners]);
 
   return (
     <div
