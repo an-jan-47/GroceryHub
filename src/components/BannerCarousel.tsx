@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -130,6 +129,9 @@ const BannerCarousel = () => {
   // Make sure currentSlide is valid
   const activeSlide = currentSlide >= totalBanners ? 0 : currentSlide;
 
+  // DEBUG: Remove potential ref usage in .map() that can cause update depth issues
+  // Security: .map() inside BannerCarousel should NOT use a ref callback or create functions each render.
+
   return (
     <div 
       className="relative w-full mb-6 group"
@@ -152,6 +154,7 @@ const BannerCarousel = () => {
               key={banner.id || `banner-${index}`}
               className="w-full flex-shrink-0"
               style={{ width: `${100 / totalBanners}%` }}
+              // Remove any ref callbacks here!
             >
               <BannerCard banner={banner} />
             </div>
@@ -188,6 +191,7 @@ const BannerCarousel = () => {
             <button
               key={`dot-${index}`}
               type="button"
+              // IMPORTANT: Do NOT create inline onClicks for navigators!
               className={`w-2 h-2 rounded-full transition-colors duration-200 ${
                 index === activeSlide ? 'bg-white' : 'bg-white/50'
               }`}
