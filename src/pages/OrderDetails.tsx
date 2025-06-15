@@ -1,6 +1,7 @@
+
 import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ChevronLeft, Package, MapPin, Clock, CreditCard, Truck, CheckCircle, AlertCircle } from 'lucide-react';
+import { ChevronLeft, Package, MapPin, Clock, CreditCard, Truck, CheckCircle, AlertCircle, Tag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
@@ -123,12 +124,32 @@ const OrderDetails = () => {
     return total + (item.price * item.quantity);
   }, 0);
   
-  // Calculate Razorpay transaction fees (2% on subtotal + platform fees)
+  // Calculate Razorpay transaction fees (2% on subtotal + platform fees) only if payment method is not COD
   const transactionFeesBase = subtotal + platformFees;
-  const razorpayFees = transactionFeesBase * 0.02; // 2% transaction fees
+  const razorpayFees = order.payment_method !== 'cod' ? transactionFeesBase * 0.02 : 0; // 2% transaction fees only for non-COD
   
-  // Discount amount
+  // Discount amount from the order
   const discountAmount = order.discount_amount || 0;
+  
+  // Get applied coupon information from localStorage for display
+  const getAppliedCoupons = () => {
+    try {
+      const storedCouponData = localStorage.getItem('appliedCoupon');
+      if (storedCouponData) {
+        const parsedData = JSON.parse(storedCouponData);
+        if (Array.isArray(parsedData)) {
+          return parsedData;
+        } else if (parsedData.coupon) {
+          return [parsedData];
+        }
+      }
+    } catch (error) {
+      console.error('Error parsing stored coupon data:', error);
+    }
+    return [];
+  };
+  
+  const appliedCoupons = getAppliedCoupons();
   
   return (
     <div className="pb-20 bg-gray-50 min-h-screen">
@@ -199,6 +220,54 @@ const OrderDetails = () => {
           )}
         </div>
         
+        {/* Applied Coupons Section */}
+        {(discountAmount > 0 || appliedCoupons.length > 0) && (
+          <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
+            <h2 className="font-semibold mb-3 flex items-center">
+              <Tag className="h-5 w-5 mr-2 text-green-600" />
+              Applied Coupons
+            </h2>
+            
+            {appliedCoupons.length > 0 ? (
+              <div className="space-y-2">
+                {appliedCoupons.map((couponData, index) => (
+                  <div key={index} className="bg-green-50 border border-green-200 rounded-lg p-3">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <span className="font-semibold text-green-800">{couponData.coupon.code}</span>
+                        <p className="text-sm text-green-600">
+                          {couponData.coupon.type === 'percentage' 
+                            ? `${couponData.coupon.value}% discount` 
+                            : `₹${couponData.coupon.value} discount`}
+                        </p>
+                      </div>
+                      <span className="text-green-700 font-medium">
+                        -₹{couponData.discountAmount?.toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+                
+                {appliedCoupons.length > 1 && (
+                  <div className="bg-green-100 border border-green-300 rounded-lg p-3 mt-2">
+                    <div className="flex justify-between items-center">
+                      <span className="font-semibold text-green-800">Total Coupon Savings</span>
+                      <span className="text-green-700 font-bold">-₹{discountAmount.toFixed(2)}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : discountAmount > 0 ? (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                <div className="flex justify-between items-center">
+                  <span className="font-semibold text-green-800">Discount Applied</span>
+                  <span className="text-green-700 font-medium">-₹{discountAmount.toFixed(2)}</span>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        )}
+        
         <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
           <h2 className="font-semibold mb-3">Order Items</h2>
           
@@ -252,7 +321,7 @@ const OrderDetails = () => {
               <span>{"FREE"}</span>
             </div>
             
-            {order.payment_method !== 'cod' && (
+            {razorpayFees > 0 && (
               <div className="flex justify-between text-sm">
                 <span className="text-gray-500">Transaction Handling Fee</span>
                 <span>{formatCurrency(razorpayFees)}</span>
@@ -261,7 +330,7 @@ const OrderDetails = () => {
             
             {discountAmount > 0 && (
               <div className="flex justify-between text-sm text-green-600">
-                <span>Discount</span>
+                <span>Total Discount</span>
                 <span>-{formatCurrency(discountAmount)}</span>
               </div>
             )}
@@ -272,6 +341,12 @@ const OrderDetails = () => {
               <span>Total</span>
               <span>{formatCurrency(order.total_amount)}</span>
             </div>
+            
+            {discountAmount > 0 && (
+              <div className="text-sm text-green-600 text-center mt-2">
+                🎉 You saved ₹{discountAmount.toFixed(2)} on this order!
+              </div>
+            )}
           </div>
         </div>
         

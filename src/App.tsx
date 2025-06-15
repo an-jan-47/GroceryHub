@@ -38,6 +38,7 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 // Providers
 import { CartProvider } from "./hooks/useCart";
 import { AuthProvider } from "./contexts/AuthContext";
+import { CouponStateProvider } from "./components/CouponStateManager";
 import ProtectedRoute from "./components/ProtectedRoute";
 import OrderCompletedGuard from "./components/OrderCompletedGuard";
 import ErrorBoundary from './components/ErrorBoundary';
@@ -137,14 +138,16 @@ const App = () => {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <CartProvider>
-          <TooltipProvider>
-            <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
-              <BrowserRouter>
-                <Toaster />
-                <AppContent />
-              </BrowserRouter>
-            </ThemeProvider>
-          </TooltipProvider>
+          <CouponStateProvider>
+            <TooltipProvider>
+              <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
+                <BrowserRouter>
+                  <Toaster />
+                  <AppContent />
+                </BrowserRouter>
+              </ThemeProvider>
+            </TooltipProvider>
+          </CouponStateProvider>
         </CartProvider>
       </AuthProvider>
     </QueryClientProvider>

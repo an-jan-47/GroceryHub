@@ -1,130 +1,123 @@
 
-import { useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import type { Coupon } from '@/services/couponService';
 
 export interface AppliedCouponState {
-  coupon: {
-    id: string;
-    code: string;
-    type: 'percentage' | 'fixed';
-    value: number;
-    min_purchase_amount: number;
-    max_discount_amount?: number;
-  };
+  coupon: Coupon;
   discountAmount: number;
   appliedToTotal?: number;
 }
 
-class CouponStateManager {
-  private appliedCoupons: AppliedCouponState[] = [];
-  private listeners: ((coupons: AppliedCouponState[]) => void)[] = [];
-
-  addCoupon(coupon: AppliedCouponState['coupon'], discountAmount: number) {
-    // Check if coupon already exists
-    const existingIndex = this.appliedCoupons.findIndex(c => c.coupon.id === coupon.id);
-    
-    if (existingIndex === -1) {
-      const newCoupon: AppliedCouponState = { coupon, discountAmount };
-      this.appliedCoupons = [...this.appliedCoupons, newCoupon];
-      this.updateLocalStorage();
-      this.notifyListeners();
-    }
-  }
-
-  removeCoupon(couponId: string) {
-    console.log('CouponStateManager: Removing coupon with ID:', couponId);
-    const originalLength = this.appliedCoupons.length;
-    this.appliedCoupons = this.appliedCoupons.filter(c => c.coupon.id !== couponId);
-    
-    if (this.appliedCoupons.length !== originalLength) {
-      console.log('CouponStateManager: Coupon removed, new count:', this.appliedCoupons.length);
-      this.updateLocalStorage();
-      this.notifyListeners();
-    }
-  }
-
-  clearCoupons() {
-    if (this.appliedCoupons.length > 0) {
-      this.appliedCoupons = [];
-      this.updateLocalStorage();
-      this.notifyListeners();
-      console.log('CouponStateManager: All coupons cleared');
-    }
-  }
-
-  setCoupons(coupons: AppliedCouponState[]) {
-    this.appliedCoupons = [...coupons];
-    this.updateLocalStorage();
-    this.notifyListeners();
-  }
-
-  getAppliedCoupons(): AppliedCouponState[] {
-    return [...this.appliedCoupons];
-  }
-
-  subscribe(listener: (coupons: AppliedCouponState[]) => void) {
-    this.listeners.push(listener);
-    return () => {
-      this.listeners = this.listeners.filter(l => l !== listener);
-    };
-  }
-
-  private notifyListeners() {
-    // Use setTimeout to prevent infinite loops
-    setTimeout(() => {
-      this.listeners.forEach(listener => {
-        try {
-          listener([...this.appliedCoupons]);
-        } catch (error) {
-          console.error('Error in coupon state listener:', error);
-        }
-      });
-    }, 0);
-  }
-
-  private updateLocalStorage() {
-    try {
-      if (this.appliedCoupons.length > 0) {
-        localStorage.setItem('appliedCoupon', JSON.stringify(this.appliedCoupons));
-      } else {
-        localStorage.removeItem('appliedCoupon');
-      }
-    } catch (error) {
-      console.error('Error updating localStorage:', error);
-    }
-  }
-
-  // Add method to check if cart is empty and clear coupons
-  checkCartAndClearCoupons(cartItemsLength: number) {
-    if (cartItemsLength === 0 && this.appliedCoupons.length > 0) {
-      console.log('Cart is empty, clearing all coupons');
-      this.clearCoupons();
-    }
-  }
+interface CouponStateContextType {
+  appliedCoupons: AppliedCouponState[];
+  addCoupon: (coupon: Coupon, discountAmount: number) => void;
+  removeCoupon: (couponId: string) => void;
+  clearCoupons: () => void;
+  setCoupons: (coupons: AppliedCouponState[]) => void;
+  checkCartAndClearCoupons: (cartLength: number) => void;
 }
 
-const couponStateManager = new CouponStateManager();
+const CouponStateContext = createContext<CouponStateContextType | undefined>(undefined);
 
-export const useCouponState = () => {
-  const [appliedCoupons, setAppliedCoupons] = useState<AppliedCouponState[]>(
-    couponStateManager.getAppliedCoupons()
-  );
+export const CouponStateProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const [appliedCoupons, setAppliedCoupons] = useState<AppliedCouponState[]>([]);
 
+  // Load coupons from localStorage on mount
   useEffect(() => {
-    const unsubscribe = couponStateManager.subscribe((coupons) => {
-      setAppliedCoupons(coupons);
-    });
-
-    return unsubscribe;
+    const storedCouponData = localStorage.getItem('appliedCoupon');
+    if (storedCouponData) {
+      try {
+        const parsedData = JSON.parse(storedCouponData);
+        console.log('CouponStateManager: Loading coupons from localStorage:', parsedData);
+        
+        let couponsToLoad: AppliedCouponState[] = [];
+        if (Array.isArray(parsedData)) {
+          couponsToLoad = parsedData;
+        } else if (parsedData.coupon) {
+          couponsToLoad = [parsedData];
+        }
+        
+        setAppliedCoupons(couponsToLoad);
+      } catch (error) {
+        console.error('CouponStateManager: Error loading coupons from localStorage:', error);
+        localStorage.removeItem('appliedCoupon');
+      }
+    }
   }, []);
 
-  return {
-    appliedCoupons,
-    addCoupon: (coupon: AppliedCouponState['coupon'], discountAmount: number) => 
-      couponStateManager.addCoupon(coupon, discountAmount),
-    removeCoupon: (couponId: string) => couponStateManager.removeCoupon(couponId),
-    clearCoupons: () => couponStateManager.clearCoupons(),
-    setCoupons: (coupons: AppliedCouponState[]) => couponStateManager.setCoupons(coupons),
-    checkCartAndClearCoupons: (cartItemsLength: number) => 
-      couponStateManager.checkCartAndClearCoupons(cartItemsLength)
+  // Save coupons to localStorage whenever they change
+  useEffect(() => {
+    if (appliedCoupons.length > 0) {
+      console.log('CouponStateManager: Saving coupons to localStorage:', appliedCoupons);
+      localStorage.setItem('appliedCoupon', JSON.stringify(appliedCoupons));
+    } else {
+      localStorage.removeItem('appliedCoupon');
+    }
+  }, [appliedCoupons]);
+
+  const addCoupon = (coupon: Coupon, discountAmount: number) => {
+    console.log('CouponStateManager: Adding coupon:', coupon.code, 'discount:', discountAmount);
+    setAppliedCoupons(prevCoupons => {
+      // Check if coupon is already applied
+      const existingIndex = prevCoupons.findIndex(c => c.coupon.id === coupon.id);
+      if (existingIndex !== -1) {
+        console.log('CouponStateManager: Coupon already applied, updating:', coupon.code);
+        // Update existing coupon
+        const updatedCoupons = [...prevCoupons];
+        updatedCoupons[existingIndex] = { coupon, discountAmount };
+        return updatedCoupons;
+      } else {
+        // Add new coupon
+        const newCoupons = [...prevCoupons, { coupon, discountAmount }];
+        console.log('CouponStateManager: Added new coupon, total coupons:', newCoupons.length);
+        return newCoupons;
+      }
+    });
   };
+
+  const removeCoupon = (couponId: string) => {
+    console.log('CouponStateManager: Removing coupon with ID:', couponId);
+    setAppliedCoupons(prevCoupons => {
+      const updatedCoupons = prevCoupons.filter(c => c.coupon.id !== couponId);
+      console.log('CouponStateManager: Coupons after removal:', updatedCoupons.length);
+      return updatedCoupons;
+    });
+  };
+
+  const clearCoupons = () => {
+    console.log('CouponStateManager: Clearing all coupons');
+    setAppliedCoupons([]);
+    localStorage.removeItem('appliedCoupon');
+  };
+
+  const setCoupons = (coupons: AppliedCouponState[]) => {
+    console.log('CouponStateManager: Setting coupons:', coupons);
+    setAppliedCoupons(coupons);
+  };
+
+  const checkCartAndClearCoupons = (cartLength: number) => {
+    if (cartLength === 0 && appliedCoupons.length > 0) {
+      console.log('CouponStateManager: Cart is empty, clearing coupons');
+      clearCoupons();
+    }
+  };
+
+  const value = {
+    appliedCoupons,
+    addCoupon,
+    removeCoupon,
+    clearCoupons,
+    setCoupons,
+    checkCartAndClearCoupons
+  };
+
+  return <CouponStateContext.Provider value={value}>{children}</CouponStateContext.Provider>;
+};
+
+export const useCouponState = () => {
+  const context = useContext(CouponStateContext);
+  if (!context) {
+    throw new Error('useCouponState must be used within a CouponStateProvider');
+  }
+  return context;
 };
