@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronLeft, Save } from 'lucide-react';
@@ -32,6 +31,7 @@ const PrivacySettings = () => {
     }
   };
 
+  // Type the keys explicitly
   const privacyKeys: (keyof typeof settings)[] = [
     'marketing_emails',
     'product_updates',
