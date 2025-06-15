@@ -40,7 +40,7 @@ const BannerCarousel = () => {
     );
   }
 
-  // Multiple banners - show a simple vertical list (no refs inside map!)
+  // Multiple banners - show a simple vertical list
   return (
     <div className="w-full mb-6 space-y-4">
       {banners.map((banner, index) => (
@@ -56,4 +56,3 @@ const BannerCarousel = () => {
 };
 
 export default BannerCarousel;
-
