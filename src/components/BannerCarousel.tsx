@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -8,6 +9,7 @@ const BannerCarousel = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
+  const isMountedRef = useRef(true);
   
   const { data: banners = [], isLoading } = useQuery({
     queryKey: ['banners'],
@@ -20,11 +22,22 @@ const BannerCarousel = () => {
     if (banners.length <= 1) return;
     
     const timer = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % banners.length);
+      if (isMountedRef.current) {
+        setCurrentSlide((prev) => (prev + 1) % banners.length);
+      }
     }, 5000);
     
-    return () => clearInterval(timer);
+    return () => {
+      clearInterval(timer);
+    };
   }, [banners.length]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
@@ -49,15 +62,21 @@ const BannerCarousel = () => {
   };
 
   const goToNextSlide = () => {
-    setCurrentSlide((prev) => (prev + 1) % banners.length);
+    if (isMountedRef.current) {
+      setCurrentSlide((prev) => (prev + 1) % banners.length);
+    }
   };
 
   const goToPrevSlide = () => {
-    setCurrentSlide((prev) => (prev - 1 + banners.length) % banners.length);
+    if (isMountedRef.current) {
+      setCurrentSlide((prev) => (prev - 1 + banners.length) % banners.length);
+    }
   };
 
   const goToSlide = (index: number) => {
-    setCurrentSlide(index);
+    if (isMountedRef.current) {
+      setCurrentSlide(index);
+    }
   };
 
   // Don't render if loading or no banners
