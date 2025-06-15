@@ -1,25 +1,59 @@
+import * as React from "react"
+import { ChevronLeft, ChevronRight } from "lucide-react"
+import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
 
-import React from 'react';
-import BannerCard from './BannerCard';
+interface SimpleCarouselProps {
+  children: React.ReactNode
+  className?: string
+}
 
-// Static fallback banner - NO dynamic state or API calls
-const STATIC_BANNER = {
-  id: 'welcome-banner',
-  title: 'Welcome to Grocery Hub!',
-  subtitle: 'Find the best groceries at unbeatable prices',
-  image: '/placeholder.svg',
-  link: '/explore',
-};
+const SimpleCarousel = React.forwardRef<HTMLDivElement, SimpleCarouselProps>(
+  ({ className, children, ...props }, ref) => {
+    return (
+      <div
+        ref={ref}
+        className={cn("relative", className)}
+        {...props}
+      >
+        {children}
+      </div>
+    )
+  }
+)
+SimpleCarousel.displayName = "SimpleCarousel"
 
-const BannerCarousel = () => {
-  console.log('BannerCarousel rendering - static mode');
-  
-  // Completely static - no hooks, no state, no API calls
+const SimpleCarouselContent = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => {
   return (
-    <div className="w-full mb-6 rounded-lg aspect-[16/9]">
-      <BannerCard banner={STATIC_BANNER} />
+    <div className="overflow-hidden">
+      <div
+        ref={ref}
+        className={cn("flex", className)}
+        {...props}
+      />
     </div>
-  );
-};
+  )
+})
+SimpleCarouselContent.displayName = "SimpleCarouselContent"
 
-export default BannerCarousel;
+const SimpleCarouselItem = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => {
+  return (
+    <div
+      ref={ref}
+      className={cn("min-w-0 shrink-0 grow-0 basis-full", className)}
+      {...props}
+    />
+  )
+})
+SimpleCarouselItem.displayName = "SimpleCarouselItem"
+
+export {
+  SimpleCarousel,
+  SimpleCarouselContent,
+  SimpleCarouselItem,
