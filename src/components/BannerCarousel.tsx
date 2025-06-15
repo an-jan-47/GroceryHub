@@ -9,6 +9,7 @@ const BannerCarousel = () => {
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const isManuallyPaused = useRef(false);
   
   const { data: banners = [], isLoading } = useQuery({
     queryKey: ['banners'],
@@ -18,21 +19,22 @@ const BannerCarousel = () => {
 
   const bannersLength = banners.length;
   
+  // Reset currentSlide when banners change to prevent out of bounds
+  useEffect(() => {
+    if (bannersLength > 0 && currentSlide >= bannersLength) {
+      setCurrentSlide(0);
+    }
+  }, [bannersLength, currentSlide]);
+
   // Navigation functions with built-in bounds checking
   const goToNextSlide = useCallback(() => {
     if (bannersLength <= 1) return;
-    setCurrentSlide((prev) => {
-      const next = (prev + 1) % bannersLength;
-      return next;
-    });
+    setCurrentSlide((prev) => (prev + 1) % bannersLength);
   }, [bannersLength]);
 
   const goToPrevSlide = useCallback(() => {
     if (bannersLength <= 1) return;
-    setCurrentSlide((prev) => {
-      const next = (prev - 1 + bannersLength) % bannersLength;
-      return next;
-    });
+    setCurrentSlide((prev) => (prev - 1 + bannersLength) % bannersLength);
   }, [bannersLength]);
 
   const goToSlide = useCallback((index: number) => {
@@ -40,29 +42,40 @@ const BannerCarousel = () => {
     setCurrentSlide(index);
   }, [bannersLength]);
 
-  // Auto-advance timer - only depends on bannersLength
-  useEffect(() => {
-    // Clear any existing timer
+  // Clear timer utility
+  const clearTimer = useCallback(() => {
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
     }
+  }, []);
 
-    // Only create timer if we have multiple banners
-    if (bannersLength > 1) {
+  // Start timer utility
+  const startTimer = useCallback(() => {
+    if (bannersLength > 1 && !isManuallyPaused.current) {
+      clearTimer();
       timerRef.current = setInterval(() => {
         setCurrentSlide((prev) => (prev + 1) % bannersLength);
       }, 5000);
     }
+  }, [bannersLength, clearTimer]);
+
+  // Auto-advance timer effect
+  useEffect(() => {
+    // Don't start timer if loading or no banners
+    if (isLoading || bannersLength <= 1) {
+      clearTimer();
+      return;
+    }
+
+    // Start the timer
+    startTimer();
 
     // Cleanup function
     return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
+      clearTimer();
     };
-  }, [bannersLength]);
+  }, [bannersLength, isLoading, startTimer, clearTimer]);
 
   // Touch handlers
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
@@ -86,19 +99,14 @@ const BannerCarousel = () => {
 
   // Mouse handlers for pause/resume
   const handleMouseEnter = useCallback(() => {
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-  }, []);
+    isManuallyPaused.current = true;
+    clearTimer();
+  }, [clearTimer]);
 
   const handleMouseLeave = useCallback(() => {
-    if (bannersLength > 1 && !timerRef.current) {
-      timerRef.current = setInterval(() => {
-        setCurrentSlide((prev) => (prev + 1) % bannersLength);
-      }, 5000);
-    }
-  }, [bannersLength]);
+    isManuallyPaused.current = false;
+    startTimer();
+  }, [startTimer]);
 
   // Loading state
   if (isLoading) {
@@ -120,8 +128,8 @@ const BannerCarousel = () => {
     );
   }
 
-  // Calculate safe slide index - handle out of bounds without useEffect
-  const displaySlide = currentSlide >= bannersLength ? 0 : currentSlide;
+  // Ensure currentSlide is within bounds
+  const displaySlide = Math.max(0, Math.min(currentSlide, bannersLength - 1));
 
   return (
     <div 
