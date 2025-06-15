@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import BannerCard from './BannerCard';
@@ -17,50 +17,55 @@ const BannerCarousel = () => {
     staleTime: 1000 * 60 * 10, // 10 minutes
   });
 
+  // Memoize banners length to prevent unnecessary effect runs
+  const bannersLength = useMemo(() => banners.length, [banners.length]);
+
   // Memoized navigation functions
   const goToNextSlide = useCallback(() => {
-    if (banners.length <= 1) return;
-    setCurrentSlide((prev) => (prev + 1) % banners.length);
-  }, [banners.length]);
+    if (bannersLength <= 1) return;
+    setCurrentSlide((prev) => (prev + 1) % bannersLength);
+  }, [bannersLength]);
 
   const goToPrevSlide = useCallback(() => {
-    if (banners.length <= 1) return;
-    setCurrentSlide((prev) => (prev - 1 + banners.length) % banners.length);
-  }, [banners.length]);
+    if (bannersLength <= 1) return;
+    setCurrentSlide((prev) => (prev - 1 + bannersLength) % bannersLength);
+  }, [bannersLength]);
 
   const goToSlide = useCallback((index: number) => {
-    if (index < 0 || index >= banners.length) return;
+    if (index < 0 || index >= bannersLength) return;
     setCurrentSlide(index);
-  }, [banners.length]);
+  }, [bannersLength]);
 
   // Handle slide bounds when banners change
-  useEffect(() => {
-    if (banners.length > 0 && currentSlide >= banners.length) {
+  React.useEffect(() => {
+    if (bannersLength > 0 && currentSlide >= bannersLength) {
       setCurrentSlide(0);
     }
-  }, [banners.length, currentSlide]);
+  }, [bannersLength, currentSlide]);
 
-  // Auto-advance timer - simplified to prevent loops
-  useEffect(() => {
-    // Clear existing timer
+  // Auto-advance timer - simplified to prevent infinite loops
+  React.useEffect(() => {
+    // Clear any existing timer first
     if (timerRef.current) {
       clearInterval(timerRef.current);
+      timerRef.current = null;
     }
 
     // Only create timer if we have multiple banners
-    if (banners.length > 1) {
+    if (bannersLength > 1) {
       timerRef.current = setInterval(() => {
-        setCurrentSlide((prev) => (prev + 1) % banners.length);
+        setCurrentSlide((prev) => (prev + 1) % bannersLength);
       }, 5000);
     }
 
-    // Cleanup on unmount or dependency change
+    // Cleanup function
     return () => {
       if (timerRef.current) {
         clearInterval(timerRef.current);
+        timerRef.current = null;
       }
     };
-  }, [banners.length]);
+  }, [bannersLength]); // Only depend on bannersLength, not the entire banners array
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
@@ -83,7 +88,7 @@ const BannerCarousel = () => {
   }, [goToNextSlide, goToPrevSlide]);
 
   // Loading state
-  if (isLoading || banners.length === 0) {
+  if (isLoading || bannersLength === 0) {
     return (
       <div className="w-full mb-6 aspect-[16/9] bg-gray-200 rounded-lg animate-pulse">
         <div className="flex items-center justify-center h-full">
@@ -105,12 +110,12 @@ const BannerCarousel = () => {
           className="flex transition-transform duration-300 ease-out"
           style={{
             transform: `translateX(-${currentSlide * 100}%)`,
-            width: `${banners.length * 100}%`
+            width: `${bannersLength * 100}%`
           }}
         >
-          {banners.map((banner) => (
+          {banners.map((banner, index) => (
             <div 
-              key={banner.id}
+              key={`${banner.id}-${index}`}
               className="w-full flex-shrink-0"
             >
               <BannerCard banner={banner} />
@@ -119,7 +124,7 @@ const BannerCarousel = () => {
         </div>
 
         {/* Navigation arrows */}
-        {banners.length > 1 && (
+        {bannersLength > 1 && (
           <>
             <button
               type="button"
@@ -142,11 +147,11 @@ const BannerCarousel = () => {
       </div>
 
       {/* Navigation dots */}
-      {banners.length > 1 && (
+      {bannersLength > 1 && (
         <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
           {banners.map((_, index) => (
             <button
-              key={index}
+              key={`dot-${index}`}
               type="button"
               className={`w-2 h-2 rounded-full transition-colors duration-200 ${
                 index === currentSlide ? 'bg-white' : 'bg-white/50'
