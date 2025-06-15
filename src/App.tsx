@@ -4,6 +4,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { ThemeProvider } from "next-themes";
 import LoadingScreen from "./components/LoadingScreen";
 import { useNavigationGestures } from "./hooks/useNavigationGestures";
 
@@ -61,15 +62,6 @@ const queryClient = new QueryClient({
     }
   }
 });
-
-// Remove this HOC as we're using BrowserRouter directly
-// const withRouterProvider = (Component) => {
-//   return (props) => (
-//     <BrowserRouter>
-//       <Component {...props} />
-//     </BrowserRouter>
-//   );
-// };
 
 // Add these imports at the top with other page imports
 import TermsOfUse from "./pages/TermsOfUse";
