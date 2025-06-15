@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -54,10 +53,7 @@ const BannerCarousel = () => {
     // Only create timer if we have multiple banners
     if (bannersLength > 1) {
       timerRef.current = setInterval(() => {
-        setCurrentSlide((prev) => {
-          const nextSlide = (prev + 1) % bannersLength;
-          return nextSlide;
-        });
+        setCurrentSlide((prev) => (prev + 1) % bannersLength);
       }, 5000);
     }
 
