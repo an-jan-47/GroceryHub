@@ -40,14 +40,13 @@ const BannerCarousel = () => {
     );
   }
 
-  // Multiple banners - show a simple vertical list
+  // Multiple banners - show a simple vertical list (no refs inside map!)
   return (
     <div className="w-full mb-6 space-y-4">
       {banners.map((banner, index) => (
         <div
           key={banner.id || `banner-${index}`}
           className="w-full rounded-lg aspect-[16/9]"
-          // No ref here!
         >
           <BannerCard banner={banner} />
         </div>
@@ -57,3 +56,4 @@ const BannerCarousel = () => {
 };
 
 export default BannerCarousel;
+
