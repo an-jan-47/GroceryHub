@@ -41,7 +41,6 @@ import ErrorBoundary from './components/ErrorBoundary';
 
 // Services initialization
 import { initializeApp, setupPerformanceMonitoring } from "./utils/appInitializer";
-import { trackError } from "./utils/errorTracking";
 
 // Create a client with proper error handling and retry logic
 const queryClient = new QueryClient({
@@ -117,7 +116,6 @@ const AppContent = () => {
       <Route path="/write-review/:productId" element={<ProtectedRoute><WriteReview /></ProtectedRoute>} />
       <Route path="/terms-of-use" element={<TermsOfUse />} />
       <Route path="/return-policy" element={<ReturnPolicy />} />
-      // Add this route in the Routes component
       <Route path="/privacy-policy" element={<PrivacyPolicy />} />
     </Routes>
   );
@@ -150,7 +148,7 @@ const App = () => {
       <AuthProvider>
         <CartProvider>
           <TooltipProvider>
-            <ThemeProvider attribute="class" defaultTheme="light" enableSystem={true}>
+            <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
               <BrowserRouter>
                 <Toaster />
                 <AppContent />
