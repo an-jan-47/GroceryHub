@@ -10,6 +10,7 @@ const BannerCarousel = () => {
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
   const isMountedRef = useRef(true);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
   
   const { data: banners = [], isLoading } = useQuery({
     queryKey: ['banners'],
@@ -19,23 +20,34 @@ const BannerCarousel = () => {
 
   // Auto-advance slides every 5 seconds
   useEffect(() => {
+    // Clear any existing timer
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+    }
+
     if (banners.length <= 1) return;
     
-    const timer = setInterval(() => {
+    timerRef.current = setInterval(() => {
       if (isMountedRef.current) {
         setCurrentSlide((prev) => (prev + 1) % banners.length);
       }
     }, 5000);
     
     return () => {
-      clearInterval(timer);
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
     };
-  }, [banners.length]);
+  }, [banners.length]); // Only depend on banners.length
 
   // Cleanup on unmount
   useEffect(() => {
+    isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
     };
   }, []);
 
