@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import BannerCard from './BannerCard';
@@ -11,7 +10,6 @@ const BannerCarousel = () => {
     staleTime: 1000 * 60 * 10, // 10 minutes
   });
 
-  // Loading state
   if (isLoading) {
     return (
       <div className="w-full mb-6 aspect-[16/9] bg-gray-200 rounded-lg animate-pulse">
@@ -22,8 +20,7 @@ const BannerCarousel = () => {
     );
   }
 
-  // No banners state
-  if (banners.length === 0) {
+  if (!banners || banners.length === 0) {
     return (
       <div className="w-full mb-6 aspect-[16/9] bg-gray-100 rounded-lg flex items-center justify-center">
         <p className="text-gray-500">No banners available</p>
@@ -31,7 +28,6 @@ const BannerCarousel = () => {
     );
   }
 
-  // Single banner - just display it
   if (banners.length === 1) {
     return (
       <div className="w-full mb-6 rounded-lg aspect-[16/9]">
@@ -40,17 +36,16 @@ const BannerCarousel = () => {
     );
   }
 
-  // Multiple banners - show a simple vertical list
   return (
     <div className="w-full mb-6 space-y-4">
-      {banners.map((banner, index) => (
-        <div
-          key={banner.id || `banner-${index}`}
-          className="w-full rounded-lg aspect-[16/9]"
-        >
-          <BannerCard banner={banner} />
-        </div>
-      ))}
+      {banners.map((banner) => {
+        const bannerKey = banner.id || banner.title || Math.random().toString();
+        return (
+          <div key={bannerKey} className="w-full rounded-lg aspect-[16/9]">
+            <BannerCard banner={banner} />
+          </div>
+        );
+      })}
     </div>
   );
 };
