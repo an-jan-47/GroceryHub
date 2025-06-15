@@ -124,26 +124,26 @@ const AppContent = () => {
 
 const App = () => {
   const [isLoading, setIsLoading] = useState(true);
-  
+
   useEffect(() => {
     // Initialize application services
     initializeApp();
-    
+
     // Set up performance monitoring
     setupPerformanceMonitoring();
-    
+
     // Simulate loading time (you can remove this in production)
     const timer = setTimeout(() => {
       setIsLoading(false);
     }, 2000);
-    
+
     return () => clearTimeout(timer);
   }, []);
-  
+
   if (isLoading) {
     return <LoadingScreen />;
   }
-  
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
