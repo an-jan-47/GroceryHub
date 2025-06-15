@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import BannerCard from './BannerCard';
@@ -36,15 +36,15 @@ const BannerCarousel = () => {
     setCurrentSlide(index);
   }, [bannersLength]);
 
-  // Handle slide bounds when banners change
-  React.useEffect(() => {
+  // Handle slide bounds when banners change - simplified to prevent loops
+  useEffect(() => {
     if (bannersLength > 0 && currentSlide >= bannersLength) {
       setCurrentSlide(0);
     }
   }, [bannersLength, currentSlide]);
 
-  // Auto-advance timer - simplified to prevent infinite loops
-  React.useEffect(() => {
+  // Auto-advance timer - fixed to prevent infinite loops
+  useEffect(() => {
     // Clear any existing timer first
     if (timerRef.current) {
       clearInterval(timerRef.current);
@@ -54,7 +54,10 @@ const BannerCarousel = () => {
     // Only create timer if we have multiple banners
     if (bannersLength > 1) {
       timerRef.current = setInterval(() => {
-        setCurrentSlide((prev) => (prev + 1) % bannersLength);
+        setCurrentSlide((prev) => {
+          const nextSlide = (prev + 1) % bannersLength;
+          return nextSlide;
+        });
       }, 5000);
     }
 
@@ -65,7 +68,7 @@ const BannerCarousel = () => {
         timerRef.current = null;
       }
     };
-  }, [bannersLength]); // Only depend on bannersLength, not the entire banners array
+  }, [bannersLength]); // Only depend on bannersLength
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
