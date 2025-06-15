@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -12,9 +13,10 @@ import { getCategories } from "@/services/categoryService";
 import { getProducts } from "@/services/productService";
 import { searchProducts, type SearchFilters as SearchFiltersType } from "@/services/searchService";
 import BannerCarousel from "@/components/BannerCarousel";
-import ErrorBoundary from "@/components/ErrorBoundary";
 
 const Index = () => {
+  console.log('Index page rendering');
+  
   const [filters, setFilters] = useState<SearchFiltersType>({});
   const [isSearchActive, setIsSearchActive] = useState(false);
 
@@ -28,21 +30,21 @@ const Index = () => {
     queryFn: () => getProducts()
   });
 
-  // Add a new query for searched products
   const { data: searchResults = [], isLoading: isSearching } = useQuery({
     queryKey: ['searchProducts', filters],
     queryFn: () => searchProducts(filters),
     enabled: isSearchActive && (!!filters.query || !!filters.category || filters.minPrice !== undefined || filters.maxPrice !== undefined),
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 1000 * 60 * 5,
   });
 
   const handleFilterChange = (newFilters: SearchFiltersType) => {
+    console.log('Filter change:', newFilters);
     setFilters(newFilters);
     setIsSearchActive(true);
   };
 
-  // Function to clear search and show normal homepage content
   const clearSearch = () => {
+    console.log('Clearing search');
     setFilters({});
     setIsSearchActive(false);
   };
@@ -60,7 +62,6 @@ const Index = () => {
         </div>
 
         {isSearchActive ? (
-          // Show search results when search is active
           <div className="mb-8">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold">Search Results</h2>
@@ -89,12 +90,9 @@ const Index = () => {
             )}
           </div>
         ) : (
-          // Show normal homepage content when search is not active
           <>
-            {/* Banner carousel section (should NOT be wrapped with any extra state or logic) */}
-            <ErrorBoundary>
-              <BannerCarousel />
-            </ErrorBoundary>
+            {/* Static Banner - No ErrorBoundary needed */}
+            <BannerCarousel />
 
             {/* Shop by Category Section */}
             <div className="mb-8">
@@ -135,10 +133,8 @@ const Index = () => {
               </div>
             </div>
 
-            {/* Most Popular Section */}
             <PopularProducts />
 
-            {/* Featured Products Section */}
             <div className="mb-8">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-semibold">Featured Products</h2>

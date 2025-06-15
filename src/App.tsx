@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import LoadingScreen from "./components/LoadingScreen";
 import { useNavigationGestures } from "./hooks/useNavigationGestures";
+
 // Pages
 import Index from "./pages/Index";
 import ProductDetail from "./pages/ProductDetail";
@@ -58,6 +59,7 @@ const queryClient = new QueryClient({
 });
 
 const AppContent = () => {
+  console.log('AppContent rendering');
   useNavigationGestures();
 
   return (
@@ -107,12 +109,15 @@ const AppContent = () => {
 };
 
 const App = () => {
+  console.log('App component rendering');
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    console.log('App useEffect running');
     initializeApp();
     setupPerformanceMonitoring();
     const timer = setTimeout(() => {
+      console.log('Loading complete');
       setIsLoading(false);
     }, 2000);
 
@@ -142,4 +147,3 @@ const App = () => {
 };
 
 export default App;
-
