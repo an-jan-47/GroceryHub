@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -9,6 +10,7 @@ const BannerCarousel = () => {
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const bannersLengthRef = useRef(0);
   
   const { data: banners = [], isLoading } = useQuery({
     queryKey: ['banners'],
@@ -16,35 +18,40 @@ const BannerCarousel = () => {
     staleTime: 1000 * 60 * 10, // 10 minutes
   });
 
-  // Memoize banners length to prevent unnecessary effect runs
+  // Memoize banners length
   const bannersLength = useMemo(() => banners.length, [banners.length]);
+
+  // Update the ref when banners length changes
+  useEffect(() => {
+    bannersLengthRef.current = bannersLength;
+  }, [bannersLength]);
 
   // Memoized navigation functions
   const goToNextSlide = useCallback(() => {
-    if (bannersLength <= 1) return;
-    setCurrentSlide((prev) => (prev + 1) % bannersLength);
-  }, [bannersLength]);
+    if (bannersLengthRef.current <= 1) return;
+    setCurrentSlide((prev) => (prev + 1) % bannersLengthRef.current);
+  }, []);
 
   const goToPrevSlide = useCallback(() => {
-    if (bannersLength <= 1) return;
-    setCurrentSlide((prev) => (prev - 1 + bannersLength) % bannersLength);
-  }, [bannersLength]);
+    if (bannersLengthRef.current <= 1) return;
+    setCurrentSlide((prev) => (prev - 1 + bannersLengthRef.current) % bannersLengthRef.current);
+  }, []);
 
   const goToSlide = useCallback((index: number) => {
-    if (index < 0 || index >= bannersLength) return;
+    if (index < 0 || index >= bannersLengthRef.current) return;
     setCurrentSlide(index);
-  }, [bannersLength]);
+  }, []);
 
-  // Handle slide bounds when banners change - simplified to prevent loops
+  // Handle slide bounds when banners change
   useEffect(() => {
     if (bannersLength > 0 && currentSlide >= bannersLength) {
       setCurrentSlide(0);
     }
   }, [bannersLength, currentSlide]);
 
-  // Auto-advance timer - fixed to prevent infinite loops
+  // Auto-advance timer - completely rewritten to prevent infinite loops
   useEffect(() => {
-    // Clear any existing timer first
+    // Clear any existing timer
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
@@ -53,7 +60,10 @@ const BannerCarousel = () => {
     // Only create timer if we have multiple banners
     if (bannersLength > 1) {
       timerRef.current = setInterval(() => {
-        setCurrentSlide((prev) => (prev + 1) % bannersLength);
+        // Use the ref value to avoid closure issues
+        if (bannersLengthRef.current > 1) {
+          setCurrentSlide((prev) => (prev + 1) % bannersLengthRef.current);
+        }
       }, 5000);
     }
 
@@ -64,7 +74,7 @@ const BannerCarousel = () => {
         timerRef.current = null;
       }
     };
-  }, [bannersLength]); // Only depend on bannersLength
+  }, [bannersLength]);
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
