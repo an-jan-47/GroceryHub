@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import BannerCard from './BannerCard';
@@ -20,8 +21,6 @@ const BannerCarousel = () => {
     queryFn: getBanners,
     staleTime: 1000 * 60 * 10, // 10 minutes
   });
-
-  // Prevent unnecessary re-renders by avoiding inline map or key logic that changes every render.
 
   // Error UI
   if (error) {
@@ -64,7 +63,7 @@ const BannerCarousel = () => {
     );
   }
 
-  // More than one banner: avoid Embla Carousel and just render vertically
+  // More than one banner: render all vertically, correct keys on outer wrappers only.
   return (
     <div className="w-full mb-6 space-y-4">
       {banners.map((banner) => (
@@ -77,4 +76,3 @@ const BannerCarousel = () => {
 };
 
 export default BannerCarousel;
-

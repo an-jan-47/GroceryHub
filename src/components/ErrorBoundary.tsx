@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 interface Props {
@@ -19,10 +20,12 @@ class ErrorBoundary extends React.Component<Props, State> {
   }
 
   static getDerivedStateFromError(error: Error): State {
+    // Update state so the next render shows the fallback UI.
     return { hasError: true, error };
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    // You can also log the error to an error reporting service
     console.error('ErrorBoundary caught an error:', error, errorInfo);
   }
 
