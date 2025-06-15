@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import BannerCard from './BannerCard';
@@ -15,6 +16,7 @@ const STATIC_BANNERS = [
 ];
 
 const BannerCarousel = () => {
+  // Only run hooks here, not in render or loops!
   const { data: banners = [], isLoading, error } = useQuery({
     queryKey: ['banners'],
     queryFn: getBanners,
@@ -66,6 +68,7 @@ const BannerCarousel = () => {
   return (
     <div className="w-full mb-6 space-y-4">
       {banners.map((banner) => (
+        // Key is set here—never passed down to BannerCard
         <div key={banner.id || banner.title} className="w-full rounded-lg aspect-[16/9]">
           <BannerCard banner={banner} />
         </div>
@@ -75,3 +78,4 @@ const BannerCarousel = () => {
 };
 
 export default BannerCarousel;
+
