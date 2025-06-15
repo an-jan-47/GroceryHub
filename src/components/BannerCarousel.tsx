@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import BannerCard from './BannerCard';
@@ -9,7 +9,7 @@ const BannerCarousel = () => {
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const bannersLengthRef = useRef(0);
+  const isComponentMounted = useRef(true);
   
   const { data: banners = [], isLoading } = useQuery({
     queryKey: ['banners'],
@@ -17,51 +17,45 @@ const BannerCarousel = () => {
     staleTime: 1000 * 60 * 10, // 10 minutes
   });
 
-  // Memoize banners length
-  const bannersLength = useMemo(() => banners.length, [banners.length]);
-
-  // Update the ref when banners length changes
-  useEffect(() => {
-    bannersLengthRef.current = bannersLength;
-  }, [bannersLength]);
+  const bannersLength = banners.length;
 
   // Memoized navigation functions
   const goToNextSlide = useCallback(() => {
-    if (bannersLengthRef.current <= 1) return;
-    setCurrentSlide((prev) => (prev + 1) % bannersLengthRef.current);
-  }, []);
+    if (bannersLength <= 1) return;
+    setCurrentSlide((prev) => (prev + 1) % bannersLength);
+  }, [bannersLength]);
 
   const goToPrevSlide = useCallback(() => {
-    if (bannersLengthRef.current <= 1) return;
-    setCurrentSlide((prev) => (prev - 1 + bannersLengthRef.current) % bannersLengthRef.current);
-  }, []);
+    if (bannersLength <= 1) return;
+    setCurrentSlide((prev) => (prev - 1 + bannersLength) % bannersLength);
+  }, [bannersLength]);
 
   const goToSlide = useCallback((index: number) => {
-    if (index < 0 || index >= bannersLengthRef.current) return;
+    if (index < 0 || index >= bannersLength) return;
     setCurrentSlide(index);
-  }, []);
+  }, [bannersLength]);
 
-  // Handle slide bounds when banners change
+  // Reset slide position when banners change (only when bannersLength changes)
   useEffect(() => {
     if (bannersLength > 0 && currentSlide >= bannersLength) {
       setCurrentSlide(0);
     }
-  }, [bannersLength, currentSlide]);
+  }, [bannersLength]); // Remove currentSlide from dependencies to prevent infinite loop
 
-  // Auto-advance timer - completely rewritten to prevent infinite loops
+  // Auto-advance timer with proper cleanup
   useEffect(() => {
-    // Clear any existing timer
+    // Clear existing timer
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
     }
 
     // Only create timer if we have multiple banners
-    if (bannersLength > 1) {
+    if (bannersLength > 1 && isComponentMounted.current) {
       timerRef.current = setInterval(() => {
-        // Use the ref value to avoid closure issues
-        if (bannersLengthRef.current > 1) {
-          setCurrentSlide((prev) => (prev + 1) % bannersLengthRef.current);
+        // Check if component is still mounted before updating state
+        if (isComponentMounted.current) {
+          setCurrentSlide((prev) => (prev + 1) % bannersLength);
         }
       }, 5000);
     }
@@ -75,8 +69,24 @@ const BannerCarousel = () => {
     };
   }, [bannersLength]);
 
+  // Component cleanup on unmount
+  useEffect(() => {
+    return () => {
+      isComponentMounted.current = false;
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, []);
+
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
+    // Pause auto-advance on touch
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
   }, []);
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
@@ -93,7 +103,34 @@ const BannerCarousel = () => {
         goToPrevSlide();
       }
     }
-  }, [goToNextSlide, goToPrevSlide]);
+
+    // Restart auto-advance after touch
+    if (bannersLength > 1 && isComponentMounted.current) {
+      timerRef.current = setInterval(() => {
+        if (isComponentMounted.current) {
+          setCurrentSlide((prev) => (prev + 1) % bannersLength);
+        }
+      }, 5000);
+    }
+  }, [goToNextSlide, goToPrevSlide, bannersLength]);
+
+  // Pause/resume timer on hover
+  const handleMouseEnter = useCallback(() => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    if (bannersLength > 1 && isComponentMounted.current) {
+      timerRef.current = setInterval(() => {
+        if (isComponentMounted.current) {
+          setCurrentSlide((prev) => (prev + 1) % bannersLength);
+        }
+      }, 5000);
+    }
+  }, [bannersLength]);
 
   // Loading state
   if (isLoading || bannersLength === 0) {
@@ -112,6 +149,8 @@ const BannerCarousel = () => {
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
       <div className="overflow-hidden relative rounded-lg aspect-[16/9]">
         <div 
@@ -123,8 +162,9 @@ const BannerCarousel = () => {
         >
           {banners.map((banner, index) => (
             <div 
-              key={`${banner.id}-${index}`}
+              key={banner.id || index} // Use banner.id if available
               className="w-full flex-shrink-0"
+              style={{ width: `${100 / bannersLength}%` }}
             >
               <BannerCard banner={banner} />
             </div>
