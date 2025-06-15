@@ -1,26 +1,31 @@
 
 import React from 'react';
-import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { getPopularProducts } from '@/services/productService';
-import ProductCard from '@/components/ProductCard';
+import { getFeaturedProducts } from '@/services/productService';
+import ProductCard from './ProductCard';
+import { Skeleton } from './ui/skeleton';
 
 const PopularProducts = () => {
-  const { data: products, isLoading } = useQuery({
-    queryKey: ['popularProducts'],
-    queryFn: getPopularProducts
+  const { data: featuredProducts = [], isLoading } = useQuery({
+    queryKey: ['featuredProducts'],
+    queryFn: getFeaturedProducts,
+    staleTime: 1000 * 60 * 10, // 10 minutes
   });
 
   if (isLoading) {
     return (
-      <div className="py-4">
-        <div className="flex justify-between items-center mb-3">
-          <h2 className="text-lg font-semibold">Most Popular</h2>
+      <div className="mb-8">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold">Most Popular</h2>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {Array(8).fill(0).map((_, i) => (
-            <div key={i} className="animate-pulse">
-              <div className="bg-gray-200 rounded-lg h-48"></div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+          {[...Array(8)].map((_, i) => (
+            <div key={`popular-loading-${i}`} className="space-y-2">
+              <Skeleton className="h-40 w-full rounded-md" />
+              <div className="space-y-1.5">
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-4 w-1/2" />
+              </div>
             </div>
           ))}
         </div>
@@ -28,26 +33,22 @@ const PopularProducts = () => {
     );
   }
 
-  if (!products || products.length === 0) {
-    return null;
-  }
-
   return (
-    <section className="py-4">
-      <div className="flex justify-between items-center mb-3">
-        <h2 className="text-lg font-semibold">Most Popular</h2>
-        <Link to="/explore" className="text-brand-blue text-sm">View All</Link>
+    <div className="mb-8">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-semibold">Most Popular</h2>
       </div>
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {products.map((product) => (
-          <ProductCard 
-            key={product.id} 
-            product={product}
-            showBuyNow={false}
-          />
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+        {featuredProducts.map((product) => (
+          <div key={product.id}>
+            <ProductCard
+              product={product}
+              showBuyNow={false}
+            />
+          </div>
         ))}
       </div>
-    </section>
+    </div>
   );
 };
 

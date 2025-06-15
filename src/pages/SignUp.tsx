@@ -1,13 +1,13 @@
-import { toast } from '@/components/ui/sonner';
-import { useState, useEffect } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
+import { toast } from '@/components/ui/sonner';
 
-
-const SignUpPage = () => {
+const SignUp = () => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -103,7 +103,7 @@ const SignUpPage = () => {
     }
   };
   
-  const handleGoogleSignUp = async () => {
+  const handleGoogleSignUp = async (e: React.MouseEvent) => {
     try {
       setFormError(null);
       await signInWithGoogle();
@@ -236,4 +236,4 @@ const SignUpPage = () => {
   );
 };
 
-export default SignUpPage;
+export default SignUp;

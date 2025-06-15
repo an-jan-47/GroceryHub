@@ -1,67 +1,18 @@
-import { useState, useEffect, useRef } from 'react';
+
+import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
 import BannerCard from './BannerCard';
 import { getBanners } from '@/services/bannerService';
 
 const BannerCarousel = () => {
-  const [currentSlide, setCurrentSlide] = useState(0);
-  const touchStartX = useRef(0);
-  const touchEndX = useRef(0);
-  
   const { data: banners = [], isLoading } = useQuery({
     queryKey: ['banners'],
     queryFn: getBanners,
     staleTime: 1000 * 60 * 10, // 10 minutes
   });
 
-  // Auto-advance slides every 5 seconds
-  useEffect(() => {
-    if (banners.length <= 1) return;
-    
-    const timer = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % banners.length);
-    }, 5000);
-    
-    return () => clearInterval(timer);
-  }, [banners.length]);
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartX.current = e.touches[0].clientX;
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    touchEndX.current = e.touches[0].clientX;
-  };
-
-  const handleTouchEnd = () => {
-    const diffX = touchStartX.current - touchEndX.current;
-
-    if (Math.abs(diffX) > 50) { // Minimum swipe distance
-      if (diffX > 0) {
-        // Swipe left - go to next slide
-        goToNextSlide();
-      } else {
-        // Swipe right - go to previous slide
-        goToPrevSlide();
-      }
-    }
-  };
-
-  const goToNextSlide = () => {
-    setCurrentSlide((prev) => (prev + 1) % banners.length);
-  };
-
-  const goToPrevSlide = () => {
-    setCurrentSlide((prev) => (prev - 1 + banners.length) % banners.length);
-  };
-
-  const goToSlide = (index: number) => {
-    setCurrentSlide(index);
-  };
-
-  // Don't render if loading or no banners
-  if (isLoading || banners.length === 0) {
+  // Loading state
+  if (isLoading) {
     return (
       <div className="w-full mb-6 aspect-[16/9] bg-gray-200 rounded-lg animate-pulse">
         <div className="flex items-center justify-center h-full">
@@ -71,69 +22,36 @@ const BannerCarousel = () => {
     );
   }
 
-  return (
-    <div 
-      className="relative w-full mb-6 group"
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-    >
-      <div className="overflow-hidden relative rounded-lg aspect-[16/9]">
-        <div 
-          className="flex transition-transform duration-300 ease-out"
-          style={{
-            transform: `translateX(-${currentSlide * 100}%)`,
-            width: `${banners.length * 100}%`
-          }}
-        >
-          {banners.map((banner) => (
-            <div 
-              key={banner.id}
-              className="w-full flex-shrink-0"
-            >
-              <BannerCard banner={banner} />
-            </div>
-          ))}
-        </div>
-
-        {/* Left Arrow - only show if more than 1 banner */}
-        {banners.length > 1 && (
-          <button
-            onClick={goToPrevSlide}
-            className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10"
-            aria-label="Previous banner"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-        )}
-
-        {/* Right Arrow - only show if more than 1 banner */}
-        {banners.length > 1 && (
-          <button
-            onClick={goToNextSlide}
-            className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10"
-            aria-label="Next banner"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
-        )}
+  // No banners state
+  if (banners.length === 0) {
+    return (
+      <div className="w-full mb-6 aspect-[16/9] bg-gray-100 rounded-lg flex items-center justify-center">
+        <p className="text-gray-500">No banners available</p>
       </div>
+    );
+  }
 
-      {/* Navigation dots - only show if more than 1 banner */}
-      {banners.length > 1 && (
-        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
-          {banners.map((_, index) => (
-            <button
-              key={index}
-              className={`w-2 h-2 rounded-full transition-colors duration-200 ${
-                index === currentSlide ? 'bg-white' : 'bg-white/50'
-              }`}
-              onClick={() => goToSlide(index)}
-              aria-label={`Go to banner ${index + 1}`}
-            />
-          ))}
+  // Single banner - just display it
+  if (banners.length === 1) {
+    return (
+      <div className="w-full mb-6 rounded-lg aspect-[16/9]">
+        <BannerCard banner={banners[0]} />
+      </div>
+    );
+  }
+
+  // Multiple banners - show a simple vertical list
+  return (
+    <div className="w-full mb-6 space-y-4">
+      {banners.map((banner, index) => (
+        <div
+          key={banner.id || `banner-${index}`}
+          className="w-full rounded-lg aspect-[16/9]"
+          // No ref here!
+        >
+          <BannerCard banner={banner} />
         </div>
-      )}
+      ))}
     </div>
   );
 };

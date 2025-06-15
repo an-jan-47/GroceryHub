@@ -7,68 +7,28 @@ import { Separator } from '@/components/ui/separator';
 import { useCart } from '@/hooks/useCart';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
+import OptimizedCheckoutButton from '@/components/OptimizedCheckoutButton';
 import { toast } from '@/components/ui/sonner';
-import { useAuthCheck } from '@/hooks/useAuthCheck';
-import { validateCoupon, calculateDiscount, type Coupon } from '@/services/couponService';
-
-// Create a global state for coupons to share between pages
-const globalCouponState = {
-  appliedCoupons: [] as Array<{ coupon: Coupon; discountAmount: number }>,
-  listeners: [] as Array<() => void>,
-  
-  setCoupons(coupons: Array<{ coupon: Coupon; discountAmount: number }>) {
-    this.appliedCoupons = coupons;
-    this.notifyListeners();
-  },
-  
-  addCoupon(coupon: Coupon, discountAmount: number) {
-    // Check if coupon already exists
-    const existingIndex = this.appliedCoupons.findIndex(c => c.coupon.id === coupon.id);
-    if (existingIndex !== -1) {
-      this.appliedCoupons[existingIndex] = { coupon, discountAmount };
-    } else {
-      this.appliedCoupons.push({ coupon, discountAmount });
-    }
-    this.notifyListeners();
-  },
-  
-  removeCoupon(couponId: string) {
-    this.appliedCoupons = this.appliedCoupons.filter(c => c.coupon.id !== couponId);
-    this.notifyListeners();
-  },
-  
-  clearCoupons() {
-    this.appliedCoupons = [];
-    this.notifyListeners();
-  },
-  
-  subscribe(listener: () => void) {
-    this.listeners.push(listener);
-    return () => {
-      this.listeners = this.listeners.filter(l => l !== listener);
-    };
-  },
-  
-  notifyListeners() {
-    this.listeners.forEach(listener => listener());
-  }
-};
+import { validateCoupon, calculateDiscount } from '@/services/couponService';
+import { useCouponState } from '@/components/CouponStateManager';
 
 const CartPage = () => {
   const [couponCode, setCouponCode] = useState('');
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
-  const [appliedCoupons, setAppliedCoupons] = useState<Array<{ coupon: Coupon; discountAmount: number }>>([]);
   const {
     cartItems,
     removeFromCart,
     updateQuantity,
     cartTotal,
-    setCartItems // Added this to fix the clearCart function
+    setCartItems
   } = useCart();
+  const { appliedCoupons, addCoupon, removeCoupon, clearCoupons, checkCartAndClearCoupons } = useCouponState();
   const navigate = useNavigate();
-  const {
-    checkAuthForCheckout
-  } = useAuthCheck();
+
+  // Check if cart is empty and clear coupons accordingly
+  useEffect(() => {
+    checkCartAndClearCoupons(cartItems.length);
+  }, [cartItems.length, checkCartAndClearCoupons]);
 
   // Pricing configuration 
   const platformFees = 5.00;
@@ -100,7 +60,7 @@ const CartPage = () => {
   // Fixed clearCart function
   const clearCart = () => {
     setCartItems([]);
-    globalCouponState.clearCoupons(); // Clear all applied coupons
+    clearCoupons(); // Clear all applied coupons
     toast("Cart cleared", {
       description: "All items have been removed from your cart"
     });
@@ -109,32 +69,38 @@ const CartPage = () => {
   // Add coupon clearing when removing last item
   const handleRemoveFromCart = (productId: string) => {
     removeFromCart(productId);
-    if (cartItems.length === 1) { // If this is the last item
-      globalCouponState.clearCoupons();
+    // Check if this was the last item and clear coupons if needed
+    if (cartItems.length === 1) {
+      clearCoupons();
     }
   };
 
-  // Update the useEffect for coupon state synchronization
+  // Only load coupons if cart has items
   useEffect(() => {
-    const unsubscribe = globalCouponState.subscribe(() => {
-      // Get all coupons from global state
-      const allCoupons = globalCouponState.appliedCoupons;
-      
-      // Recalculate discount amounts for all coupons
-      const updatedCoupons = allCoupons.map(({ coupon }) => {
-        const newDiscountAmount = calculateDiscount(coupon, totalBeforeDiscount);
-        return { coupon, discountAmount: newDiscountAmount };
-      });
-      
-      setAppliedCoupons(updatedCoupons);
-    });
-    
-    // Initialize with current state
-    const initialCoupons = globalCouponState.appliedCoupons;
-    setAppliedCoupons(initialCoupons);
-    
-    return unsubscribe;
-  }, [totalBeforeDiscount]);
+    if (cartItems.length > 0) {
+      const storedCouponData = localStorage.getItem('appliedCoupon');
+      if (storedCouponData) {
+        try {
+          const parsedData = JSON.parse(storedCouponData);
+          let couponsToLoad: any[] = [];
+          
+          if (Array.isArray(parsedData)) {
+            couponsToLoad = parsedData;
+          } else if (parsedData.coupon) {
+            couponsToLoad = [parsedData];
+          }
+          
+          // Load coupons into global state
+          couponsToLoad.forEach(({ coupon, discountAmount }) => {
+            addCoupon(coupon, discountAmount);
+          });
+        } catch (error) {
+          console.error('Error loading coupons from localStorage:', error);
+          localStorage.removeItem('appliedCoupon');
+        }
+      }
+    }
+  }, [cartItems.length, addCoupon]);
 
   const handleCouponApply = async () => {
     if (!couponCode.trim()) {
@@ -151,10 +117,16 @@ const CartPage = () => {
 
     setIsApplyingCoupon(true);
     try {
-      const coupon = await validateCoupon(couponCode, totalBeforeDiscount);
+      // Convert AppliedCouponState to AppliedCoupon format for validation
+      const appliedCouponsForValidation = appliedCoupons.map(c => ({
+        ...c,
+        appliedToTotal: c.appliedToTotal || totalBeforeDiscount
+      }));
+      
+      const coupon = await validateCoupon(couponCode, totalBeforeDiscount, appliedCouponsForValidation);
       const discount = calculateDiscount(coupon, totalBeforeDiscount);
       
-      globalCouponState.addCoupon(coupon, discount);
+      addCoupon(coupon, discount);
       setCouponCode('');
       
       toast("Coupon applied!", {
@@ -170,22 +142,9 @@ const CartPage = () => {
   };
 
   const handleRemoveCoupon = (couponId: string) => {
-    globalCouponState.removeCoupon(couponId);
+    console.log('Cart: Removing coupon with ID:', couponId);
+    removeCoupon(couponId);
     toast("Coupon removed");
-  };
-
-  const handleCheckout = () => {
-    if (cartItems.length === 0) {
-      toast("Cart is empty", {
-        description: "Add items to your cart before proceeding to checkout."
-      });
-      return;
-    }
-
-    // Check if user is authenticated before proceeding
-    if (checkAuthForCheckout()) {
-      navigate('/address');
-    }
   };
 
   return (
@@ -367,13 +326,7 @@ const CartPage = () => {
                 )}
               </div>
               
-              <Button 
-                onClick={handleCheckout} 
-                className="w-full mt-4 bg-brand-blue hover:bg-brand-darkBlue"
-                disabled={cartItems.length === 0}
-              >
-                Proceed to Checkout
-              </Button>
+              <OptimizedCheckoutButton cartItems={cartItems} />
             </div>
           </>
         )}
@@ -384,6 +337,4 @@ const CartPage = () => {
   );
 };
 
-// Export the global coupon state for use in other components
-export { globalCouponState };
 export default CartPage;

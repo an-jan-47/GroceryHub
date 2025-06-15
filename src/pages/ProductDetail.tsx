@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -55,13 +54,15 @@ const ProductDetailPage = () => {
       .slice(0, 4)
   });
 
-  // Check if product is in wishlist on component mount
+  // Check if product is in wishlist on component mount (prevent infinite update)
   useEffect(() => {
     if (productId) {
+      // Only set state if needed, don't depend on isInWishlist function reference
       setIsFavorite(isInWishlist(productId));
     }
-  }, [productId, isInWishlist]);
-  
+    // Only depend on productId (not isInWishlist, which is unstable)
+  }, [productId]);
+
   // Handle quantity changes
   const incrementQuantity = () => {
     if (product && quantity < product.stock) {
@@ -249,12 +250,13 @@ const ProductDetailPage = () => {
           <div className="mb-6">
             <h2 className="font-semibold mb-3">Related Products</h2>
             <div className="grid grid-cols-2 gap-3">
-              {relatedProducts.map(relatedProduct => (
-                <ProductCard 
-                  key={relatedProduct.id} 
-                  product={relatedProduct} 
-                  className="h-full"
-                />
+              {relatedProducts.map((relatedProduct) => (
+                <div key={relatedProduct.id}>
+                  <ProductCard
+                    product={relatedProduct}
+                    className="flex-shrink-0"
+                  />
+                </div>
               ))}
             </div>
           </div>

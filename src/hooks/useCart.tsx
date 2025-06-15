@@ -1,191 +1,117 @@
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { toast } from '@/components/ui/sonner';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 export interface CartItem {
   id: string;
   name: string;
   price: number;
   salePrice?: number;
-  image?: string;
-  images?: string[];
   quantity: number;
-  stock?: number;
-  [key: string]: any;
+  images: string[];
+  category: string;
+  brand: string;
 }
 
 interface CartContextType {
   cartItems: CartItem[];
-  addToCart: (product: CartItem) => void;
-  removeFromCart: (productId: string) => void;
-  clearCart: () => void;
-  updateQuantity: (productId: string, quantity: number) => void;
-  totalItems: number;
-  subtotal: number;
   cartTotal: number;
+  totalItems: number;
+  addToCart: (product: any, quantity?: number) => void;
+  removeFromCart: (productId: string) => void;
+  updateQuantity: (productId: string, quantity: number) => void;
+  clearCart: () => void;
+  setCartItems: (items: CartItem[]) => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [cartItems, setCartItems] = useState<CartItem[]>(() => {
-    const savedCart = localStorage.getItem('cart');
-    try {
-      const parsedCart = savedCart ? JSON.parse(savedCart) : [];
-      if (!Array.isArray(parsedCart)) {
-        throw new Error('Invalid cart data');
-      }
-      return parsedCart;
-    } catch (e) {
-      localStorage.removeItem('cart');
-      return [];
-    }
-  });
-  
+export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+
+  // Load cart from localStorage on mount
   useEffect(() => {
-    try {
-      localStorage.setItem('cart', JSON.stringify(cartItems));
-    } catch (e) {
-      console.error('Error saving cart:', e);
-      toast("Error saving cart", {
-        description: "There was a problem saving your cart data"
-      });
-    }
-  }, [cartItems]);
-  
-  const addToCart = (product: CartItem) => {
-    if (!product.quantity) {
-      product.quantity = 1;
-    }
-    
-    if (product.stock !== undefined && product.stock <= 0) {
-      toast("Out of stock", {
-        description: `${product.name} is currently out of stock`,
-        duration: 2000,
-        position: "bottom-center"
-      });
-      return;
-    }
-    
-    setCartItems(prevItems => {
-      const existingItemIndex = prevItems.findIndex(item => item.id === product.id);
-      
-      if (existingItemIndex >= 0) {
-        const updatedItems = [...prevItems];
-        const newQuantity = updatedItems[existingItemIndex].quantity + product.quantity;
-        
-        if (product.stock !== undefined && newQuantity > product.stock) {
-          toast("Limited stock", {
-            description: `Only ${product.stock} units available`,
-            duration: 2000,
-            position: "bottom-center"
-          });
-          updatedItems[existingItemIndex].quantity = product.stock;
-        } else {
-          updatedItems[existingItemIndex].quantity = newQuantity;
-        }
-        
-        return updatedItems;
-      } else {
-        return [...prevItems, { ...product }];
+    const savedCart = localStorage.getItem('groceryHub_cart');
+    if (savedCart) {
+      try {
+        setCartItems(JSON.parse(savedCart));
+      } catch (error) {
+        console.error('Error loading cart from localStorage:', error);
       }
-    });
-    
-    toast("Added to cart", {
-      description: `${product.name} added to cart`,
-      duration: 2000,
-      position: "bottom-center"
+    }
+  }, []);
+
+  // Save cart to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('groceryHub_cart', JSON.stringify(cartItems));
+  }, [cartItems]);
+
+  const addToCart = (product: any, quantity = 1) => {
+    setCartItems(prevItems => {
+      const existingItem = prevItems.find(item => item.id === product.id);
+      
+      if (existingItem) {
+        return prevItems.map(item =>
+          item.id === product.id
+            ? { ...item, quantity: item.quantity + quantity }
+            : item
+        );
+      } else {
+        const newItem: CartItem = {
+          id: product.id,
+          name: product.name,
+          price: product.price,
+          salePrice: product.sale_price,
+          quantity,
+          images: product.images || [],
+          category: product.category,
+          brand: product.brand,
+        };
+        return [...prevItems, newItem];
+      }
     });
   };
-  
+
   const removeFromCart = (productId: string) => {
     setCartItems(prevItems => prevItems.filter(item => item.id !== productId));
-    toast("Removed", {
-      description: "Item removed from cart",
-      duration: 2000,
-      position: "bottom-center"
-    });
   };
-  
+
   const updateQuantity = (productId: string, quantity: number) => {
-    setCartItems(prevItems => {
-      const itemIndex = prevItems.findIndex(item => item.id === productId);
-      
-      if (itemIndex >= 0) {
-        const item = prevItems[itemIndex];
-        
-        if (quantity <= 0) {
-          const newItems = [...prevItems];
-          newItems.splice(itemIndex, 1);
-          
-          // Only show toast if user explicitly removes item, not for automatic updates
-          if (quantity === 0) {
-            toast("Removed", {
-              description: `${item.name} removed from cart`,
-              duration: 2000,
-              position: "bottom-center"
-            });
-          }
-          
-          return newItems;
-        }
-        
-        if (item.stock !== undefined && quantity > item.stock) {
-          toast("Limited stock", {
-            description: `Only ${item.stock} units available`,
-            duration: 2000,
-            position: "bottom-center"
-          });
-          
-          const newItems = [...prevItems];
-          newItems[itemIndex] = { ...item, quantity: item.stock };
-          return newItems;
-        }
-        
-        const newItems = [...prevItems];
-        newItems[itemIndex] = { ...item, quantity };
-        return newItems;
-      }
-      
-      return prevItems;
-    });
+    if (quantity <= 0) {
+      removeFromCart(productId);
+    } else {
+      setCartItems(prevItems =>
+        prevItems.map(item =>
+          item.id === productId ? { ...item, quantity } : item
+        )
+      );
+    }
   };
-  
+
   const clearCart = () => {
     setCartItems([]);
-    localStorage.removeItem('cart');
-    localStorage.removeItem('appliedCoupons'); // Add this line to clear coupons
-    // Dispatch a custom event to notify other components
-    window.dispatchEvent(new CustomEvent('cartCleared'));
-    toast("Cart cleared", {
-      description: "All items have been removed from your cart",
-      duration: 2000,
-      position: "bottom-center"
-    });
+    // Clear applied coupons when cart is cleared
+    localStorage.removeItem('appliedCoupon');
+    console.log('Cart cleared, coupons removed');
   };
-  
-  const totalItems = cartItems.reduce((total, item) => total + item.quantity, 0);
-  
-  const subtotal = cartItems.reduce((total, item) => {
+
+  const cartTotal = cartItems.reduce((total, item) => {
     const itemPrice = item.salePrice ?? item.price;
-    return total + itemPrice * item.quantity;
+    return total + (itemPrice * item.quantity);
   }, 0);
-  
-  const cartTotal = subtotal;
-  
+
+  const totalItems = cartItems.reduce((total, item) => total + item.quantity, 0);
+
   return (
-    <CartContext.Provider
-      value={{
-        cartItems,
-        addToCart,
-        removeFromCart,
-        clearCart,
-        updateQuantity,
-        totalItems,
-        subtotal,
-        cartTotal
-      }}
-    >
+    <CartContext.Provider value={{
+      cartItems,
+      cartTotal,
+      totalItems,
+      addToCart,
+      removeFromCart,
+      updateQuantity,
+      clearCart,
+      setCartItems,
+    }}>
       {children}
     </CartContext.Provider>
   );

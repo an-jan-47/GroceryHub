@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 export interface Coupon {
@@ -21,7 +22,7 @@ export interface Coupon {
 export interface AppliedCoupon {
   coupon: Coupon;
   discountAmount: number;
-  appliedToTotal: number; // Add this field to track the total when coupon was applied
+  appliedToTotal: number; // Track the total when coupon was applied
 }
 
 export const getActiveCoupons = async (limit?: number) => {
@@ -151,7 +152,8 @@ export const calculateMultipleCouponsDiscount = (coupons: Coupon[], cartTotal: n
     if (discount > 0) {
       appliedCoupons.push({
         coupon,
-        discountAmount: discount
+        discountAmount: discount,
+        appliedToTotal: remainingTotal
       });
       remainingTotal -= discount;
     }

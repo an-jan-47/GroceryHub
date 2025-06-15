@@ -35,7 +35,7 @@ const Index = () => {
   
   const { data: featuredProducts = [] } = useQuery({
     queryKey: ['featuredProducts'],
-    queryFn: () => getProducts({ featured: true })
+    queryFn: () => getProducts()
   });
 
   // Add a new query for searched products
@@ -244,6 +244,3 @@ const Index = () => {
 };
 
 export default Index;
-<section className="mb-6">
-  <BannerCarousel />
-</section>
