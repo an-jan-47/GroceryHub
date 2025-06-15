@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -8,8 +9,8 @@ const BannerCarousel = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
-  const intervalRef = useRef(null);
-  const isPaused = useRef(false);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const isPausedRef = useRef(false);
   
   const { data: banners = [], isLoading } = useQuery({
     queryKey: ['banners'],
@@ -18,26 +19,6 @@ const BannerCarousel = () => {
   });
 
   const totalBanners = banners.length;
-
-  // Simple auto-advance - only runs when we have banners and not paused
-  useEffect(() => {
-    if (totalBanners <= 1 || isPaused.current) {
-      return;
-    }
-
-    intervalRef.current = setInterval(() => {
-      setCurrentSlide(prevSlide => {
-        const nextSlide = prevSlide + 1;
-        return nextSlide >= totalBanners ? 0 : nextSlide;
-      });
-    }, 5000);
-
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-    };
-  }, [totalBanners]);
 
   // Navigation functions
   const goToNextSlide = useCallback(() => {
@@ -50,22 +31,59 @@ const BannerCarousel = () => {
     setCurrentSlide(prev => (prev - 1 + totalBanners) % totalBanners);
   }, [totalBanners]);
 
-  const goToSlide = useCallback((index) => {
+  const goToSlide = useCallback((index: number) => {
     if (index >= 0 && index < totalBanners) {
       setCurrentSlide(index);
     }
   }, [totalBanners]);
 
+  // Auto-advance functionality
+  const startAutoAdvance = useCallback(() => {
+    if (intervalRef.current || totalBanners <= 1 || isPausedRef.current) {
+      return;
+    }
+
+    intervalRef.current = setInterval(() => {
+      if (!isPausedRef.current) {
+        setCurrentSlide(prev => (prev + 1) % totalBanners);
+      }
+    }, 5000);
+  }, [totalBanners]);
+
+  const stopAutoAdvance = useCallback(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+  }, []);
+
+  // Start auto-advance when component mounts or banners change
+  useEffect(() => {
+    stopAutoAdvance();
+    if (totalBanners > 1) {
+      startAutoAdvance();
+    }
+
+    return stopAutoAdvance;
+  }, [totalBanners, startAutoAdvance, stopAutoAdvance]);
+
+  // Reset current slide if it's out of bounds
+  useEffect(() => {
+    if (currentSlide >= totalBanners && totalBanners > 0) {
+      setCurrentSlide(0);
+    }
+  }, [currentSlide, totalBanners]);
+
   // Touch handlers
-  const handleTouchStart = (e) => {
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
-  };
+  }, []);
 
-  const handleTouchMove = (e) => {
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
     touchEndX.current = e.touches[0].clientX;
-  };
+  }, []);
 
-  const handleTouchEnd = () => {
+  const handleTouchEnd = useCallback(() => {
     const diffX = touchStartX.current - touchEndX.current;
     if (Math.abs(diffX) > 50) {
       if (diffX > 0) {
@@ -74,29 +92,20 @@ const BannerCarousel = () => {
         goToPrevSlide();
       }
     }
-  };
+  }, [goToNextSlide, goToPrevSlide]);
 
   // Pause/resume on hover
-  const handleMouseEnter = () => {
-    isPaused.current = true;
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-  };
+  const handleMouseEnter = useCallback(() => {
+    isPausedRef.current = true;
+    stopAutoAdvance();
+  }, [stopAutoAdvance]);
 
-  const handleMouseLeave = () => {
-    isPaused.current = false;
-    // Restart the interval when mouse leaves
+  const handleMouseLeave = useCallback(() => {
+    isPausedRef.current = false;
     if (totalBanners > 1) {
-      intervalRef.current = setInterval(() => {
-        setCurrentSlide(prevSlide => {
-          const nextSlide = prevSlide + 1;
-          return nextSlide >= totalBanners ? 0 : nextSlide;
-        });
-      }, 5000);
+      startAutoAdvance();
     }
-  };
+  }, [totalBanners, startAutoAdvance]);
 
   // Loading state
   if (isLoading) {
