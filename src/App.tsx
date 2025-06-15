@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 // Use only one Toaster implementation
 import { Toaster } from "@/components/ui/sonner";
@@ -159,10 +158,12 @@ const App = () => {
       <AuthProvider>
         <CartProvider>
           <TooltipProvider>
-            <BrowserRouter>
-              <Toaster />
-              <AppContent />
-            </BrowserRouter>
+            <ThemeProvider attribute="class" defaultTheme="light" enableSystem={true}>
+              <BrowserRouter>
+                <Toaster />
+                <AppContent />
+              </BrowserRouter>
+            </ThemeProvider>
           </TooltipProvider>
         </CartProvider>
       </AuthProvider>
