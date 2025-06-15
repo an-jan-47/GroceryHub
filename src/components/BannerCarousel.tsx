@@ -1,9 +1,10 @@
+
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import BannerCard from './BannerCard';
 import { getBanners } from '@/services/bannerService';
 
-// TEMP STATIC BANNER for troubleshooting (delete after fix)
+// TEMP STATIC fallback banner (do NOT use setState or any unstable logic in render)
 const STATIC_BANNERS = [
   {
     id: 'static-1',
@@ -21,8 +22,9 @@ const BannerCarousel = () => {
     staleTime: 1000 * 60 * 10, // 10 minutes
   });
 
-  // Log current path in render cycle
-  console.log('Rendering BannerCarousel...');
+  // Prevent unnecessary re-renders by avoiding inline map or key logic that changes every render.
+
+  // Error UI
   if (error) {
     console.error("Error loading banners:", error);
     return (
@@ -32,6 +34,7 @@ const BannerCarousel = () => {
     );
   }
 
+  // Loading UI
   if (isLoading) {
     return (
       <div className="w-full mb-6 aspect-[16/9] bg-gray-200 rounded-lg animate-pulse">
@@ -42,7 +45,7 @@ const BannerCarousel = () => {
     );
   }
 
-  // Fallback: If there are no banners, render a static banner for isolation
+  // Fallback: no banners from API, show static
   if (!banners || banners.length === 0) {
     console.warn("No banners found. Showing static fallback for debug.");
     return (
@@ -52,34 +55,27 @@ const BannerCarousel = () => {
     );
   }
 
-  // Debug: Log banner keys
-  banners.forEach((banner, idx) => {
-    const keyValue = banner.id || banner.title || idx;
-    console.log(`Banner ${idx} key:`, keyValue, "Banner:", banner);
-  });
-
+  // If only one banner, show single card
   if (banners.length === 1) {
-    const keyValue = banners[0].id || banners[0].title || 0;
+    const banner = banners[0];
     return (
       <div className="w-full mb-6 rounded-lg aspect-[16/9]">
-        <BannerCard key={keyValue} banner={banners[0]} />
+        <BannerCard banner={banner} />
       </div>
     );
   }
 
-  // Use banner.id, or if missing, banner.title, or index (last resort)
+  // More than one banner: avoid Embla Carousel and just render vertically
   return (
     <div className="w-full mb-6 space-y-4">
-      {banners.map((banner, idx) => {
-        const bannerKey = banner.id || banner.title || idx; // index is worst fallback, but prevents remount storm if necessary
-        return (
-          <div key={bannerKey} className="w-full rounded-lg aspect-[16/9]">
-            <BannerCard banner={banner} />
-          </div>
-        );
-      })}
+      {banners.map((banner) => (
+        <div key={banner.id || banner.title} className="w-full rounded-lg aspect-[16/9]">
+          <BannerCard banner={banner} />
+        </div>
+      ))}
     </div>
   );
 };
 
 export default BannerCarousel;
+
