@@ -128,7 +128,11 @@ const App = () => {
       <AuthProvider>
         <CartProvider>
           <TooltipProvider>
-            <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="light"
+              enableSystem
+            >
               <BrowserRouter>
                 <Toaster />
                 <AppContent />
