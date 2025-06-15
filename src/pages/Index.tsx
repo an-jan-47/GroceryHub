@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import Header from "@/components/Header";
@@ -36,14 +37,15 @@ const Index = () => {
     staleTime: 1000 * 60 * 5,
   });
 
-  const handleFilterChange = (newFilters: SearchFiltersType) => {
-    console.log('Filter change:', newFilters);
+  // Memoized filter change handler to prevent infinite loops
+  const handleFilterChange = useCallback((newFilters: SearchFiltersType) => {
+    console.log('Index: Filter change received:', newFilters);
     setFilters(newFilters);
     setIsSearchActive(true);
-  };
+  }, []);
 
   const clearSearch = () => {
-    console.log('Clearing search');
+    console.log('Index: Clearing search');
     setFilters({});
     setIsSearchActive(false);
   };
@@ -90,7 +92,7 @@ const Index = () => {
           </div>
         ) : (
           <>
-            {/* Static Banner - No ErrorBoundary needed */}
+            {/* Static Banner */}
             <BannerCarousel />
 
             {/* Shop by Category Section */}

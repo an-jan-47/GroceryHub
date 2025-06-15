@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Search as SearchIcon, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -24,6 +24,8 @@ const SearchFiltersComponent: React.FC<SearchFiltersComponentProps> = ({
   initialQuery = '',
   initialCategory = ''
 }) => {
+  console.log('SearchFilters rendering with initial:', { initialQuery, initialCategory });
+
   const [searchTerm, setSearchTerm] = useState(initialQuery);
   const [selectedCategory, setSelectedCategory] = useState(initialCategory || 'all');
   const [priceRange, setPriceRange] = useState('all');
@@ -31,6 +33,12 @@ const SearchFiltersComponent: React.FC<SearchFiltersComponentProps> = ({
 
   // Available categories (in a real app, this would come from your backend)
   const categories = ['Nestle', 'Cadbury', 'Haldiram', 'Books', 'Sports', 'Beauty'];
+
+  // Memoized filter change handler to prevent infinite loops
+  const handleFilterChange = useCallback((filters: SearchFilters) => {
+    console.log('SearchFilters: Calling onFilterChange with:', filters);
+    onFilterChange(filters);
+  }, [onFilterChange]);
 
   useEffect(() => {
     setSearchTerm(initialQuery);
@@ -40,20 +48,30 @@ const SearchFiltersComponent: React.FC<SearchFiltersComponentProps> = ({
     setSelectedCategory(initialCategory || 'all');
   }, [initialCategory]);
 
+  // Debounced effect to prevent rapid filter changes
   useEffect(() => {
-    onFilterChange({
-      query: searchTerm,
-      category: selectedCategory === 'all' ? '' : selectedCategory,
-      priceRange: priceRange === 'all' ? '' : priceRange,
-      sortBy: sortBy === 'name' ? '' : sortBy
-    });
-  }, [searchTerm, selectedCategory, priceRange, sortBy, onFilterChange]);
+    const timeoutId = setTimeout(() => {
+      const filters = {
+        query: searchTerm,
+        category: selectedCategory === 'all' ? '' : selectedCategory,
+        priceRange: priceRange === 'all' ? '' : priceRange,
+        sortBy: sortBy === 'name' ? '' : sortBy
+      };
+      
+      console.log('SearchFilters: Debounced filter change:', filters);
+      handleFilterChange(filters);
+    }, 300); // 300ms debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm, selectedCategory, priceRange, sortBy, handleFilterChange]);
 
   const handleSearch = (value: string) => {
+    console.log('SearchFilters: Search term changed to:', value);
     setSearchTerm(value);
   };
 
   const clearFilters = () => {
+    console.log('SearchFilters: Clearing all filters');
     setSearchTerm('');
     setSelectedCategory('all');
     setPriceRange('all');

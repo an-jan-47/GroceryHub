@@ -1,59 +1,43 @@
-import * as React from "react"
-import { ChevronLeft, ChevronRight } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
 
-interface SimpleCarouselProps {
-  children: React.ReactNode
-  className?: string
-}
+import React from 'react';
+import BannerCard from './BannerCard';
 
-const SimpleCarousel = React.forwardRef<HTMLDivElement, SimpleCarouselProps>(
-  ({ className, children, ...props }, ref) => {
-    return (
-      <div
-        ref={ref}
-        className={cn("relative", className)}
-        {...props}
-      >
-        {children}
+const BannerCarousel = () => {
+  console.log('BannerCarousel rendering - static implementation');
+
+  // Static banner data
+  const banners = [
+    {
+      id: '1',
+      title: 'Fresh Groceries Delivered',
+      subtitle: 'Get the best quality products delivered to your doorstep',
+      image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1200&h=600',
+      link: '/explore'
+    },
+    {
+      id: '2', 
+      title: 'Special Offers',
+      subtitle: 'Amazing deals on your favorite brands',
+      image: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?auto=format&fit=crop&w=1200&h=600',
+      link: '/explore?category=offers'
+    },
+    {
+      id: '3',
+      title: 'Organic Products',
+      subtitle: 'Healthy choices for your family',
+      image: 'https://images.unsplash.com/photo-1506617564039-2f3b650b7010?auto=format&fit=crop&w=1200&h=600',
+      link: '/explore?category=organic'
+    }
+  ];
+
+  return (
+    <div className="mb-6">
+      <div className="relative overflow-hidden rounded-lg">
+        {/* Display first banner as static */}
+        <BannerCard banner={banners[0]} />
       </div>
-    )
-  }
-)
-SimpleCarousel.displayName = "SimpleCarousel"
-
-const SimpleCarouselContent = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => {
-  return (
-    <div className="overflow-hidden">
-      <div
-        ref={ref}
-        className={cn("flex", className)}
-        {...props}
-      />
     </div>
-  )
-})
-SimpleCarouselContent.displayName = "SimpleCarouselContent"
+  );
+};
 
-const SimpleCarouselItem = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => {
-  return (
-    <div
-      ref={ref}
-      className={cn("min-w-0 shrink-0 grow-0 basis-full", className)}
-      {...props}
-    />
-  )
-})
-SimpleCarouselItem.displayName = "SimpleCarouselItem"
-
-export {
-  SimpleCarousel,
-  SimpleCarouselContent,
-  SimpleCarouselItem,
+export default BannerCarousel;
