@@ -1,90 +1,203 @@
-import React from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import BannerCard from './BannerCard';
+import { getBanners } from '@/services/bannerService';
 
-interface Props {
-  children: React.ReactNode;
-}
+const BannerCarousel = () => {
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const touchStartX = useRef(0);
+  const touchEndX = useRef(0);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const isPausedRef = useRef(false);
 
-interface State {
-  hasError: boolean;
-  error?: Error;
-}
+  const { data: banners = [], isLoading } = useQuery({
+    queryKey: ['banners'],
+    queryFn: getBanners,
+    staleTime: 1000 * 60 * 10, // 10 minutes
+  });
 
-class ErrorBoundary extends React.Component<Props, State> {
-  constructor(props: Props) {
-    super(props);
-    this.state = {
-      hasError: false,
-      error: undefined,
-    };
-  }
+  const totalBanners = banners.length;
 
-  static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error };
-  }
+  // Navigation functions
+  const goToNextSlide = useCallback(() => {
+    if (totalBanners <= 1) return;
+    setCurrentSlide(prev => (prev + 1) % totalBanners);
+  }, [totalBanners]);
 
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('ErrorBoundary caught an error:', error, errorInfo);
-  }
+  const goToPrevSlide = useCallback(() => {
+    if (totalBanners <= 1) return;
+    setCurrentSlide(prev => (prev - 1 + totalBanners) % totalBanners);
+  }, [totalBanners]);
 
-  handleReset = () => {
-    this.setState({ hasError: false, error: undefined });
-  };
+  const goToSlide = useCallback((index: number) => {
+    if (index >= 0 && index < totalBanners) {
+      setCurrentSlide(index);
+    }
+  }, [totalBanners]);
 
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50">
-          <div className="max-w-md w-full bg-white rounded-lg shadow-md p-6 text-center">
-            <div className="mb-4">
-              <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
-                <svg
-                  className="w-8 h-8 text-red-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"
-                  />
-                </svg>
-              </div>
-              <h1 className="text-xl font-semibold text-gray-900 mb-2">
-                Something went wrong
-              </h1>
-              <p className="text-gray-600 mb-4">
-                We encountered an unexpected error. Please try refreshing the page.
-              </p>
-              {this.state.error && (
-                <details className="text-left text-sm text-gray-500 bg-gray-50 p-3 rounded">
-                  <summary className="cursor-pointer font-medium">Error Details</summary>
-                  <pre className="mt-2 whitespace-pre-wrap">{this.state.error.message}</pre>
-                </details>
-              )}
-            </div>
-            <div className="space-y-2">
-              <button
-                onClick={this.handleReset}
-                className="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
-              >
-                Try Again
-              </button>
-              <button
-                onClick={() => window.location.reload()}
-                className="w-full bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200 transition-colors"
-              >
-                Refresh Page
-              </button>
-            </div>
-          </div>
-        </div>
-      );
+  // Auto-advance functionality
+  const startAutoAdvance = useCallback(() => {
+    if (intervalRef.current || totalBanners <= 1 || isPausedRef.current) {
+      return;
     }
 
-    return this.props.children;
-  }
-}
+    intervalRef.current = setInterval(() => {
+      if (!isPausedRef.current) {
+        setCurrentSlide(prev => (prev + 1) % totalBanners);
+      }
+    }, 5000);
+  }, [totalBanners]);
 
-export default ErrorBoundary;
+  const stopAutoAdvance = useCallback(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+  }, []);
+
+  // Start auto-advance when component mounts or banners change
+  useEffect(() => {
+    stopAutoAdvance();
+    if (totalBanners > 1) {
+      startAutoAdvance();
+    }
+
+    return stopAutoAdvance;
+  }, [totalBanners, startAutoAdvance, stopAutoAdvance]);
+
+  // Reset current slide if it's out of bounds
+  useEffect(() => {
+    if (currentSlide >= totalBanners && totalBanners > 0) {
+      setCurrentSlide(0);
+    }
+  }, [currentSlide, totalBanners]);
+
+  // Touch handlers
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    touchEndX.current = e.touches[0].clientX;
+  }, []);
+
+  const handleTouchEnd = useCallback(() => {
+    const diffX = touchStartX.current - touchEndX.current;
+    if (Math.abs(diffX) > 50) {
+      if (diffX > 0) {
+        goToNextSlide();
+      } else {
+        goToPrevSlide();
+      }
+    }
+  }, [goToNextSlide, goToPrevSlide]);
+
+  // Pause/resume on hover
+  const handleMouseEnter = useCallback(() => {
+    isPausedRef.current = true;
+    stopAutoAdvance();
+  }, [stopAutoAdvance]);
+
+  const handleMouseLeave = useCallback(() => {
+    isPausedRef.current = false;
+    if (totalBanners > 1) {
+      startAutoAdvance();
+    }
+  }, [totalBanners, startAutoAdvance]);
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="w-full mb-6 aspect-[16/9] bg-gray-200 rounded-lg animate-pulse">
+        <div className="flex items-center justify-center h-full">
+          <div className="w-8 h-8 border-4 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      </div>
+    );
+  }
+
+  // No banners state
+  if (totalBanners === 0) {
+    return (
+      <div className="w-full mb-6 aspect-[16/9] bg-gray-100 rounded-lg flex items-center justify-center">
+        <p className="text-gray-500">No banners available</p>
+      </div>
+    );
+  }
+
+  // Make sure currentSlide is valid
+  const activeSlide = currentSlide >= totalBanners ? 0 : currentSlide;
+
+  return (
+    <div
+      className="relative w-full mb-6 group"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
+      <div className="overflow-hidden relative rounded-lg aspect-[16/9]">
+        <div
+          className="flex transition-transform duration-300 ease-out"
+          style={{
+            transform: `translateX(-${activeSlide * 100}%)`,
+            width: `${totalBanners * 100}%`
+          }}
+        >
+          {banners.map((banner, index) => (
+            <div
+              key={banner.id || `banner-${index}`}
+              className="w-full flex-shrink-0"
+              style={{ width: `${100 / totalBanners}%` }}
+            >
+              <BannerCard banner={banner} />
+            </div>
+          ))}
+        </div>
+
+        {/* Navigation arrows */}
+        {totalBanners > 1 && (
+          <>
+            <button
+              type="button"
+              onClick={goToPrevSlide}
+              className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10"
+              aria-label="Previous banner"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <button
+              type="button"
+              onClick={goToNextSlide}
+              className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10"
+              aria-label="Next banner"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </>
+        )}
+      </div>
+
+      {/* Navigation dots */}
+      {totalBanners > 1 && (
+        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
+          {banners.map((_, index) => (
+            <button
+              key={`dot-${index}`}
+              type="button"
+              className={`w-2 h-2 rounded-full transition-colors duration-200 ${
+                index === activeSlide ? 'bg-white' : 'bg-white/50'
+              }`}
+              onClick={() => goToSlide(index)}
+              aria-label={`Go to banner ${index + 1}`}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default BannerCarousel;
