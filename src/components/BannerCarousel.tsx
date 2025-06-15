@@ -8,8 +8,8 @@ const BannerCarousel = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const isManuallyPaused = useRef(false);
+  const intervalRef = useRef(null);
+  const isPaused = useRef(false);
   
   const { data: banners = [], isLoading } = useQuery({
     queryKey: ['banners'],
@@ -17,76 +17,55 @@ const BannerCarousel = () => {
     staleTime: 1000 * 60 * 10, // 10 minutes
   });
 
-  const bannersLength = banners.length;
-  
-  // Reset currentSlide when banners change to prevent out of bounds
+  const totalBanners = banners.length;
+
+  // Simple auto-advance - only runs when we have banners and not paused
   useEffect(() => {
-    if (bannersLength > 0 && currentSlide >= bannersLength) {
-      setCurrentSlide(0);
-    }
-  }, [bannersLength, currentSlide]);
-
-  // Navigation functions with built-in bounds checking
-  const goToNextSlide = useCallback(() => {
-    if (bannersLength <= 1) return;
-    setCurrentSlide((prev) => (prev + 1) % bannersLength);
-  }, [bannersLength]);
-
-  const goToPrevSlide = useCallback(() => {
-    if (bannersLength <= 1) return;
-    setCurrentSlide((prev) => (prev - 1 + bannersLength) % bannersLength);
-  }, [bannersLength]);
-
-  const goToSlide = useCallback((index: number) => {
-    if (index < 0 || index >= bannersLength) return;
-    setCurrentSlide(index);
-  }, [bannersLength]);
-
-  // Clear timer utility
-  const clearTimer = useCallback(() => {
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-  }, []);
-
-  // Start timer utility
-  const startTimer = useCallback(() => {
-    if (bannersLength > 1 && !isManuallyPaused.current) {
-      clearTimer();
-      timerRef.current = setInterval(() => {
-        setCurrentSlide((prev) => (prev + 1) % bannersLength);
-      }, 5000);
-    }
-  }, [bannersLength, clearTimer]);
-
-  // Auto-advance timer effect
-  useEffect(() => {
-    // Don't start timer if loading or no banners
-    if (isLoading || bannersLength <= 1) {
-      clearTimer();
+    if (totalBanners <= 1 || isPaused.current) {
       return;
     }
 
-    // Start the timer
-    startTimer();
+    intervalRef.current = setInterval(() => {
+      setCurrentSlide(prevSlide => {
+        const nextSlide = prevSlide + 1;
+        return nextSlide >= totalBanners ? 0 : nextSlide;
+      });
+    }, 5000);
 
-    // Cleanup function
     return () => {
-      clearTimer();
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
     };
-  }, [bannersLength, isLoading, startTimer, clearTimer]);
+  }, [totalBanners]);
+
+  // Navigation functions
+  const goToNextSlide = useCallback(() => {
+    if (totalBanners <= 1) return;
+    setCurrentSlide(prev => (prev + 1) % totalBanners);
+  }, [totalBanners]);
+
+  const goToPrevSlide = useCallback(() => {
+    if (totalBanners <= 1) return;
+    setCurrentSlide(prev => (prev - 1 + totalBanners) % totalBanners);
+  }, [totalBanners]);
+
+  const goToSlide = useCallback((index) => {
+    if (index >= 0 && index < totalBanners) {
+      setCurrentSlide(index);
+    }
+  }, [totalBanners]);
 
   // Touch handlers
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+  const handleTouchStart = (e) => {
     touchStartX.current = e.touches[0].clientX;
-  }, []);
+  };
 
-  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+  const handleTouchMove = (e) => {
     touchEndX.current = e.touches[0].clientX;
-  }, []);
+  };
 
-  const handleTouchEnd = useCallback(() => {
+  const handleTouchEnd = () => {
     const diffX = touchStartX.current - touchEndX.current;
     if (Math.abs(diffX) > 50) {
       if (diffX > 0) {
@@ -95,18 +74,29 @@ const BannerCarousel = () => {
         goToPrevSlide();
       }
     }
-  }, [goToNextSlide, goToPrevSlide]);
+  };
 
-  // Mouse handlers for pause/resume
-  const handleMouseEnter = useCallback(() => {
-    isManuallyPaused.current = true;
-    clearTimer();
-  }, [clearTimer]);
+  // Pause/resume on hover
+  const handleMouseEnter = () => {
+    isPaused.current = true;
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+  };
 
-  const handleMouseLeave = useCallback(() => {
-    isManuallyPaused.current = false;
-    startTimer();
-  }, [startTimer]);
+  const handleMouseLeave = () => {
+    isPaused.current = false;
+    // Restart the interval when mouse leaves
+    if (totalBanners > 1) {
+      intervalRef.current = setInterval(() => {
+        setCurrentSlide(prevSlide => {
+          const nextSlide = prevSlide + 1;
+          return nextSlide >= totalBanners ? 0 : nextSlide;
+        });
+      }, 5000);
+    }
+  };
 
   // Loading state
   if (isLoading) {
@@ -120,7 +110,7 @@ const BannerCarousel = () => {
   }
 
   // No banners state
-  if (bannersLength === 0) {
+  if (totalBanners === 0) {
     return (
       <div className="w-full mb-6 aspect-[16/9] bg-gray-100 rounded-lg flex items-center justify-center">
         <p className="text-gray-500">No banners available</p>
@@ -128,8 +118,8 @@ const BannerCarousel = () => {
     );
   }
 
-  // Ensure currentSlide is within bounds
-  const displaySlide = Math.max(0, Math.min(currentSlide, bannersLength - 1));
+  // Make sure currentSlide is valid
+  const activeSlide = currentSlide >= totalBanners ? 0 : currentSlide;
 
   return (
     <div 
@@ -144,15 +134,15 @@ const BannerCarousel = () => {
         <div 
           className="flex transition-transform duration-300 ease-out"
           style={{
-            transform: `translateX(-${displaySlide * 100}%)`,
-            width: `${bannersLength * 100}%`
+            transform: `translateX(-${activeSlide * 100}%)`,
+            width: `${totalBanners * 100}%`
           }}
         >
           {banners.map((banner, index) => (
             <div 
               key={banner.id || `banner-${index}`}
               className="w-full flex-shrink-0"
-              style={{ width: `${100 / bannersLength}%` }}
+              style={{ width: `${100 / totalBanners}%` }}
             >
               <BannerCard banner={banner} />
             </div>
@@ -160,7 +150,7 @@ const BannerCarousel = () => {
         </div>
 
         {/* Navigation arrows */}
-        {bannersLength > 1 && (
+        {totalBanners > 1 && (
           <>
             <button
               type="button"
@@ -183,14 +173,14 @@ const BannerCarousel = () => {
       </div>
 
       {/* Navigation dots */}
-      {bannersLength > 1 && (
+      {totalBanners > 1 && (
         <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
           {banners.map((_, index) => (
             <button
               key={`dot-${index}`}
               type="button"
               className={`w-2 h-2 rounded-full transition-colors duration-200 ${
-                index === displaySlide ? 'bg-white' : 'bg-white/50'
+                index === activeSlide ? 'bg-white' : 'bg-white/50'
               }`}
               onClick={() => goToSlide(index)}
               aria-label={`Go to banner ${index + 1}`}
