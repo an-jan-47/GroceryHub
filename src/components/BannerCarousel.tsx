@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import BannerCard from './BannerCard';
@@ -39,13 +40,14 @@ const BannerCarousel = () => {
     );
   }
 
-  // Multiple banners - display all in a grid or list
+  // Multiple banners - show a simple vertical list
   return (
     <div className="w-full mb-6 space-y-4">
       {banners.map((banner, index) => (
         <div
           key={banner.id || `banner-${index}`}
           className="w-full rounded-lg aspect-[16/9]"
+          // No ref here!
         >
           <BannerCard banner={banner} />
         </div>
