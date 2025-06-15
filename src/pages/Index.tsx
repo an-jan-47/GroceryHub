@@ -12,6 +12,7 @@ import { getCategories } from "@/services/categoryService";
 import { getProducts } from "@/services/productService";
 import { searchProducts, type SearchFilters as SearchFiltersType } from "@/services/searchService";
 import BannerCarousel from "@/components/BannerCarousel";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 const Index = () => {
   const [filters, setFilters] = useState<SearchFiltersType>({});
@@ -91,7 +92,9 @@ const Index = () => {
           // Show normal homepage content when search is not active
           <>
             {/* Banner carousel section (should NOT be wrapped with any extra state or logic) */}
-            <BannerCarousel />
+            <ErrorBoundary>
+              <BannerCarousel />
+            </ErrorBoundary>
 
             {/* Shop by Category Section */}
             <div className="mb-8">

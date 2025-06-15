@@ -1,14 +1,24 @@
+
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import BannerCard from './BannerCard';
 import { getBanners } from '@/services/bannerService';
 
 const BannerCarousel = () => {
-  const { data: banners = [], isLoading } = useQuery({
+  const { data: banners = [], isLoading, error } = useQuery({
     queryKey: ['banners'],
     queryFn: getBanners,
     staleTime: 1000 * 60 * 10, // 10 minutes
   });
+
+  if (error) {
+    console.error("Error loading banners:", error);
+    return (
+      <div className="w-full mb-6 aspect-[16/9] bg-red-100 rounded-lg flex items-center justify-center">
+        <p className="text-red-700">Failed to load banners</p>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -21,6 +31,7 @@ const BannerCarousel = () => {
   }
 
   if (!banners || banners.length === 0) {
+    console.warn("No banners found. Showing fallback.");
     return (
       <div className="w-full mb-6 aspect-[16/9] bg-gray-100 rounded-lg flex items-center justify-center">
         <p className="text-gray-500">No banners available</p>
@@ -36,10 +47,11 @@ const BannerCarousel = () => {
     );
   }
 
+  // Use banner.id || banner.title as key, NEVER Math.random()
   return (
     <div className="w-full mb-6 space-y-4">
       {banners.map((banner) => {
-        const bannerKey = banner.id || banner.title || Math.random().toString();
+        const bannerKey = banner.id || banner.title;
         return (
           <div key={bannerKey} className="w-full rounded-lg aspect-[16/9]">
             <BannerCard banner={banner} />
