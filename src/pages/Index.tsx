@@ -90,6 +90,7 @@ const Index = () => {
         ) : (
           // Show normal homepage content when search is not active
           <>
+            {/* Banner carousel section (should NOT be wrapped with any extra state or logic) */}
             <BannerCarousel />
 
             {/* Shop by Category Section */}
