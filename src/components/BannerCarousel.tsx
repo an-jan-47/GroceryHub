@@ -10,7 +10,7 @@ const BannerCarousel = () => {
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const isComponentMounted = useRef(true);
+  const isMountedRef = useRef(true);
   
   const { data: banners = [], isLoading } = useQuery({
     queryKey: ['banners'],
@@ -18,50 +18,29 @@ const BannerCarousel = () => {
     staleTime: 1000 * 60 * 10, // 10 minutes
   });
 
-  // Memoized navigation functions to prevent unnecessary re-renders
-  const goToNextSlide = useCallback(() => {
-    if (isComponentMounted.current && banners.length > 1) {
-      setCurrentSlide((prev) => (prev + 1) % banners.length);
-    }
-  }, [banners.length]);
-
-  const goToPrevSlide = useCallback(() => {
-    if (isComponentMounted.current && banners.length > 1) {
-      setCurrentSlide((prev) => (prev - 1 + banners.length) % banners.length);
-    }
-  }, [banners.length]);
-
-  const goToSlide = useCallback((index: number) => {
-    if (isComponentMounted.current) {
-      setCurrentSlide(index);
-    }
-  }, []);
-
-  // Auto-advance timer effect
-  useEffect(() => {
-    // Clear any existing timer
+  // Clear timer helper function
+  const clearTimer = useCallback(() => {
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
     }
+  }, []);
 
-    // Only start timer if we have multiple banners
-    if (banners.length > 1) {
-      timerRef.current = setInterval(() => {
-        if (isComponentMounted.current) {
-          setCurrentSlide((prev) => (prev + 1) % banners.length);
-        }
-      }, 5000);
-    }
+  // Memoized navigation functions to prevent unnecessary re-renders
+  const goToNextSlide = useCallback(() => {
+    if (!isMountedRef.current || banners.length <= 1) return;
+    setCurrentSlide((prev) => (prev + 1) % banners.length);
+  }, [banners.length]);
 
-    // Cleanup function
-    return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
-    };
-  }, [banners.length]); // Only re-run when banners.length changes
+  const goToPrevSlide = useCallback(() => {
+    if (!isMountedRef.current || banners.length <= 1) return;
+    setCurrentSlide((prev) => (prev - 1 + banners.length) % banners.length);
+  }, [banners.length]);
+
+  const goToSlide = useCallback((index: number) => {
+    if (!isMountedRef.current || index < 0 || index >= banners.length) return;
+    setCurrentSlide(index);
+  }, [banners.length]);
 
   // Reset current slide if it's out of bounds
   useEffect(() => {
@@ -70,17 +49,31 @@ const BannerCarousel = () => {
     }
   }, [banners.length, currentSlide]);
 
+  // Auto-advance timer effect
+  useEffect(() => {
+    clearTimer();
+
+    // Only start timer if we have multiple banners and component is mounted
+    if (banners.length > 1 && isMountedRef.current) {
+      timerRef.current = setInterval(() => {
+        if (isMountedRef.current) {
+          setCurrentSlide((prev) => (prev + 1) % banners.length);
+        }
+      }, 5000);
+    }
+
+    return clearTimer;
+  }, [banners.length, clearTimer]);
+
   // Component lifecycle management
   useEffect(() => {
-    isComponentMounted.current = true;
+    isMountedRef.current = true;
+    
     return () => {
-      isComponentMounted.current = false;
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
+      isMountedRef.current = false;
+      clearTimer();
     };
-  }, []);
+  }, [clearTimer]);
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
@@ -130,7 +123,7 @@ const BannerCarousel = () => {
         >
           {banners.map((banner, index) => (
             <div 
-              key={`${banner.id}-${index}`}
+              key={banner.id}
               className="w-full flex-shrink-0"
             >
               <BannerCard banner={banner} />
@@ -141,10 +134,10 @@ const BannerCarousel = () => {
         {/* Left Arrow - only show if more than 1 banner */}
         {banners.length > 1 && (
           <button
+            type="button"
             onClick={goToPrevSlide}
             className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10"
             aria-label="Previous banner"
-            type="button"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
@@ -153,10 +146,10 @@ const BannerCarousel = () => {
         {/* Right Arrow - only show if more than 1 banner */}
         {banners.length > 1 && (
           <button
+            type="button"
             onClick={goToNextSlide}
             className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10"
             aria-label="Next banner"
-            type="button"
           >
             <ChevronRight className="w-5 h-5" />
           </button>
@@ -169,12 +162,12 @@ const BannerCarousel = () => {
           {banners.map((_, index) => (
             <button
               key={`dot-${index}`}
+              type="button"
               className={`w-2 h-2 rounded-full transition-colors duration-200 ${
                 index === currentSlide ? 'bg-white' : 'bg-white/50'
               }`}
               onClick={() => goToSlide(index)}
               aria-label={`Go to banner ${index + 1}`}
-              type="button"
             />
           ))}
         </div>
