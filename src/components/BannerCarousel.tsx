@@ -9,7 +9,6 @@ const BannerCarousel = () => {
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const prevBannersLength = useRef(0);
   
   const { data: banners = [], isLoading } = useQuery({
     queryKey: ['banners'],
@@ -19,55 +18,44 @@ const BannerCarousel = () => {
 
   const bannersLength = banners.length;
   
-  // Safe navigation functions that won't cause infinite loops
+  // Navigation functions with built-in bounds checking
   const goToNextSlide = useCallback(() => {
     if (bannersLength <= 1) return;
-    setCurrentSlide((prev) => (prev + 1) % bannersLength);
+    setCurrentSlide((prev) => {
+      const next = (prev + 1) % bannersLength;
+      return next;
+    });
   }, [bannersLength]);
 
   const goToPrevSlide = useCallback(() => {
     if (bannersLength <= 1) return;
-    setCurrentSlide((prev) => (prev - 1 + bannersLength) % bannersLength);
+    setCurrentSlide((prev) => {
+      const next = (prev - 1 + bannersLength) % bannersLength;
+      return next;
+    });
   }, [bannersLength]);
 
   const goToSlide = useCallback((index: number) => {
-    if (index < 0 || index >= bannersLength || index === currentSlide) return;
+    if (index < 0 || index >= bannersLength) return;
     setCurrentSlide(index);
-  }, [bannersLength, currentSlide]);
+  }, [bannersLength]);
 
-  // Handle banner length changes safely
+  // Auto-advance timer - only depends on bannersLength
   useEffect(() => {
-    if (bannersLength !== prevBannersLength.current) {
-      prevBannersLength.current = bannersLength;
-      
-      // Only reset if current slide is out of bounds
-      if (bannersLength > 0 && currentSlide >= bannersLength) {
-        setCurrentSlide(0);
-      }
-    }
-  }, [bannersLength, currentSlide]);
-
-  // Auto-advance timer - simplified version
-  useEffect(() => {
-    if (bannersLength <= 1) {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
-      return;
-    }
-
-    // Clear existing timer
+    // Clear any existing timer
     if (timerRef.current) {
       clearInterval(timerRef.current);
+      timerRef.current = null;
     }
 
-    // Create new timer
-    timerRef.current = setInterval(() => {
-      setCurrentSlide(prev => (prev + 1) % bannersLength);
-    }, 5000);
+    // Only create timer if we have multiple banners
+    if (bannersLength > 1) {
+      timerRef.current = setInterval(() => {
+        setCurrentSlide((prev) => (prev + 1) % bannersLength);
+      }, 5000);
+    }
 
-    // Cleanup on unmount or when dependencies change
+    // Cleanup function
     return () => {
       if (timerRef.current) {
         clearInterval(timerRef.current);
@@ -96,7 +84,7 @@ const BannerCarousel = () => {
     }
   }, [goToNextSlide, goToPrevSlide]);
 
-  // Pause timer on mouse enter
+  // Mouse handlers for pause/resume
   const handleMouseEnter = useCallback(() => {
     if (timerRef.current) {
       clearInterval(timerRef.current);
@@ -104,11 +92,10 @@ const BannerCarousel = () => {
     }
   }, []);
 
-  // Resume timer on mouse leave
   const handleMouseLeave = useCallback(() => {
-    if (bannersLength > 1) {
+    if (bannersLength > 1 && !timerRef.current) {
       timerRef.current = setInterval(() => {
-        setCurrentSlide(prev => (prev + 1) % bannersLength);
+        setCurrentSlide((prev) => (prev + 1) % bannersLength);
       }, 5000);
     }
   }, [bannersLength]);
@@ -133,8 +120,8 @@ const BannerCarousel = () => {
     );
   }
 
-  // Ensure currentSlide is within bounds before rendering
-  const safeCurrentSlide = Math.min(currentSlide, bannersLength - 1);
+  // Calculate safe slide index - handle out of bounds without useEffect
+  const displaySlide = currentSlide >= bannersLength ? 0 : currentSlide;
 
   return (
     <div 
@@ -149,7 +136,7 @@ const BannerCarousel = () => {
         <div 
           className="flex transition-transform duration-300 ease-out"
           style={{
-            transform: `translateX(-${safeCurrentSlide * 100}%)`,
+            transform: `translateX(-${displaySlide * 100}%)`,
             width: `${bannersLength * 100}%`
           }}
         >
@@ -164,7 +151,7 @@ const BannerCarousel = () => {
           ))}
         </div>
 
-        {/* Navigation arrows - only show if more than 1 banner */}
+        {/* Navigation arrows */}
         {bannersLength > 1 && (
           <>
             <button
@@ -187,7 +174,7 @@ const BannerCarousel = () => {
         )}
       </div>
 
-      {/* Navigation dots - only show if more than 1 banner */}
+      {/* Navigation dots */}
       {bannersLength > 1 && (
         <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
           {banners.map((_, index) => (
@@ -195,7 +182,7 @@ const BannerCarousel = () => {
               key={`dot-${index}`}
               type="button"
               className={`w-2 h-2 rounded-full transition-colors duration-200 ${
-                index === safeCurrentSlide ? 'bg-white' : 'bg-white/50'
+                index === displaySlide ? 'bg-white' : 'bg-white/50'
               }`}
               onClick={() => goToSlide(index)}
               aria-label={`Go to banner ${index + 1}`}
