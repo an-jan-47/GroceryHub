@@ -1,7 +1,19 @@
+
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import BannerCard from './BannerCard';
 import { getBanners } from '@/services/bannerService';
+
+// TEMP STATIC BANNER for troubleshooting (delete after fix)
+const STATIC_BANNERS = [
+  {
+    id: 'static-1',
+    title: 'Welcome to Grocery Hub!',
+    subtitle: 'Find the best groceries at unbeatable prices',
+    image: '/placeholder.svg',
+    link: '/explore',
+  },
+];
 
 const BannerCarousel = () => {
   const { data: banners = [], isLoading, error } = useQuery({
@@ -10,6 +22,8 @@ const BannerCarousel = () => {
     staleTime: 1000 * 60 * 10, // 10 minutes
   });
 
+  // Log current path in render cycle
+  console.log('Rendering BannerCarousel...');
   if (error) {
     console.error("Error loading banners:", error);
     return (
@@ -29,28 +43,36 @@ const BannerCarousel = () => {
     );
   }
 
+  // Fallback: If there are no banners, render a static banner for isolation
   if (!banners || banners.length === 0) {
-    console.warn("No banners found. Showing fallback.");
-    return (
-      <div className="w-full mb-6 aspect-[16/9] bg-gray-100 rounded-lg flex items-center justify-center">
-        <p className="text-gray-500">No banners available</p>
-      </div>
-    );
-  }
-
-  if (banners.length === 1) {
+    console.warn("No banners found. Showing static fallback for debug.");
     return (
       <div className="w-full mb-6 rounded-lg aspect-[16/9]">
-        <BannerCard banner={banners[0]} />
+        <BannerCard banner={STATIC_BANNERS[0]} />
       </div>
     );
   }
 
-  // Use banner.id || banner.title as key, NEVER Math.random()
+  // Debug: Log banner keys
+  banners.forEach((banner, idx) => {
+    const keyValue = banner.id || banner.title || idx;
+    console.log(`Banner ${idx} key:`, keyValue, "Banner:", banner);
+  });
+
+  if (banners.length === 1) {
+    const keyValue = banners[0].id || banners[0].title || 0;
+    return (
+      <div className="w-full mb-6 rounded-lg aspect-[16/9]">
+        <BannerCard key={keyValue} banner={banners[0]} />
+      </div>
+    );
+  }
+
+  // Use banner.id, or if missing, banner.title, or index (last resort)
   return (
     <div className="w-full mb-6 space-y-4">
-      {banners.map((banner) => {
-        const bannerKey = banner.id || banner.title;
+      {banners.map((banner, idx) => {
+        const bannerKey = banner.id || banner.title || idx; // index is worst fallback, but prevents remount storm if necessary
         return (
           <div key={bannerKey} className="w-full rounded-lg aspect-[16/9]">
             <BannerCard banner={banner} />
@@ -62,3 +84,4 @@ const BannerCarousel = () => {
 };
 
 export default BannerCarousel;
+
