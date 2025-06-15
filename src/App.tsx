@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 // Use only one Toaster implementation
 import { Toaster } from "@/components/ui/sonner";
@@ -162,4 +163,3 @@ const App = () => {
 };
 
 export default App;
-
