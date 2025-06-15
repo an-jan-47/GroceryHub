@@ -220,54 +220,6 @@ const OrderDetails = () => {
           )}
         </div>
         
-        {/* Applied Coupons Section */}
-        {(discountAmount > 0 || appliedCoupons.length > 0) && (
-          <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
-            <h2 className="font-semibold mb-3 flex items-center">
-              <Tag className="h-5 w-5 mr-2 text-green-600" />
-              Applied Coupons
-            </h2>
-            
-            {appliedCoupons.length > 0 ? (
-              <div className="space-y-2">
-                {appliedCoupons.map((couponData, index) => (
-                  <div key={index} className="bg-green-50 border border-green-200 rounded-lg p-3">
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <span className="font-semibold text-green-800">{couponData.coupon.code}</span>
-                        <p className="text-sm text-green-600">
-                          {couponData.coupon.type === 'percentage' 
-                            ? `${couponData.coupon.value}% discount` 
-                            : `₹${couponData.coupon.value} discount`}
-                        </p>
-                      </div>
-                      <span className="text-green-700 font-medium">
-                        -₹{couponData.discountAmount?.toFixed(2)}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-                
-                {appliedCoupons.length > 1 && (
-                  <div className="bg-green-100 border border-green-300 rounded-lg p-3 mt-2">
-                    <div className="flex justify-between items-center">
-                      <span className="font-semibold text-green-800">Total Coupon Savings</span>
-                      <span className="text-green-700 font-bold">-₹{discountAmount.toFixed(2)}</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ) : discountAmount > 0 ? (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                <div className="flex justify-between items-center">
-                  <span className="font-semibold text-green-800">Discount Applied</span>
-                  <span className="text-green-700 font-medium">-₹{discountAmount.toFixed(2)}</span>
-                </div>
-              </div>
-            ) : null}
-          </div>
-        )}
-        
         <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
           <h2 className="font-semibold mb-3">Order Items</h2>
           
@@ -306,6 +258,8 @@ const OrderDetails = () => {
           <Separator className="my-4" />
           
           <div className="space-y-2">
+            <h3 className="font-semibold mb-3">Order Summary</h3>
+            
             <div className="flex justify-between text-sm">
               <span className="text-gray-500">Subtotal</span>
               <span>{formatCurrency(subtotal)}</span>
@@ -328,22 +282,59 @@ const OrderDetails = () => {
               </div>
             )}
             
-            {discountAmount > 0 && (
-              <div className="flex justify-between text-sm text-green-600">
-                <span>Total Discount</span>
-                <span>-{formatCurrency(discountAmount)}</span>
-              </div>
+            {(discountAmount > 0 || appliedCoupons.length > 0) && (
+              <>
+                <Separator className="my-2" />
+                <div className="bg-green-50 rounded-lg p-3 space-y-2">
+                  <div className="flex items-center text-green-800 font-medium mb-2">
+                    <Tag className="h-4 w-4 mr-2" />
+                    <span>Applied Coupons</span>
+                  </div>
+                  
+                  {appliedCoupons.length > 0 ? (
+                    <>
+                      {appliedCoupons.map((couponData, index) => (
+                        <div key={index} className="flex justify-between items-center text-sm">
+                          <div>
+                            <span className="font-medium text-green-800">{couponData.coupon.code}</span>
+                            <span className="text-green-600 ml-2">
+                              ({couponData.coupon.type === 'percentage' 
+                                ? `${couponData.coupon.value}% off` 
+                                : `₹${couponData.coupon.value} off`})
+                            </span>
+                          </div>
+                          <span className="text-green-700 font-medium">
+                            -₹{couponData.discountAmount?.toFixed(2)}
+                          </span>
+                        </div>
+                      ))}
+                      
+                      {appliedCoupons.length > 1 && (
+                        <div className="flex justify-between items-center text-sm font-semibold pt-2 border-t border-green-200">
+                          <span className="text-green-800">Total Coupon Savings</span>
+                          <span className="text-green-700">-₹{discountAmount.toFixed(2)}</span>
+                        </div>
+                      )}
+                    </>
+                  ) : discountAmount > 0 ? (
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="font-medium text-green-800">Discount Applied</span>
+                      <span className="text-green-700 font-medium">-₹{discountAmount.toFixed(2)}</span>
+                    </div>
+                  ) : null}
+                </div>
+              </>
             )}
             
             <Separator className="my-2" />
             
-            <div className="flex justify-between font-bold">
-              <span>Total</span>
+            <div className="flex justify-between font-bold text-lg">
+              <span>Total Amount</span>
               <span>{formatCurrency(order.total_amount)}</span>
             </div>
             
             {discountAmount > 0 && (
-              <div className="text-sm text-green-600 text-center mt-2">
+              <div className="text-sm text-green-600 text-center mt-2 font-medium">
                 🎉 You saved ₹{discountAmount.toFixed(2)} on this order!
               </div>
             )}
