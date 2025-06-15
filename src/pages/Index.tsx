@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -16,12 +17,12 @@ import BannerCarousel from "@/components/BannerCarousel";
 const Index = () => {
   const [filters, setFilters] = useState<SearchFiltersType>({});
   const [isSearchActive, setIsSearchActive] = useState(false);
-  
+
   const { data: categories = [] } = useQuery({
     queryKey: ['categories'],
     queryFn: getCategories
   });
-  
+
   const { data: featuredProducts = [] } = useQuery({
     queryKey: ['featuredProducts'],
     queryFn: () => getProducts()
@@ -49,7 +50,7 @@ const Index = () => {
   return (
     <div className="pb-20 bg-gray-50 min-h-screen">
       <Header />
-      
+
       <main className="container px-4 py-4 mx-auto">
         <div className="mb-6">
           <SearchFilters 
@@ -71,7 +72,7 @@ const Index = () => {
                 Clear Search
               </Button>
             </div>
-            
+
             {isSearching ? (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {Array.from({ length: 8 }).map((_, i) => (
@@ -90,7 +91,6 @@ const Index = () => {
         ) : (
           // Show normal homepage content when search is not active
           <>
-            {/* Use BannerCarousel component instead of custom implementation */}
             <BannerCarousel />
 
             {/* Shop by Category Section */}
@@ -104,7 +104,7 @@ const Index = () => {
                   View All
                 </Link>
               </div>
-              
+
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 {categories.slice(0, 6).map((category) => (
                   <Link
@@ -146,13 +146,13 @@ const Index = () => {
                   View All
                 </Link>
               </div>
-              
+
               <ProductsGrid customProducts={featuredProducts.slice(0, 8)} />
             </div>
           </>
         )}
       </main>
-      
+
       <BottomNavigation />
     </div>
   );
