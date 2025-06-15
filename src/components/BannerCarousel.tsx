@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -16,14 +17,6 @@ const BannerCarousel = () => {
     queryFn: getBanners,
     staleTime: 1000 * 60 * 10, // 10 minutes
   });
-
-  // Clear timer helper function
-  const clearTimer = useCallback(() => {
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-  }, []);
 
   // Memoized navigation functions to prevent unnecessary re-renders
   const goToNextSlide = useCallback(() => {
@@ -48,9 +41,13 @@ const BannerCarousel = () => {
     }
   }, [banners.length, currentSlide]);
 
-  // Auto-advance timer effect
+  // Auto-advance timer effect - Fixed to prevent infinite loops
   useEffect(() => {
-    clearTimer();
+    // Clear any existing timer
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
 
     // Only start timer if we have multiple banners and component is mounted
     if (banners.length > 1 && isMountedRef.current) {
@@ -61,8 +58,14 @@ const BannerCarousel = () => {
       }, 5000);
     }
 
-    return clearTimer;
-  }, [banners.length, clearTimer]);
+    // Cleanup function
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, [banners.length]); // Removed clearTimer from dependencies to prevent infinite loop
 
   // Component lifecycle management
   useEffect(() => {
@@ -70,9 +73,12 @@ const BannerCarousel = () => {
     
     return () => {
       isMountedRef.current = false;
-      clearTimer();
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
     };
-  }, [clearTimer]);
+  }, []); // Empty dependency array
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
