@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import BannerCard from './BannerCard';
@@ -84,4 +83,3 @@ const BannerCarousel = () => {
 };
 
 export default BannerCarousel;
-
