@@ -282,46 +282,42 @@ const OrderDetails = () => {
               </div>
             )}
             
-            {(discountAmount > 0 || appliedCoupons.length > 0) && (
+            {discountAmount > 0 && (
               <>
                 <Separator className="my-2" />
-                <div className="bg-green-50 rounded-lg p-3 space-y-2">
-                  <div className="flex items-center text-green-800 font-medium mb-2">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center text-green-600">
                     <Tag className="h-4 w-4 mr-2" />
-                    <span>Applied Coupons</span>
+                    <span className="font-medium">Coupons Applied</span>
                   </div>
-                  
-                  {appliedCoupons.length > 0 ? (
-                    <>
-                      {appliedCoupons.map((couponData, index) => (
-                        <div key={index} className="flex justify-between items-center text-sm">
-                          <div>
-                            <span className="font-medium text-green-800">{couponData.coupon.code}</span>
-                            <span className="text-green-600 ml-2">
-                              ({couponData.coupon.type === 'percentage' 
-                                ? `${couponData.coupon.value}% off` 
-                                : `₹${couponData.coupon.value} off`})
-                            </span>
-                          </div>
-                          <span className="text-green-700 font-medium">
-                            -₹{couponData.discountAmount?.toFixed(2)}
-                          </span>
-                        </div>
-                      ))}
-                      
-                      {appliedCoupons.length > 1 && (
-                        <div className="flex justify-between items-center text-sm font-semibold pt-2 border-t border-green-200">
-                          <span className="text-green-800">Total Coupon Savings</span>
-                          <span className="text-green-700">-₹{discountAmount.toFixed(2)}</span>
-                        </div>
-                      )}
-                    </>
-                  ) : discountAmount > 0 ? (
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="font-medium text-green-800">Discount Applied</span>
-                      <span className="text-green-700 font-medium">-₹{discountAmount.toFixed(2)}</span>
+                </div>
+                
+                {appliedCoupons.length > 0 ? (
+                  appliedCoupons.map((couponData, index) => (
+                    <div key={index} className="flex justify-between items-center text-sm bg-green-50 p-2 rounded">
+                      <div>
+                        <span className="font-medium text-green-800">{couponData.coupon.code}</span>
+                        <span className="text-green-600 ml-2">
+                          ({couponData.coupon.type === 'percentage' 
+                            ? `${couponData.coupon.value}% off` 
+                            : `₹${couponData.coupon.value} off`})
+                        </span>
+                      </div>
+                      <span className="text-green-700 font-medium">
+                        -₹{couponData.discountAmount?.toFixed(2)}
+                      </span>
                     </div>
-                  ) : null}
+                  ))
+                ) : (
+                  <div className="flex justify-between items-center text-sm bg-green-50 p-2 rounded">
+                    <span className="text-green-800">Discount Applied</span>
+                    <span className="text-green-700 font-medium">-₹{discountAmount.toFixed(2)}</span>
+                  </div>
+                )}
+                
+                <div className="flex justify-between text-sm font-medium text-green-600">
+                  <span>Total Savings</span>
+                  <span>-₹{discountAmount.toFixed(2)}</span>
                 </div>
               </>
             )}
@@ -332,12 +328,6 @@ const OrderDetails = () => {
               <span>Total Amount</span>
               <span>{formatCurrency(order.total_amount)}</span>
             </div>
-            
-            {discountAmount > 0 && (
-              <div className="text-sm text-green-600 text-center mt-2 font-medium">
-                🎉 You saved ₹{discountAmount.toFixed(2)} on this order!
-              </div>
-            )}
           </div>
         </div>
         

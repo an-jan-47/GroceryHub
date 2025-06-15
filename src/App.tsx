@@ -141,10 +141,12 @@ const App = () => {
           <CouponStateProvider>
             <TooltipProvider>
               <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
-                <BrowserRouter>
-                  <Toaster />
-                  <AppContent />
-                </BrowserRouter>
+                <div>
+                  <BrowserRouter>
+                    <Toaster />
+                    <AppContent />
+                  </BrowserRouter>
+                </div>
               </ThemeProvider>
             </TooltipProvider>
           </CouponStateProvider>
