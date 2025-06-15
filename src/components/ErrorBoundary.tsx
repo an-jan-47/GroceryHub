@@ -1,3 +1,4 @@
+
 import React, { Component, ReactNode } from 'react';
 
 interface Props {
@@ -87,4 +88,3 @@ class ErrorBoundary extends Component<Props, State> {
 }
 
 export default ErrorBoundary;
-
