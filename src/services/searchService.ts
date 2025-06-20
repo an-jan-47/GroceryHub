@@ -5,7 +5,8 @@ import { Product } from '@/types/product';
 export interface SearchFilters {
   query?: string;
   category?: string;
-  priceRange?: string;
+  minPrice?: number;
+  maxPrice?: number;
   sortBy?: string;
 }
 
@@ -24,32 +25,31 @@ export const searchProducts = async (filters: SearchFilters): Promise<Product[]>
     query = query.eq('category', filters.category);
   }
 
-  // Apply price range filter
-  if (filters.priceRange) {
-    switch (filters.priceRange) {
-      case 'under-50':
-        query = query.lt('price', 50);
-        break;
-      case '50-100':
-        query = query.gte('price', 50).lte('price', 100);
-        break;
-      case '100-200':
-        query = query.gt('price', 100).lte('price', 200);
-        break;
-      case 'over-200':
-        query = query.gt('price', 200);
-        break;
-    }
+  // Apply price range filter - check both price and sale_price
+  if (filters.minPrice !== undefined) {
+    // For minimum price, we need to check if sale_price exists and is >= minPrice
+    // OR if there's no sale_price, then price should be >= minPrice
+    query = query.or(`sale_price.gte.${filters.minPrice},and(sale_price.is.null,price.gte.${filters.minPrice})`);
+  }
+  
+  if (filters.maxPrice !== undefined) {
+    // For maximum price, we need to check if sale_price exists and is <= maxPrice
+    // OR if there's no sale_price, then price should be <= maxPrice
+    query = query.or(`sale_price.lte.${filters.maxPrice},and(sale_price.is.null,price.lte.${filters.maxPrice})`);
   }
 
   // Apply sorting
   if (filters.sortBy) {
     switch (filters.sortBy) {
       case 'price-low':
-        query = query.order('price', { ascending: true });
+        // Sort by sale_price if available, otherwise by price
+        query = query.order('sale_price', { ascending: true, nullsLast: true })
+                     .order('price', { ascending: true });
         break;
       case 'price-high':
-        query = query.order('price', { ascending: false });
+        // Sort by sale_price if available, otherwise by price
+        query = query.order('sale_price', { ascending: false, nullsFirst: true })
+                     .order('price', { ascending: false });
         break;
       case 'name':
         query = query.order('name', { ascending: true });

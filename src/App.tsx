@@ -6,7 +6,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import LoadingScreen from "./components/LoadingScreen";
-import { useNavigationGestures } from "./hooks/useNavigationGestures";
+import { useNavigationGestures } from './hooks/useNavigationGestures';
+import { history } from './history';
+
 
 // Pages
 import Index from "./pages/Index";
@@ -55,8 +57,9 @@ const queryClient = new QueryClient({
         }
         return failureCount < 2;
       },
-      staleTime: 1000 * 60, // 1 minute
-      refetchOnWindowFocus: false,
+      staleTime: 0, // Set to 0 to force fresh data
+      cacheTime: 0, // Disable caching
+      refetchOnWindowFocus: true,
       refetchOnMount: true
     }
   }
@@ -65,6 +68,34 @@ const queryClient = new QueryClient({
 const AppContent = () => {
   console.log('AppContent rendering');
   useNavigationGestures();
+
+  // Add this effect to ensure proper history tracking
+  useEffect(() => {
+    const isCapacitor = !!(window as any).Capacitor;
+    if (isCapacitor) {
+      // Initialize GestureHelper if available
+      const initGestureHelper = async () => {
+        try {
+          // @ts-ignore - Custom plugin
+          const { Plugins } = await import('@capacitor/core');
+          if (Plugins.GestureHelper) {
+            console.log('Initializing GestureHelper');
+            await Plugins.GestureHelper.enableEdgeToEdge();
+            await Plugins.GestureHelper.disableZoom();
+            console.log('GestureHelper initialized successfully');
+          }
+        } catch (err) {
+          console.error('Error initializing GestureHelper:', err);
+        }
+      };
+      initGestureHelper();
+      
+      // Add this to ensure proper history management
+      window.addEventListener('popstate', (event) => {
+        console.log('popstate event', event);
+      });
+    }
+  }, []);
 
   return (
     <ErrorBoundary>
@@ -95,8 +126,8 @@ const AppContent = () => {
         <Route path="/order-history" element={<ProtectedRoute><OrderHistory /></ProtectedRoute>} />
         <Route path="/order/:id" element={<ProtectedRoute><OrderDetails /></ProtectedRoute>} />
         <Route path="/login" element={<Login />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/signup" element={<SignUp />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} /> {/* Add this line */}
         <Route path="/orders" element={<Navigate to="/order-history" replace />} />
         <Route path="/change-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
         <Route path="/privacy-settings" element={<ProtectedRoute><PrivacySettings /></ProtectedRoute>} />
@@ -115,45 +146,39 @@ const AppContent = () => {
 };
 
 const App = () => {
-  console.log('App component rendering');
-  const [isLoading, setIsLoading] = useState(true);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
-    console.log('App useEffect running');
-    initializeApp();
-    setupPerformanceMonitoring();
-    const timer = setTimeout(() => {
-      console.log('Loading complete');
-      setIsLoading(false);
-    }, 2000);
-
-    return () => clearTimeout(timer);
+    const initialize = async () => {
+      await initializeApp();
+      setupPerformanceMonitoring();
+      setIsInitialized(true);
+    };
+    initialize();
   }, []);
-
-  if (isLoading) {
-    return <LoadingScreen />;
-  }
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <CartProvider>
-          <CouponStateProvider>
-            <TooltipProvider>
-              <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
-                <div>
-                  <BrowserRouter>
-                    <Toaster />
+      <ThemeProvider defaultTheme="light" attribute="class">
+        <AuthProvider>
+          {!isInitialized ? (
+            <LoadingScreen />
+          ) : (
+            <CartProvider>
+              <CouponStateProvider>
+                <TooltipProvider>
+                  <ErrorBoundary>
                     <AppContent />
-                  </BrowserRouter>
-                </div>
-              </ThemeProvider>
-            </TooltipProvider>
-          </CouponStateProvider>
-        </CartProvider>
-      </AuthProvider>
+                    <Toaster />
+                  </ErrorBoundary>
+                </TooltipProvider>
+              </CouponStateProvider>
+            </CartProvider>
+          )}
+        </AuthProvider>
+      </ThemeProvider>
     </QueryClientProvider>
-  );
+  );  
 };
 
 export default App;

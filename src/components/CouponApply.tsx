@@ -48,14 +48,8 @@ const CouponApply = () => {
       return;
     }
 
-    // Type assertion to ensure compatibility
-    const typedCoupon: Coupon = {
-      ...couponData,
-      type: couponData.type as 'percentage' | 'fixed'
-    };
-
     // Check if coupon is already applied
-    const isAlreadyApplied = appliedCoupons.some(c => c.coupon.id === typedCoupon.id);
+    const isAlreadyApplied = appliedCoupons.some(c => c.coupon.code === couponCode);
     if (isAlreadyApplied) {
       toast('Coupon already applied', {
         description: 'This coupon is already in your cart.'
@@ -69,27 +63,18 @@ const CouponApply = () => {
         return total + (itemPrice * item.quantity);
       }, 0);
       
-      // Convert AppliedCouponState to AppliedCoupon format for validation
-      const appliedCouponsForValidation = appliedCoupons.map(c => ({
-        ...c,
-        appliedToTotal: c.appliedToTotal || cartTotal
-      }));
-      
       // Validate the coupon before applying
-      await validateCoupon(couponCode, cartTotal, appliedCouponsForValidation);
-      const discountAmount = calculateDiscount(typedCoupon, cartTotal);
+      await validateCoupon(couponCode, cartTotal, appliedCoupons);
+      const discountAmount = calculateDiscount(couponData, cartTotal);
       
       // Add coupon to global state
-      addCoupon(typedCoupon, discountAmount);
+      addCoupon(couponData, discountAmount);
       
-      toast('Coupon added to cart!', {
+      toast('Coupon applied successfully!', {
         description: `₹${discountAmount.toFixed(2)} discount will be applied at checkout.`
       });
       
-      // Redirect to cart after a short delay
-      setTimeout(() => {
-        navigate('/cart');
-      }, 1500);
+      navigate('/cart');
     } catch (error: any) {
       toast('Error applying coupon', {
         description: error.message

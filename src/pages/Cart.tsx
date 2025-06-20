@@ -36,8 +36,8 @@ const CartPage = () => {
   
   // Calculate item-wise pricing without tax
   const itemCalculations = cartItems.map(item => {
-    const itemPrice = item.salePrice ?? item.price;
-    const itemTotal = itemPrice * item.quantity;
+    const itemPrice = item.salePrice !== undefined ? Number(item.salePrice) : Number(item.price);
+    const itemTotal = itemPrice * Number(item.quantity);
     
     return {
       ...item,
@@ -47,7 +47,7 @@ const CartPage = () => {
   });
   
   // Calculate totals without tax
-  const subtotal = itemCalculations.reduce((total, item) => total + item.itemTotal, 0);
+  const subtotal = itemCalculations.reduce((total, item) => total + Number(item.itemTotal), 0);
   const totalBeforeDiscount = subtotal + platformFees + deliveryFees;
   
   // Calculate total discount from all applied coupons
@@ -61,46 +61,18 @@ const CartPage = () => {
   const clearCart = () => {
     setCartItems([]);
     clearCoupons(); // Clear all applied coupons
-    toast("Cart cleared", {
-      description: "All items have been removed from your cart"
-    });
+    // Don't show toast notification when clearing cart programmatically
+    // toast("Cart cleared");
   };
   
   // Add coupon clearing when removing last item
-  const handleRemoveFromCart = (productId: string) => {
+  const handleRemoveFromCart = (productId) => {
     removeFromCart(productId);
     // Check if this was the last item and clear coupons if needed
     if (cartItems.length === 1) {
       clearCoupons();
     }
   };
-
-  // Only load coupons if cart has items
-  useEffect(() => {
-    if (cartItems.length > 0) {
-      const storedCouponData = localStorage.getItem('appliedCoupon');
-      if (storedCouponData) {
-        try {
-          const parsedData = JSON.parse(storedCouponData);
-          let couponsToLoad: any[] = [];
-          
-          if (Array.isArray(parsedData)) {
-            couponsToLoad = parsedData;
-          } else if (parsedData.coupon) {
-            couponsToLoad = [parsedData];
-          }
-          
-          // Load coupons into global state
-          couponsToLoad.forEach(({ coupon, discountAmount }) => {
-            addCoupon(coupon, discountAmount);
-          });
-        } catch (error) {
-          console.error('Error loading coupons from localStorage:', error);
-          localStorage.removeItem('appliedCoupon');
-        }
-      }
-    }
-  }, [cartItems.length, addCoupon]);
 
   const handleCouponApply = async () => {
     if (!couponCode.trim()) {
@@ -132,7 +104,7 @@ const CartPage = () => {
       toast("Coupon applied!", {
         description: `₹${discount.toFixed(2)} discount applied`
       });
-    } catch (error: any) {
+    } catch (error) {
       toast("Invalid coupon", {
         description: error.message
       });
@@ -141,10 +113,17 @@ const CartPage = () => {
     }
   };
 
-  const handleRemoveCoupon = (couponId: string) => {
-    console.log('Cart: Removing coupon with ID:', couponId);
+  const handleRemoveCoupon = (couponId) => {
+    console.log('Removing coupon with ID:', couponId);
     removeCoupon(couponId);
-    toast("Coupon removed");
+    
+    // Force a re-render to update the UI
+    setTimeout(() => {
+      // This will trigger a re-render
+      setIsApplyingCoupon(false);
+    }, 50);
+    
+    toast('Coupon removed');
   };
 
   return (
@@ -174,56 +153,66 @@ const CartPage = () => {
           </div>
         ) : (
           <>
-            <div className="divide-y">
-              {cartItems.map(item => (
-                <div key={item.id} className="py-4 flex items-center">
-                  <Link to={`/product/${item.id}`} className="flex-shrink-0 w-20 h-20">
-                    <img 
-                      src={item.images && item.images.length > 0 ? item.images[0] : '/placeholder.svg'} 
-                      alt={item.name} 
-                      className="w-full h-full object-cover rounded-md" 
-                    />
-                  </Link>
-                  <div className="ml-4 flex-grow">
-                    <Link to={`/product/${item.id}`} className="font-medium text-gray-800 hover:text-brand-blue">
-                      {item.name}
+            <div key={cartItems.length} className="divide-y">
+              {cartItems.map((item) => {
+                const itemPrice = item.salePrice !== undefined ? Number(item.salePrice) : Number(item.price);
+                const totalItemPrice = itemPrice * item.quantity;
+                
+                return (
+                  <div key={item.id} className="flex py-4 border-b">
+                    <Link to={`/product/${item.id}`} className="flex-shrink-0 w-20 h-20">
+                      <img 
+                        src={item.images && item.images.length > 0 ? item.images[0] : '/placeholder.svg'} 
+                        alt={item.name} 
+                        className="w-full h-full object-cover rounded-md" 
+                      />
                     </Link>
-                    <div className="mt-1">
-                      {item.salePrice ? (
-                        <div className="flex items-center">
-                          <span className="font-bold text-brand-blue">₹{item.salePrice.toFixed(2)}</span>
-                          <span className="text-xs text-gray-500 line-through ml-1">₹{item.price.toFixed(2)}</span>
+                    <div className="ml-4 flex-grow flex flex-col">
+                      <Link to={`/product/${item.id}`} className="font-medium text-gray-800 hover:text-brand-blue">
+                        {item.name}
+                      </Link>
+                      <div className="flex items-center justify-between mt-2">
+                        <div className="flex items-center space-x-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1))}
+                            className="h-8 w-8 p-0"
+                          >
+                            <Minus className="h-4 w-4" />
+                          </Button>
+                          <span className="mx-3 font-medium">{item.quantity}</span>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                            className="h-8 w-8 p-0"
+                          >
+                            <Plus className="h-4 w-4" />
+                          </Button>
                         </div>
-                      ) : (
-                        <span className="font-bold">₹{item.price.toFixed(2)}</span>
-                      )}
-                    </div>
-                    <div className="mt-2 flex items-center justify-between">
-                      <div className="flex items-center border rounded-md">
-                        <button 
-                          onClick={() => updateQuantity(item.id, item.quantity - 1)} 
-                          className="p-1 text-gray-600 hover:text-brand-blue"
-                        >
-                          <Minus className="w-4 h-4" />
-                        </button>
-                        <span className="px-3 py-0.5 text-sm">{item.quantity}</span>
-                        <button 
-                          onClick={() => updateQuantity(item.id, item.quantity + 1)} 
-                          className="p-1 text-gray-600 hover:text-brand-blue"
-                        >
-                          <Plus className="w-4 h-4" />
-                        </button>
+                        
+                        <div className="flex items-center space-x-4">
+                          <div className="flex flex-col items-end">
+                            <span className="text-gray-800 font-semibold">₹{(item.salePrice || item.price).toFixed(2)}</span>
+                            {item.salePrice && (
+                              <span className="text-gray-500 line-through text-sm">₹{item.price.toFixed(2)}</span>
+                            )}
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRemoveFromCart(item.id)}
+                            className="text-red-500 hover:text-red-700 p-0"
+                          >
+                            <Trash2 className="h-5 w-5" />
+                          </Button>
+                        </div>
                       </div>
-                      <button 
-                        onClick={() => handleRemoveFromCart(item.id)} 
-                        className="p-1 text-gray-400 hover:text-red-500"
-                      >
-                        <Trash2 className="w-5 h-5" />
-                      </button>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
             
             <div className="mt-6">
@@ -295,7 +284,7 @@ const CartPage = () => {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Delivery Fees</span>
-                  <span>FREE</span>
+                  <span className="text-green-600">FREE</span>
                 </div>
                 
                 {/* Individual coupon discounts */}
@@ -324,9 +313,24 @@ const CartPage = () => {
                     You saved ₹{totalDiscountAmount.toFixed(2)} on this order!
                   </div>
                 )}
+                {finalTotal < 2000 && (
+                  <div className="text-sm text-red-600 text-center mt-2">
+                    Minimum order amount is ₹2000. Please add more items to proceed.
+                  </div>
+                )}
               </div>
               
-              <OptimizedCheckoutButton cartItems={cartItems} />
+              <div className="mt-4">
+                {finalTotal >= 2000 ? (
+                  <OptimizedCheckoutButton cartItems={cartItems} />
+                ) : (
+                  <Button disabled className="w-full py-6 text-lg bg-gray-400">
+                    Checkout (Minimum ₹2000)
+                  </Button>
+                )}
+                
+                {/* Clear Cart Button removed */}
+              </div>
             </div>
           </>
         )}

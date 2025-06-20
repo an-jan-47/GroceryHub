@@ -4,8 +4,35 @@ import { toast } from "@/components/ui/sonner";
 /**
  * Initialize application services
  */
-export const initializeApp = (): void => {
+export const initializeApp = async (): Promise<void> => {
   console.info('Initializing application services...');
+  
+  // Clear any existing service workers
+  if ('serviceWorker' in navigator) {
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    for (const registration of registrations) {
+      await registration.unregister();
+    }
+    
+    // Clear all caches
+    const cacheNames = await caches.keys();
+    await Promise.all(cacheNames.map(cacheName => caches.delete(cacheName)));
+  }
+  
+  // Clear local storage cache except for auth and cart data
+  const keysToKeep = Object.keys(localStorage).filter(key => key.startsWith('sb-')).concat(['groceryHub_cart']);
+  const savedData = {};
+  
+  keysToKeep.forEach(key => {
+    const value = localStorage.getItem(key);
+    if (value) savedData[key] = value;
+  });
+  
+  localStorage.clear();
+  
+  Object.entries(savedData).forEach(([key, value]) => {
+    localStorage.setItem(key, value as string);
+  });
   
   // Only register service worker in production
   if ('serviceWorker' in navigator && import.meta.env.PROD) {

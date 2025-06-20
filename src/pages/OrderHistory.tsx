@@ -161,8 +161,6 @@ const OrderHistory = () => {
                       <div className="flex items-center mt-1 text-sm text-gray-500 space-x-2">
                         <Calendar className="w-3.5 h-3.5 inline mr-1" />
                         <span>{formatDate(order.order_date)}</span>
-                        <span>•</span>
-                        <span>₹{order.total_amount.toFixed(2)}</span>
                       </div>
                     </div>
                     <Badge variant="outline" className={`${getStatusColor(order.status)} flex items-center space-x-1`}>

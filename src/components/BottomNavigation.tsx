@@ -16,11 +16,11 @@ const BottomNavigation = () => {
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-100 shadow-md pb-safe">
       <div className="grid grid-cols-4 h-16">
-        <Link to="/" className={`bottom-nav-item ${isActive('/') ? 'bottom-nav-active' : 'text-gray-500'}`}>
+        <Link to="/" className={`bottom-nav-item ${location.pathname === '/' ? 'bottom-nav-active' : 'text-gray-500'}`}>
           <Home className="w-6 h-6 mb-1" />
           <span>Home</span>
         </Link>
-        <Link to="/explore" className={`bottom-nav-item ${isActive('/explore') ? 'bottom-nav-active' : 'text-gray-500'}`}>
+        <Link to="/explore" className={`bottom-nav-item ${location.pathname.includes('/explore') ? 'bottom-nav-active' : 'text-gray-500'}`}>
           <Search className="w-6 h-6 mb-1" />
           <span>Explore</span>
         </Link>

@@ -84,10 +84,10 @@ const PaymentMethodsPage = () => {
 
   // Calculation functions - NO TAX INCLUDED
   const calculatePricing = () => {
-    // Calculate subtotal (no tax calculation)
+    // Calculate subtotal using sale price when available
     const subtotal = cartItems.reduce((total, item) => {
       const itemPrice = item.salePrice || item.price;
-      return total + (itemPrice * item.quantity);
+      return total + (itemPrice * Number(item.quantity)); // Ensure quantity is a number
     }, 0);
     
     // Calculate total discount from all applied coupons
@@ -254,15 +254,21 @@ const PaymentMethodsPage = () => {
       return orderResult;
     },
     onSuccess: ({ orderId }) => {
+      console.log('Order created successfully, redirecting to confirmation page');
       // Store order ID for confirmation page
       localStorage.setItem('lastOrderId', orderId!);
       
       // Clear the cart and applied coupon
       clearCart();
       localStorage.removeItem('appliedCoupon');
+      localStorage.removeItem('groceryHub_cart'); // Add this line to ensure cart is completely cleared
       
-      // Navigate to confirmation
-      navigate('/order-confirmation');
+      // Add a small delay before navigation to ensure state updates are processed
+      setTimeout(() => {
+        console.log('Navigating to order confirmation page');
+        // Navigate to confirmation - use replace: true to prevent back navigation to payment
+        navigate('/order-confirmation', { replace: true });
+      }, 100);
     },
     onError: (error: any) => {
       console.error('Order creation error:', error);

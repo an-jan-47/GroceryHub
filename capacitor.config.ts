@@ -11,9 +11,15 @@ const config: CapacitorConfig = {
     errorPath: 'error.html'
   },
   android: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#ffffff',
     allowMixedContent: true,
-    webContentsDebuggingEnabled: true
+    webContentsDebuggingEnabled: true,
+    // Add these properties for better native feel
+    overrideUserAgent: 'capacitor-native',
+    captureInput: true,
+    allowNavigation: ['*'],
+    // Improve back navigation
+    useLegacyBridge: false
   },
   plugins: {
     SplashScreen: {
@@ -24,7 +30,15 @@ const config: CapacitorConfig = {
       androidScheme: 'https',
       allowFileAccess: true,
       allowContentAccess: true,
-      setDomStorageEnabled: true
+      setDomStorageEnabled: true,
+      // Disable zooming
+      setSupportZoom: false,
+      // Improve scrolling
+      setScrollBarStyle: 'insideOverlay'
+    },
+    App: {
+      // Change from 'none' to 'pop' to enable proper back navigation
+      backButtonBehavior: 'pop'
     }
   },
   web: {

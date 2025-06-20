@@ -77,40 +77,29 @@ export const validateCoupon = async (code: string, cartTotal: number, appliedCou
 
   const coupon = data as Coupon;
   
-  // Check if coupon is already applied
-  const isAlreadyApplied = appliedCoupons.some(applied => applied.coupon.code === coupon.code);
-  if (isAlreadyApplied) {
-    throw new Error('This coupon is already applied');
+  if (appliedCoupons.some(applied => applied.coupon.code === coupon.code)) {
+    throw new Error('This coupon has already been applied');
   }
   
-  // Check if coupon is still valid
   const now = new Date();
-  const startDate = new Date(coupon.start_date);
-  const expiryDate = new Date(coupon.expiry_date);
-  
-  if (now < startDate || now > expiryDate) {
+  if (now < new Date(coupon.start_date) || now > new Date(coupon.expiry_date)) {
     throw new Error('Coupon has expired or is not yet active');
   }
 
-  // Check usage limit
   if (coupon.usage_limit > 0 && coupon.usage_count >= coupon.usage_limit) {
-    throw new Error('Coupon usage limit exceeded');
+    throw new Error('Coupon usage limit has been reached');
   }
 
-  // Check minimum purchase amount
   if (cartTotal < coupon.min_purchase_amount) {
     throw new Error(`Minimum purchase amount of ₹${coupon.min_purchase_amount} required`);
   }
 
-  // Check if coupon can be stacked (if field exists, default to true for backward compatibility)
   const canStack = coupon.can_stack !== false;
   if (!canStack && appliedCoupons.length > 0) {
     throw new Error('This coupon cannot be combined with other coupons');
   }
 
-  // Check if any existing coupons prevent stacking
-  const hasNonStackableCoupon = appliedCoupons.some(applied => applied.coupon.can_stack === false);
-  if (hasNonStackableCoupon) {
+  if (appliedCoupons.some(applied => applied.coupon.can_stack === false)) {
     throw new Error('Cannot add more coupons when a non-stackable coupon is applied');
   }
 

@@ -326,7 +326,7 @@ const OrderDetails = () => {
             
             <div className="flex justify-between font-bold text-lg">
               <span>Total Amount</span>
-              <span>{formatCurrency(order.total_amount)}</span>
+              <span>{formatCurrency(subtotal + platformFees + razorpayFees - discountAmount)}</span>
             </div>
           </div>
         </div>

@@ -149,19 +149,7 @@ const SearchPage = () => {
               </SelectContent>
             </Select>
 
-            <Select value={sortBy} onValueChange={(value) => {
-              setSortBy(value);
-              updateSearchParams({ sort: value });
-            }}>
-              <SelectTrigger className="w-36">
-                <SelectValue placeholder="Sort by" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="name">Name</SelectItem>
-                <SelectItem value="price-low">Price: Low to High</SelectItem>
-                <SelectItem value="price-high">Price: High to Low</SelectItem>
-              </SelectContent>
-            </Select>
+            {/* Remove the Sort By select */}
 
             {activeFiltersCount > 0 && (
               <Button variant="outline" size="sm" onClick={clearFilters}>

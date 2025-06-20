@@ -1,8 +1,13 @@
-
-// Remove app.css import and only use index.css
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import App from './App.tsx';
+import App from './App';
+import { history } from './history';
 import './index.css';
 
-createRoot(document.getElementById("root")!).render(<App />);
+import { unstable_HistoryRouter as HistoryRouter } from 'react-router-dom';
+
+createRoot(document.getElementById('root')!).render(
+  <HistoryRouter history={history}>
+    <App />
+  </HistoryRouter>
+);

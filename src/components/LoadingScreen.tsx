@@ -1,107 +1,70 @@
 
 import { useState, useEffect } from 'react';
-import { AlertCircle, Wifi, WifiOff, RefreshCw } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/AuthContext';
+import { RefreshCw } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const LoadingScreen = () => {
-  const [dots, setDots] = useState('');
+  const { loading: authLoading } = useAuth();
   const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const [retryCount, setRetryCount] = useState(0);
-  const [funnyMessage, setFunnyMessage] = useState('');
+  const [connectionChecked, setConnectionChecked] = useState(false);
+  const navigate = useNavigate();
   
-  const funnyMessages = [
-    "Looks like your internet took a coffee break!",
-    "Houston, we have a connection problem!",
-    "404: Internet not found. Have you tried turning it off and on again?",
-    "Oops! Your internet seems to be playing hide and seek.",
-    "Your WiFi is being shy today."
-  ];
-
   useEffect(() => {
-    // Dot animation
-    const interval = setInterval(() => {
-      setDots(prev => {
-        if (prev.length >= 3) return '';
-        return prev + '.';
-      });
-    }, 500);
-    
-    // Online status check
-    const handleStatusChange = () => {
-      setIsOnline(navigator.onLine);
-      if (!navigator.onLine) {
-        setFunnyMessage(funnyMessages[Math.floor(Math.random() * funnyMessages.length)]);
+    const handleOnline = () => {
+      setIsOnline(true);
+      setConnectionChecked(true);
+    };
+
+    const handleOffline = () => {
+      setIsOnline(false);
+      setConnectionChecked(true);
+    };
+
+    // Check connection status immediately
+    const checkConnection = async () => {
+      try {
+        const response = await fetch('https://www.google.com/favicon.ico', {
+          mode: 'no-cors',
+          cache: 'no-store',
+        });
+        setIsOnline(true);
+      } catch (error) {
+        setIsOnline(false);
+      } finally {
+        setConnectionChecked(true);
       }
     };
 
-    window.addEventListener('online', handleStatusChange);
-    window.addEventListener('offline', handleStatusChange);
-    
-    // Initial check
-    handleStatusChange();
-    
+    checkConnection();
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    // Set up periodic connection check
+    const connectionCheckInterval = setInterval(checkConnection, 10000);
+
     return () => {
-      clearInterval(interval);
-      window.removeEventListener('online', handleStatusChange);
-      window.removeEventListener('offline', handleStatusChange);
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+      clearInterval(connectionCheckInterval);
     };
   }, []);
 
-  const handleRetry = () => {
-    setRetryCount(prev => prev + 1);
-    // Force a connection check
-    setIsOnline(navigator.onLine);
-    if (navigator.onLine) {
-      window.location.reload();
-    } else {
-      // Show a new funny message on retry
-      setFunnyMessage(funnyMessages[Math.floor(Math.random() * funnyMessages.length)]);
+  useEffect(() => {
+    if (!authLoading && isOnline && connectionChecked) {
+      // Delay navigation slightly to ensure smooth transition
+      const timer = setTimeout(() => {
+        navigate('/', { replace: true });
+      }, 1000);
+      return () => clearTimeout(timer);
     }
-  };
-  
+  }, [authLoading, isOnline, connectionChecked, navigate]);
+
   return (
-    <div className="fixed inset-0 bg-white flex flex-col items-center justify-center z-50 p-4">
-      <div className="text-center max-w-md">
-        <h1 className="text-4xl font-bold text-blue-500 mb-2">GroceryHub</h1>
-        <p className="text-gray-600 mb-6">Where convenience and quality meet</p>
-        
-        {isOnline ? (
-          <>
-            <div className="relative h-1.5 w-60 bg-gray-200 rounded-full overflow-hidden mb-4 mx-auto">
-              <div className="absolute top-0 h-full bg-blue-500 animate-loading-bar"></div>
-            </div>
-            <div className="flex items-center justify-center h-6">
-              <span className="text-xl text-gray-600">Loading{dots}</span>
-            </div>
-          </>
-        ) : (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-            <div className="flex items-center mb-2">
-              <WifiOff className="h-5 w-5 text-red-500 mr-2" />
-              <span className="text-lg font-medium text-red-700">No internet connection</span>
-            </div>
-            <p className="text-gray-700 mb-4">{funnyMessage}</p>
-            <Button 
-              onClick={handleRetry}
-              className="w-full flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white"
-            >
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Retry Connection
-            </Button>
-          </div>
-        )}
-        
-        <div className="text-sm text-gray-400 mt-6">
-          <div className="flex items-center justify-center">
-            {isOnline ? (
-              <Wifi className="h-4 w-4 text-green-500 mr-1" />
-            ) : (
-              <WifiOff className="h-4 w-4 text-red-500 mr-1" />
-            )}
-            <span>{isOnline ? 'Connected' : 'Offline'}</span>
-          </div>
-        </div>
-      </div>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-white">
+      <h1 className="text-3xl font-bold text-blue-900 mb-2">GroceryHub</h1>
+      <RefreshCw className="animate-spin w-8 h-8 text-gray-600" />
+      <p className="mt-4 text-gray-500">Loading...</p>
     </div>
   );
 };

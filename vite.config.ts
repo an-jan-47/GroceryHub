@@ -2,7 +2,6 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import { fileURLToPath, URL } from "node:url";
-import { componentTagger } from "lovable-tagger";
 
 export default defineConfig(({ mode }) => ({
   server: {
@@ -19,8 +18,7 @@ export default defineConfig(({ mode }) => ({
   },
   plugins: [
     react(),
-    mode === 'development' && componentTagger(),
-  ].filter(Boolean),
+  ],
   resolve: {
     alias: {
       "@": fileURLToPath(new URL('./src', import.meta.url))
@@ -34,7 +32,8 @@ export default defineConfig(({ mode }) => ({
       cache: false,
       output: {
         manualChunks: undefined
-      }
+      },
+      external: ['@capacitor/app']
     },
     cssCodeSplit: true,
     minify: mode !== 'development',
@@ -43,6 +42,7 @@ export default defineConfig(({ mode }) => ({
   },
   optimizeDeps: {
     force: true,
+    exclude: ['@capacitor/app'],
     esbuildOptions: {
       define: {
         global: 'globalThis'

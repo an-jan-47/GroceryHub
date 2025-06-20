@@ -40,8 +40,11 @@ const Index = () => {
   // Memoized filter change handler to prevent infinite loops
   const handleFilterChange = useCallback((newFilters: SearchFiltersType) => {
     console.log('Index: Filter change received:', newFilters);
-    setFilters(newFilters);
-    setIsSearchActive(true);
+    // Only set filters and activate search if there are actual filter values
+    if (newFilters.query || newFilters.category || newFilters.minPrice !== undefined || newFilters.maxPrice !== undefined) {
+      setFilters(newFilters);
+      setIsSearchActive(true);
+    }
   }, []);
 
   const clearSearch = () => {

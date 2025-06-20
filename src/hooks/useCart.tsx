@@ -34,20 +34,30 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (savedCart) {
       try {
         const parsedCart = JSON.parse(savedCart);
-        console.log('Loading cart from localStorage:', parsedCart);
-        setCartItems(parsedCart);
+        // Force refresh of cart items with current prices
+        const refreshedCart = parsedCart.map(item => ({
+          ...item,
+          price: Number(item.price),
+          salePrice: item.salePrice ? Number(item.salePrice) : undefined,
+          quantity: Number(item.quantity)
+        }));
+        setCartItems(refreshedCart);
       } catch (error) {
         console.error('Error loading cart from localStorage:', error);
-        // Clear corrupted cart data
         localStorage.removeItem('groceryHub_cart');
       }
     }
   }, []);
 
   // Save cart to localStorage whenever it changes
+  // Update the useEffect that saves to localStorage
   useEffect(() => {
-    console.log('Saving cart to localStorage:', cartItems);
-    localStorage.setItem('groceryHub_cart', JSON.stringify(cartItems));
+    try {
+      console.log('Saving cart to localStorage:', cartItems);
+      localStorage.setItem('groceryHub_cart', JSON.stringify(cartItems));
+    } catch (error) {
+      console.error('Error saving cart to localStorage:', error);
+    }
   }, [cartItems]);
 
   const addToCart = (product: any, quantity = 1) => {
@@ -58,7 +68,11 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (existingItem) {
         const updatedItems = prevItems.map(item =>
           item.id === product.id
-            ? { ...item, quantity: item.quantity + quantity }
+            ? { 
+                ...item,
+                salePrice: product.salePrice || product.sale_price, // Handle both property names
+                quantity: Number(quantity) // Use the passed quantity directly instead of adding to existing
+              }
             : item
         );
         console.log('Updated existing item in cart:', updatedItems);
@@ -68,11 +82,11 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           id: product.id,
           name: product.name,
           price: product.price,
-          salePrice: product.sale_price,
-          quantity,
+          salePrice: product.salePrice || product.sale_price, // Handle both property names
+          quantity: Number(quantity), // Ensure quantity is a number
           images: product.images || [],
-          category: product.category,
-          brand: product.brand,
+          category: product.category || '',
+          brand: product.brand || '',
         };
         const updatedItems = [...prevItems, newItem];
         console.log('Added new item to cart:', updatedItems);
@@ -107,11 +121,12 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const clearCart = () => {
-    console.log('Clearing cart');
     setCartItems([]);
-    localStorage.removeItem('groceryHub_cart');
-    // Also clear applied coupons when cart is cleared
-    localStorage.removeItem('appliedCoupon');
+    localStorage.removeItem('groceryHub_cart'); // Fix: use the correct key
+    // Clear coupons when cart is cleared
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('appliedCoupon');
+    }
   };
 
   const cartTotal = cartItems.reduce((total, item) => {

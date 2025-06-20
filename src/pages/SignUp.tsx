@@ -4,8 +4,10 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/components/ui/sonner';
+import { ArrowLeft } from 'lucide-react';
 
 const SignUp = () => {
   const [formData, setFormData] = useState({
@@ -18,7 +20,7 @@ const SignUp = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const navigate = useNavigate();
-  const { signUp, signInWithGoogle, user } = useAuth();
+  const { signUp, user } = useAuth();
   
   useEffect(() => {
     // Redirect if user is already logged in
@@ -94,7 +96,7 @@ const SignUp = () => {
       
       // Handle specific Supabase email validation error
       if (error.message?.includes('invalid') && error.message?.includes('Email')) {
-        setFormError(`Email validation error: Please use a valid email address. For development, try using a reliable email service like Gmail, Outlook, or Yahoo.`);
+        setFormError(`Please use a valid email address.`);
       } else {
         setFormError(error.message || "An unexpected error occurred");
       }
@@ -103,135 +105,116 @@ const SignUp = () => {
     }
   };
   
-  const handleGoogleSignUp = async (e: React.MouseEvent) => {
-    try {
-      setFormError(null);
-      await signInWithGoogle();
-    } catch (error: any) {
-      console.error('Google sign-in error:', error);
-      setFormError(error.message || "Failed to sign in with Google");
-    }
-  };
+  // Remove handleGoogleSignUp function
   
   return (
-    <div className="min-h-screen flex flex-col">
-      <main className="flex-1 flex items-center justify-center p-6">
-        <div className="w-full max-w-md space-y-6">
-          <div className="text-center">
-            <h1 className="text-3xl font-bold">Create Account</h1>
-            <p className="mt-2 text-gray-600">Sign up to get started shopping</p>
-          </div>
-          
-          {formError && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-sm">
-              {formError}
-            </div>
-          )}
-          
-          <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-gray-50 overflow-y-auto">
+      <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-lg shadow-md">
+        <div>
+          <h2 className="text-center text-3xl font-extrabold text-gray-900">
+            Create Account
+          </h2>
+          <p className="mt-2 text-center text-sm text-gray-600">
+            Sign up for Exciting offers ahead
+          </p>
+        </div>
+        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          <div className="rounded-md shadow-sm space-y-4">
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+              <Label htmlFor="name">Name</Label>
               <Input
                 id="name"
                 name="name"
-                placeholder="Your name"
+                type="text"
+                autoComplete="name"
+                required
                 value={formData.name}
                 onChange={handleInputChange}
-                className="input-field"
-                required
+                placeholder="Your name"
+                className="mt-1"
               />
             </div>
-            
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+              <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 name="email"
                 type="email"
-                placeholder="Your email address"
+                autoComplete="email"
+                required
                 value={formData.email}
                 onChange={handleInputChange}
-                className="input-field"
-                required
+                placeholder="Your email address"
+                className="mt-1"
               />
             </div>
-            
             <div>
-              <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">Mobile Number</label>
+              <Label htmlFor="phone">Mobile Number</Label>
               <Input
                 id="phone"
                 name="phone"
-                placeholder="Your mobile number"
+                type="tel"
+                autoComplete="tel"
                 value={formData.phone}
                 onChange={handleInputChange}
-                className="input-field"
+                placeholder="Your mobile number"
+                className="mt-1"
               />
             </div>
-            
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+              <Label htmlFor="password">Password</Label>
               <div className="relative">
                 <Input
                   id="password"
                   name="password"
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="Create a password"
+                  autoComplete="new-password"
+                  required
                   value={formData.password}
                   onChange={handleInputChange}
-                  className="input-field"
-                  required
-                  minLength={6}
+                  placeholder="Create a password"
+                  className="mt-1"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
                 >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5 text-gray-400" />
+                  ) : (
+                    <Eye className="h-5 w-5 text-gray-400" />
+                  )}
                 </button>
               </div>
-              <p className="text-xs text-gray-500 mt-1">Password must be at least 8 characters with uppercase, lowercase, numbers, and special characters</p>
+              <p className="mt-1 text-sm text-gray-500">
+                Password must be at least 8 characters with uppercase, lowercase, numbers, and special characters
+              </p>
             </div>
-            
-            <Button 
-              type="submit" 
-              disabled={isSubmitting}
-              className="w-full  bg-primaryBlue hover:bg-primaryBlue-dark text-white"
-            >
-              {isSubmitting ? 'Creating account...' : 'Sign Up'}
-            </Button>
-            
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">Or</span>
-              </div>
-            </div>
-            
-            <button 
-              type="button"
-              onClick={handleGoogleSignUp}
-              className="w-full flex items-center justify-center gap-2 py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50"
-            >
-              <svg className="h-5 w-5 text-red-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512">
-                <path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"/>
-              </svg>
-              Continue with Google
-            </button>
-          </form>
-          
-          <div className="text-center">
-            <p className="text-gray-600">
-              Already have an account?{" "}
-              <Link to="/login" className="text-brand-blue hover:underline">
-                Log in
-              </Link>
-            </p>
           </div>
-        </div>
-      </main>
+          
+          {formError && (
+            <div className="text-red-500 text-sm">{formError}</div>
+          )}
+          
+          <Button
+            type="submit"
+            className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            disabled={isSubmitting}
+          >
+            Sign Up
+          </Button>
+          
+          {/* Remove the "Or continue with" section and Google button */}
+          
+          <p className="text-center text-sm text-gray-600">
+            Already have an account?{' '}
+            <Link to="/login" className="font-medium text-blue-600 hover:text-blue-500">
+              Log in
+            </Link>
+          </p>
+        </form>
+      </div>
     </div>
   );
 };

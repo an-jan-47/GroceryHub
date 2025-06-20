@@ -12,8 +12,8 @@ interface ProductDetailActionsProps {
     images?: string[];
   };
   quantity: number;
-  onAddToCart: () => void;
-  onBuyNow: () => void;
+  onAddToCart: (quantity: number) => void;
+  onBuyNow: (quantity: number) => void;
 }
 
 const ProductDetailActions = ({ 
@@ -26,7 +26,7 @@ const ProductDetailActions = ({
     <div className="grid grid-cols-2 gap-3 mb-6">
       <Button 
         variant="outline" 
-        onClick={onAddToCart}
+        onClick={() => onAddToCart(quantity)}
         disabled={product.stock <= 0}
         className="border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white"
       >
@@ -35,7 +35,7 @@ const ProductDetailActions = ({
       </Button>
       
       <Button 
-        onClick={onBuyNow}
+        onClick={() => onBuyNow(quantity)}
         disabled={product.stock <= 0}
         className="bg-blue-600 hover:bg-blue-700"
       >

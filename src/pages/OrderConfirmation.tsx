@@ -35,6 +35,9 @@ const OrderConfirmationPage = () => {
       setOrderId(`ORD-${Math.floor(Math.random() * 1000000)}`);
       setOrderDate('May 7, 2025');
     }
+    
+    // Clear the cart silently without showing notification
+    clearCart();
   }, []);
   
   // Calculate expected delivery date (3-5 days from now)
@@ -57,8 +60,6 @@ const OrderConfirmationPage = () => {
   };
 
   useEffect(() => {
-    // Remove the clearCart() call since it's already handled in Payment.tsx
-    
     // Reset the order completed flag when user views the confirmation
     return () => {
       setOrderCompleted(false);
@@ -77,7 +78,7 @@ const OrderConfirmationPage = () => {
           
           <h1 className="text-2xl font-bold mb-2">Order Placed Successfully!</h1>
           <p className="text-gray-600 mb-6">
-            Thank you for your order. We've received your payment and will process your order soon.
+            Thank you for your order. We will soon start processing your order.
           </p>
           
           <div className="bg-white rounded-lg shadow-sm overflow-hidden w-full max-w-md mb-8">
@@ -93,11 +94,6 @@ const OrderConfirmationPage = () => {
                 <div className="flex justify-between">
                   <span className="text-gray-600">Order ID</span>
                   <span className="font-medium">{orderId}</span>
-                </div>
-                
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Payment Method</span>
-                  <span>Online Payment</span>
                 </div>
                 
                 <div className="flex justify-between">

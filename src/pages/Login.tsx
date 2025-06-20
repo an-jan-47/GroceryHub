@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/components/ui/sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import { ArrowLeft } from 'lucide-react';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -22,20 +23,16 @@ const Login = () => {
     e.preventDefault();
     setIsLoading(true);
 
-    const { error } = await signIn(email, password);
-
-    if (error) {
-      toast('Login failed', {
-        description: error.message,
-      });
-    } else {
-      toast('Welcome back!', {
-        description: 'You have been successfully logged in.',
-      });
+    try {
+      await signIn(email, password);
       navigate(from, { replace: true });
+    } catch (error: any) {
+      toast('Login failed', {
+        description: 'Invalid email or password. Please try again.',
+      });
+    } finally {
+      setIsLoading(false);
     }
-
-    setIsLoading(false);
   };
 
   useEffect(() => {
@@ -45,21 +42,24 @@ const Login = () => {
   }, [user, navigate, from]);
 
   return (
-    <div className="grid h-screen place-items-center pb-20">
-      <div className="w-full max-w-md space-y-8 px-4">
+    <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-gray-50 overflow-y-auto">
+      <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-lg shadow-md">
+        <button onClick={() => navigate('/')} className="flex items-center mb-4 text-blue-600 hover:text-blue-800">
+          <ArrowLeft className="w-5 h-5 mr-1" /> Back to Home
+        </button>
         <div>
-          <h2 className="mt-6 text-center text-3xl font-bold">
-            Sign in to your account
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+            Sign in
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Or{' '}
-            <Link to="/register" className="font-medium text-primaryBlue hover:text-primaryBlue-dark">
-              create a new account
+            New here? {' '}
+            <Link to="/signup" className="font-medium text-blue-600 hover:text-blue-500">
+              Create a new account
             </Link>
           </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="space-y-4">
+          <div className="rounded-md shadow-sm space-y-4">
             <div>
               <Label htmlFor="email">Email address</Label>
               <Input
@@ -68,12 +68,12 @@ const Login = () => {
                 type="email"
                 autoComplete="email"
                 required
-                placeholder="Email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                placeholder="Email address"
               />
             </div>
-
             <div>
               <Label htmlFor="password">Password</Label>
               <div className="relative">
@@ -83,10 +83,10 @@ const Login = () => {
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="current-password"
                   required
-                  placeholder="Password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="pr-10"
+                  className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  placeholder="Password"
                 />
                 <button
                   type="button"
@@ -105,7 +105,10 @@ const Login = () => {
 
           <div className="flex items-center justify-between">
             <div className="text-sm">
-              <Link to="/forgot-password" className="font-medium text-primaryBlue hover:text-primaryBlue-dark">
+              <Link
+                to="/forgot-password"
+                className="font-medium text-blue-600 hover:text-blue-500"
+              >
                 Forgot your password?
               </Link>
             </div>
@@ -114,7 +117,7 @@ const Login = () => {
           <div>
             <Button
               type="submit"
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium text-white bg-primaryBlue hover:bg-primaryBlue-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primaryBlue"
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               disabled={isLoading}
             >
               {isLoading ? 'Signing in...' : 'Sign in'}

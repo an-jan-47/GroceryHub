@@ -82,7 +82,7 @@ const ProductDetailPage = () => {
   };
   
   // Add to cart function
-  const handleAddToCart = () => {
+  const handleAddToCart = (qty: number = quantity) => {
     if (product) {
       addToCart({
         id: product.id,
@@ -90,25 +90,30 @@ const ProductDetailPage = () => {
         price: product.price,
         salePrice: product.sale_price,
         images: product.images,
-        quantity,
+        quantity: qty,
         stock: product.stock
       });
       toast('Added to cart', {
-        description: `${quantity} × ${product.name}`
+        description: `${qty} × ${product.name}`
       });
     }
   };
-
+  
   // Buy now function
-  const handleBuyNow = () => {
+  const handleBuyNow = (qty: number = quantity) => {
     if (product) {
+      const total = (product.sale_price ?? product.price) * qty;
+      if (total <= 2000) {
+        toast('Minimum order value is ₹2000 to proceed ', { position: 'bottom-center' });
+        return;
+      }
       addToCart({
         id: product.id,
         name: product.name,
         price: product.price,
         salePrice: product.sale_price,
         images: product.images,
-        quantity,
+        quantity: qty,
         stock: product.stock
       });
       navigate('/address');
