@@ -108,72 +108,86 @@ const SignUp = () => {
   // Remove handleGoogleSignUp function
   
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-gray-50 overflow-y-auto">
-      <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-lg shadow-md">
-        <div>
-          <h2 className="text-center text-3xl font-extrabold text-gray-900">
+    <div className="min-h-screen flex flex-col justify-start px-4 py-6 bg-gray-50 overflow-y-auto md:py-12 md:justify-center">
+      <div className="w-full max-w-md mx-auto space-y-6 bg-white p-6 rounded-lg shadow-md md:p-8 md:space-y-8">
+        <button 
+          onClick={() => navigate('/')} 
+          className="flex items-center text-blue-600 hover:text-blue-800 mb-2 md:mb-4"
+        >
+          <ArrowLeft className="w-5 h-5 mr-1" /> Back to Home
+        </button>
+
+        <div className="space-y-2 md:space-y-4">
+          <h2 className="text-2xl md:text-3xl font-bold text-center text-gray-900">
             Create Account
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Sign up for Exciting offers ahead
+          <p className="text-center text-sm text-gray-600">
+            Already have an account? {' '}
+            <Link to="/login" className="font-medium text-blue-600 hover:text-blue-500">
+              Sign in
+            </Link>
           </p>
         </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="rounded-md shadow-sm space-y-4">
+
+        <form className="space-y-4 md:space-y-6" onSubmit={handleSubmit}>
+          {formError && (
+            <div className="text-red-600 text-sm text-center">{formError}</div>
+          )}
+
+          <div className="space-y-3 md:space-y-4">
             <div>
-              <Label htmlFor="name">Name</Label>
+              <Label htmlFor="name" className="block mb-1.5">Full Name</Label>
               <Input
                 id="name"
                 name="name"
                 type="text"
-                autoComplete="name"
                 required
                 value={formData.name}
                 onChange={handleInputChange}
-                placeholder="Your name"
-                className="mt-1"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Enter your full name"
               />
             </div>
+
             <div>
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="block mb-1.5">Email address</Label>
               <Input
                 id="email"
                 name="email"
                 type="email"
-                autoComplete="email"
                 required
                 value={formData.email}
                 onChange={handleInputChange}
-                placeholder="Your email address"
-                className="mt-1"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Enter your email"
               />
             </div>
+
             <div>
-              <Label htmlFor="phone">Mobile Number</Label>
+              <Label htmlFor="phone" className="block mb-1.5">Phone (optional)</Label>
               <Input
                 id="phone"
                 name="phone"
                 type="tel"
-                autoComplete="tel"
                 value={formData.phone}
                 onChange={handleInputChange}
-                placeholder="Your mobile number"
-                className="mt-1"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Enter your phone number"
               />
             </div>
+
             <div>
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password" className="block mb-1.5">Password</Label>
               <div className="relative">
                 <Input
                   id="password"
                   name="password"
                   type={showPassword ? 'text' : 'password'}
-                  autoComplete="new-password"
                   required
                   value={formData.password}
                   onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                   placeholder="Create a password"
-                  className="mt-1"
                 />
                 <button
                   type="button"
@@ -187,32 +201,16 @@ const SignUp = () => {
                   )}
                 </button>
               </div>
-              <p className="mt-1 text-sm text-gray-500">
-                Password must be at least 8 characters with uppercase, lowercase, numbers, and special characters
-              </p>
             </div>
           </div>
-          
-          {formError && (
-            <div className="text-red-500 text-sm">{formError}</div>
-          )}
-          
+
           <Button
             type="submit"
-            className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             disabled={isSubmitting}
           >
-            Sign Up
+            {isSubmitting ? 'Creating account...' : 'Create account'}
           </Button>
-          
-          {/* Remove the "Or continue with" section and Google button */}
-          
-          <p className="text-center text-sm text-gray-600">
-            Already have an account?{' '}
-            <Link to="/login" className="font-medium text-blue-600 hover:text-blue-500">
-              Log in
-            </Link>
-          </p>
         </form>
       </div>
     </div>

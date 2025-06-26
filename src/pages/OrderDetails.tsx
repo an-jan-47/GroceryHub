@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ChevronLeft, Package, MapPin, Clock, CreditCard, Truck, CheckCircle, AlertCircle, Tag } from 'lucide-react';
@@ -9,6 +8,9 @@ import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
 import { getOrderById, subscribeToOrderUpdates } from '@/services/orderService';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { PDFDownloadLink } from '@react-pdf/renderer';
+import OrderInvoice from '@/components/OrderInvoice';
+import { Download } from 'lucide-react';
 
 const formatCurrency = (amount: number): string => {
   return `₹${amount.toFixed(2)}`;
@@ -73,6 +75,24 @@ const OrderDetails = () => {
     }
   };
   
+  // Get applied coupon information from localStorage for display
+  const getAppliedCoupons = () => {
+    try {
+      const storedCouponData = localStorage.getItem('appliedCoupon');
+      if (storedCouponData) {
+        const parsedData = JSON.parse(storedCouponData);
+        if (Array.isArray(parsedData)) {
+          return parsedData;
+        } else if (parsedData.coupon) {
+          return [parsedData];
+        }
+      }
+    } catch (error) {
+      console.error('Error parsing stored coupon data:', error);
+    }
+    return [];
+  };
+  
   if (isLoading) {
     return (
       <div className="pb-20 bg-gray-50 min-h-screen">
@@ -87,6 +107,7 @@ const OrderDetails = () => {
     );
   }
   
+  // Move these calculations after the order and items check
   if (!orderData || !orderData.order) {
     return (
       <div className="pb-20 bg-gray-50 min-h-screen">
@@ -119,37 +140,30 @@ const OrderDetails = () => {
   const platformFees = order.platform_fees || 5.00;
   const deliveryFees = 0.00; // Set to 0 as requested
   
-  // Calculate subtotal (original item prices without any tax complications)
-  const subtotal = items.reduce((total, item) => {
-    return total + (item.price * item.quantity);
-  }, 0);
+  // Get applied coupon information
+  const appliedCoupons = getAppliedCoupons();
   
-  // Calculate Razorpay transaction fees (2% on subtotal + platform fees) only if payment method is not COD
-  const transactionFeesBase = subtotal + platformFees;
-  const razorpayFees = order.payment_method !== 'cod' ? transactionFeesBase * 0.02 : 0; // 2% transaction fees only for non-COD
+  // Create itemCalculations array from items
+  const itemCalculations = items.map(item => ({
+    itemTotal: item.price * item.quantity
+  }));
+
+  // Calculate subtotal without tax
+  const subtotal = itemCalculations.reduce((total, item) => total + Number(item.itemTotal), 0);
+  const totalBeforeDiscount = subtotal + platformFees + deliveryFees;
+
+  // Calculate total discount from all applied coupons
+  const totalDiscountAmount = appliedCoupons.reduce((total, { discountAmount }) => total + (discountAmount || 0), 0);
+  const totalAfterDiscount = Math.max(0, totalBeforeDiscount - totalDiscountAmount);
+
+  // Calculate Razorpay fees AFTER discount (2% of the total after discount)
+  const razorpayFees = order.payment_method === 'razorpay' ? totalAfterDiscount * 0.02 : 0;
+
+  // Final total with transaction fee
+  const finalTotal = totalAfterDiscount + razorpayFees;
   
   // Discount amount from the order
   const discountAmount = order.discount_amount || 0;
-  
-  // Get applied coupon information from localStorage for display
-  const getAppliedCoupons = () => {
-    try {
-      const storedCouponData = localStorage.getItem('appliedCoupon');
-      if (storedCouponData) {
-        const parsedData = JSON.parse(storedCouponData);
-        if (Array.isArray(parsedData)) {
-          return parsedData;
-        } else if (parsedData.coupon) {
-          return [parsedData];
-        }
-      }
-    } catch (error) {
-      console.error('Error parsing stored coupon data:', error);
-    }
-    return [];
-  };
-  
-  const appliedCoupons = getAppliedCoupons();
   
   return (
     <div className="pb-20 bg-gray-50 min-h-screen">
@@ -332,16 +346,49 @@ const OrderDetails = () => {
         </div>
         
         {order.status === 'Delivered' && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center">
-            <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-            <p className="text-green-700">This order has been delivered successfully.</p>
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
+                <p className="text-green-700">This order has been delivered successfully.</p>
+              </div>
+              <PDFDownloadLink 
+                document={
+                  <OrderInvoice 
+                    order={order} 
+                    items={items} 
+                    appliedCoupons={appliedCoupons} 
+                    subtotal={subtotal} 
+                    platformFees={platformFees} 
+                    razorpayFees={razorpayFees} 
+                    discountAmount={discountAmount} 
+                  />
+                } 
+                fileName={`invoice-${order.id.substring(0, 8)}.pdf`}
+              >
+                {({ loading }) => (
+                  <Button 
+                    variant="outline" 
+                    className="flex items-center gap-2 bg-white hover:bg-gray-100 active:bg-gray-200 transition-colors"
+                    disabled={loading}
+                  >
+                    <Download className="h-4 w-4" />
+                    {loading ? 'Generating...' : 'Invoice'}
+                  </Button>
+                )}
+              </PDFDownloadLink>
+            </div>
           </div>
         )}
         
-        {order.status === 'Shipped' && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center">
-            <Truck className="h-5 w-5 text-blue-500 mr-2" />
-            <p className="text-blue-700">Your order is on the way!</p>
+        {order.status === 'Delivered' && (
+          <div className="mt-4">
+            <Link to="/help-support">
+              <Button variant="outline" className="w-full hover:bg-gray-100 active:bg-gray-200 transition-colors">
+                <Package className="h-5 w-5 mr-2" />
+                Return
+              </Button>
+            </Link>
           </div>
         )}
       </main>

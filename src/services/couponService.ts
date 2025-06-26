@@ -69,41 +69,39 @@ export const validateCoupon = async (code: string, cartTotal: number, appliedCou
     .select('*')
     .eq('code', code.toUpperCase())
     .eq('is_active', true)
+    .gte('expiry_date', new Date().toISOString())
     .single();
 
-  if (error || !data) {
-    throw new Error('Invalid or expired coupon code');
+  if (error) {
+    throw new Error('Invalid coupon code');
   }
 
-  const coupon = data as Coupon;
-  
-  if (appliedCoupons.some(applied => applied.coupon.code === coupon.code)) {
+  // Check if coupon exists
+  if (!data) {
+    throw new Error('Coupon not found');
+  }
+
+  // Check if minimum purchase amount is met
+  if (data.min_purchase_amount > cartTotal) {
+    throw new Error(`Minimum purchase amount of ₹${data.min_purchase_amount} required for this coupon`);
+  }
+
+  // Check if coupon has reached usage limit
+  if (data.usage_limit && data.usage_count >= data.usage_limit) {
+    throw new Error('This coupon has reached its usage limit');
+  }
+
+  // Check if user has already applied this coupon
+  const alreadyApplied = appliedCoupons.some(c => c.coupon.id === data.id);
+  if (alreadyApplied) {
     throw new Error('This coupon has already been applied');
   }
-  
-  const now = new Date();
-  if (now < new Date(coupon.start_date) || now > new Date(coupon.expiry_date)) {
-    throw new Error('Coupon has expired or is not yet active');
-  }
 
-  if (coupon.usage_limit > 0 && coupon.usage_count >= coupon.usage_limit) {
-    throw new Error('Coupon usage limit has been reached');
-  }
-
-  if (cartTotal < coupon.min_purchase_amount) {
-    throw new Error(`Minimum purchase amount of ₹${coupon.min_purchase_amount} required`);
-  }
-
-  const canStack = coupon.can_stack !== false;
-  if (!canStack && appliedCoupons.length > 0) {
-    throw new Error('This coupon cannot be combined with other coupons');
-  }
-
-  if (appliedCoupons.some(applied => applied.coupon.can_stack === false)) {
-    throw new Error('Cannot add more coupons when a non-stackable coupon is applied');
-  }
-
-  return coupon;
+  // Return the coupon data
+  return {
+    ...data,
+    type: data.type as 'percentage' | 'fixed'
+  };
 };
 
 export const calculateDiscount = (coupon: Coupon, cartTotal: number): number => {

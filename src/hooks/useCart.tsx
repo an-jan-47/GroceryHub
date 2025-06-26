@@ -82,15 +82,15 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           id: product.id,
           name: product.name,
           price: product.price,
-          salePrice: product.salePrice || product.sale_price, // Handle both property names
-          quantity: Number(quantity), // Ensure quantity is a number
+          salePrice: product.salePrice || product.sale_price,
+          quantity: Number(quantity), 
           images: product.images || [],
           category: product.category || '',
           brand: product.brand || '',
+          stock: product.stock || 999
         };
-        const updatedItems = [...prevItems, newItem];
-        console.log('Added new item to cart:', updatedItems);
-        return updatedItems;
+        console.log('Added new item to cart:', newItem);
+        return [...prevItems, newItem];
       }
     });
   };

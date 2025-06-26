@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { User, Package, LogOut, Heart, Settings, Lock, ShieldCheck, Info, Edit, ShoppingBag, MapPin, Tag, Shield, HelpCircle } from 'lucide-react';
+import { User, Package, LogOut, Heart, Settings, Lock, ShieldCheck, Info, Edit, ShoppingBag, MapPin, Tag, Shield, HelpCircle, CreditCard } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
@@ -102,6 +102,16 @@ const Profile = () => {
           <h2 className="text-lg font-bold mb-4">Account Settings</h2>
           
           <div className="grid grid-cols-1 gap-2">
+            <Link to="/payment-details" className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-md">
+              <div className="flex items-center">
+                <CreditCard className="h-5 w-5 text-green-600 mr-3" />
+                <span>Payment Details</span>
+              </div>
+              <span className="text-gray-400">→</span>
+            </Link>
+            
+            <Separator />
+            
             <Dialog>
               <DialogTrigger asChild>
                 <div className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-md cursor-pointer">

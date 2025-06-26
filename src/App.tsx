@@ -8,6 +8,7 @@ import { ThemeProvider } from "next-themes";
 import LoadingScreen from "./components/LoadingScreen";
 import { useNavigationGestures } from './hooks/useNavigationGestures';
 import { history } from './history';
+import PaymentDetails from '@/pages/PaymentDetails';
 
 
 // Pages
@@ -140,6 +141,7 @@ const AppContent = () => {
         <Route path="/terms-of-use" element={<TermsOfUse />} />
         <Route path="/return-policy" element={<ReturnPolicy />} />
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+        <Route path="/payment-details" element={<PaymentDetails />} />
       </Routes>
     </ErrorBoundary>
   );

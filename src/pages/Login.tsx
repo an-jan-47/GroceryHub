@@ -42,26 +42,31 @@ const Login = () => {
   }, [user, navigate, from]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-gray-50 overflow-y-auto">
-      <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-lg shadow-md">
-        <button onClick={() => navigate('/')} className="flex items-center mb-4 text-blue-600 hover:text-blue-800">
+    <div className="min-h-screen flex flex-col justify-start px-4 py-6 bg-gray-50 overflow-y-auto md:py-12 md:justify-center">
+      <div className="w-full max-w-md mx-auto space-y-6 bg-white p-6 rounded-lg shadow-md md:p-8 md:space-y-8">
+        <button 
+          onClick={() => navigate('/')} 
+          className="flex items-center text-blue-600 hover:text-blue-800 mb-2 md:mb-4"
+        >
           <ArrowLeft className="w-5 h-5 mr-1" /> Back to Home
         </button>
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+        
+        <div className="space-y-2 md:space-y-4">
+          <h2 className="text-2xl md:text-3xl font-bold text-center text-gray-900">
             Sign in
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
+          <p className="text-center text-sm text-gray-600">
             New here? {' '}
             <Link to="/signup" className="font-medium text-blue-600 hover:text-blue-500">
               Create a new account
             </Link>
           </p>
         </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="rounded-md shadow-sm space-y-4">
+
+        <form className="space-y-4 md:space-y-6" onSubmit={handleSubmit}>
+          <div className="space-y-3 md:space-y-4">
             <div>
-              <Label htmlFor="email">Email address</Label>
+              <Label htmlFor="email" className="block mb-1.5">Email address</Label>
               <Input
                 id="email"
                 name="email"
@@ -70,12 +75,13 @@ const Login = () => {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Email address"
               />
             </div>
+            
             <div>
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password" className="block mb-1.5">Password</Label>
               <div className="relative">
                 <Input
                   id="password"
@@ -85,7 +91,7 @@ const Login = () => {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                   placeholder="Password"
                 />
                 <button
@@ -103,26 +109,22 @@ const Login = () => {
             </div>
           </div>
 
-          <div className="flex items-center justify-between">
-            <div className="text-sm">
-              <Link
-                to="/forgot-password"
-                className="font-medium text-blue-600 hover:text-blue-500"
-              >
-                Forgot your password?
-              </Link>
-            </div>
+          <div className="flex items-center justify-between text-sm">
+            <Link
+              to="/forgot-password"
+              className="font-medium text-blue-600 hover:text-blue-500"
+            >
+              Forgot your password?
+            </Link>
           </div>
 
-          <div>
-            <Button
-              type="submit"
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              disabled={isLoading}
-            >
-              {isLoading ? 'Signing in...' : 'Sign in'}
-            </Button>
-          </div>
+          <Button
+            type="submit"
+            className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            disabled={isLoading}
+          >
+            {isLoading ? 'Signing in...' : 'Sign in'}
+          </Button>
         </form>
       </div>
     </div>

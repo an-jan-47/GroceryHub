@@ -26,19 +26,22 @@ const ProductCard = ({ product, className, showBuyNow = false }: ProductCardProp
     if (product.stock <= 0) {
       toast("Out of stock", {
         description: `${product.name} is currently unavailable`,
-        position: "bottom-center"
       });
       return;
     }
     
-    addToCart({
-      id: product.id,
-      name: product.name,
-      price: product.price,
-      salePrice: product.sale_price,
-      images: product.images,
-      quantity: 1,
-      stock: product.stock
+    // Get current quantity in cart or default to 0
+    const currentQty = getQuantityInCart();
+    // If already in cart, increment by 1, otherwise add with quantity 1
+    const newQty = currentQty > 0 ? currentQty + 1 : 1;
+    
+    // Make sure we don't exceed stock
+    const finalQty = Math.min(newQty, product.stock);
+    
+    addToCart(product, finalQty);
+    
+    toast("Added to cart", {
+      description: `${finalQty} × ${product.name}`,
     });
   };
   

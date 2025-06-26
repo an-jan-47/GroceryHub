@@ -247,6 +247,15 @@ const CartPage = () => {
                     placeholder="Enter coupon code" 
                     value={couponCode} 
                     onChange={e => setCouponCode(e.target.value.toUpperCase())}
+                    onPaste={e => {
+                      // Get pasted text and set it directly
+                      const pastedText = e.clipboardData.getData('text');
+                      if (pastedText) {
+                        setCouponCode(pastedText.trim().toUpperCase());
+                        // Prevent default to avoid double paste
+                        e.preventDefault();
+                      }
+                    }}
                     className="flex-grow" 
                     onKeyPress={(e) => {
                       if (e.key === 'Enter') {
