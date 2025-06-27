@@ -89,29 +89,6 @@ export default defineConfig(({ mode }) => ({
     copyPublicDir: true,
     chunkSizeWarningLimit: 1000
   },
-  optimizeDeps: {
-    force: true,
-    exclude: ['@capacitor/app'],
-    include: [
-      '@react-pdf/renderer',
-      '@react-pdf/font',
-      '@react-pdf/pdfkit',
-      'buffer',
-      'process',
-      'util',
-      'stream-browserify',
-      'browserify-zlib',
-      'crypto-browserify',
-      'stream-http',
-      'https-browserify'
-    ],
-    esbuildOptions: {
-      define: {
-        global: 'globalThis',
-        'process.env.NODE_DEBUG': 'false'
-      }
-    }
-  },
   define: {
     'process.env.NODE_DEBUG': 'false',
     'global': 'globalThis',

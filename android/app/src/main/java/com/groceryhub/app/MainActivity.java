@@ -18,6 +18,15 @@ public class MainActivity extends BridgeActivity {
         WebView webView = this.bridge.getWebView();
         WebSettings settings = webView.getSettings();
         
+        // Add these configurations
+        settings.setJavaScriptEnabled(true);
+        settings.setDomStorageEnabled(true);
+        settings.setAllowFileAccess(true);
+        settings.setAllowContentAccess(true);
+        settings.setCacheMode(WebSettings.LOAD_DEFAULT);
+        settings.setLoadWithOverviewMode(true);
+        settings.setUseWideViewPort(true);
+        
         // Disable zooming
         settings.setBuiltInZoomControls(false);
         settings.setDisplayZoomControls(false);
