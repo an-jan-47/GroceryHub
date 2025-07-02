@@ -3,6 +3,7 @@
     <bool name="enableNotification">true</bool>
     <bool name="enableSiteSettingsShortcut">true</bool>
     <color name="backgroundColor">#3B82F6</color>
+    <color name="colorAccent">#3B82F6</color>
     <color name="colorPrimary">#3B82F6</color>
     <color name="colorPrimaryDark">#000000</color>
     <color name="navigationColor">#3B82F6</color>
@@ -31,4 +32,22 @@
     <string name="orientation" translatable="false">portrait</string>
     <string name="providerAuthority" translatable="false">com.groceryhub.app.fileprovider</string>
     <string name="webManifestUrl" translatable="false">http://localhost:8080/manifest.json</string>
+    <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+        <item name="android:navigationBarColor">@color/navigationColor</item>
+        <item name="android:statusBarColor">@color/colorPrimary</item>
+    </style>
+    <style name="AppTheme.NoActionBarLaunch" parent="AppTheme">
+        <item name="android:windowBackground">@color/backgroundColor</item>
+    </style>
+    <style name="Theme.SplashScreen" parent="AppTheme">
+        <item name="android:windowBackground">@color/backgroundColor</item>
+        <item name="android:statusBarColor">@color/colorPrimary</item>
+        <item name="android:navigationBarColor">@color/navigationColor</item>
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+    </style>
 </resources>

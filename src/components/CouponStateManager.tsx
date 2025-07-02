@@ -1,5 +1,5 @@
+import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import type { Coupon } from '@/services/couponService';
 
 export interface AppliedCouponState {

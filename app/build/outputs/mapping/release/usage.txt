@@ -7804,6 +7804,7 @@ com.groceryhub.app.R$integer
 com.groceryhub.app.R$mipmap
 com.groceryhub.app.R$raw
 com.groceryhub.app.R$string
+com.groceryhub.app.R$style
 com.groceryhub.app.R$xml
 com.groceryhub.app.R
 kotlin.ArrayIntrinsicsKt

@@ -1,10 +1,11 @@
+import React, { useState, useEffect } from "react";
 
 import { Badge } from '@/components/ui/badge';
 import StarRating from '@/components/StarRating';
-import { useState } from 'react';
+
 import { toast } from '@/components/ui/sonner';
 import { formatCouponForDisplay } from '@/services/couponService';
-import { useEffect } from 'react';
+
 import { getCouponById } from '@/services/couponService';
 
 interface ProductDetailInfoProps {

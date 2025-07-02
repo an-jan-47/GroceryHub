@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
+
+// Remove duplicate React 
 import { 
   Dialog,
   DialogContent,
@@ -8,7 +10,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import Input from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { toast } from '@/components/ui/sonner';
@@ -24,7 +26,14 @@ interface AddressDialogProps {
   addressToEdit: Address | null;
 }
 
-export const AddressDialog = ({ open, onOpenChange, addressToEdit }: AddressDialogProps) => {
+// Change from ForwardRefRenderFunction to regular functional component
+const AddressDialogComponent = (
+    { 
+      open,
+      onOpenChange,
+      addressToEdit 
+    }: AddressDialogProps
+) => {
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -297,3 +306,6 @@ export const AddressDialog = ({ open, onOpenChange, addressToEdit }: AddressDial
     </Dialog>
   );
 };
+
+// Export the component directly without using forwardRef
+export const AddressDialog = AddressDialogComponent;

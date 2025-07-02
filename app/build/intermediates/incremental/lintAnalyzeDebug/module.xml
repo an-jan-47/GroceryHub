@@ -1,0 +1,25 @@
+<lint-module
+    format="1"
+    dir="D:\p07\Project007\app"
+    name=":app"
+    type="APP"
+    maven="Project007:app:unspecified"
+    agpVersion="8.9.1"
+    buildFolder="build"
+    bootClassPath="C:\Users\DELL\AppData\Local\Android\Sdk\platforms\android-36\android.jar;C:\Users\DELL\AppData\Local\Android\Sdk\build-tools\35.0.0\core-lambda-stubs.jar"
+    javaSourceLevel="1.8"
+    compileTarget="android-36">
+  <lintOptions
+      disable="AppLinkUrlError"
+      abortOnError="true"
+      absolutePaths="true"
+      checkReleaseBuilds="true"
+      explainIssues="true">
+    <severities>
+      <severity
+        id="AppLinkUrlError"
+        severity="IGNORE" />
+    </severities>
+  </lintOptions>
+  <variant name="debug"/>
+</lint-module>

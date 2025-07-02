@@ -1,4 +1,5 @@
-import * as React from "react"
+import React, { forwardRef } from "react";
+
 import * as LabelPrimitive from "@radix-ui/react-label"
 import { Slot } from "@radix-ui/react-slot"
 import {
@@ -24,7 +25,6 @@ type FormFieldContextValue<
 
 const FormFieldContext = React.createContext<FormFieldContextValue>(
   {} as FormFieldContextValue
-)
 
 const FormField = <
   TFieldValues extends FieldValues = FieldValues,
@@ -36,7 +36,7 @@ const FormField = <
     <FormFieldContext.Provider value={{ name: props.name }}>
       <Controller {...props} />
     </FormFieldContext.Provider>
-  )
+  
 }
 
 const useFormField = () => {
@@ -68,9 +68,8 @@ type FormItemContextValue = {
 
 const FormItemContext = React.createContext<FormItemContextValue>(
   {} as FormItemContextValue
-)
 
-const FormItem = React.forwardRef<
+const FormItem = forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => {
@@ -80,11 +79,11 @@ const FormItem = React.forwardRef<
     <FormItemContext.Provider value={{ id }}>
       <div ref={ref} className={cn("space-y-2", className)} {...props} />
     </FormItemContext.Provider>
-  )
+  
 })
 FormItem.displayName = "FormItem"
 
-const FormLabel = React.forwardRef<
+const FormLabel = forwardRef<
   React.ElementRef<typeof LabelPrimitive.Root>,
   React.ComponentPropsWithoutRef<typeof LabelPrimitive.Root>
 >(({ className, ...props }, ref) => {
@@ -97,11 +96,11 @@ const FormLabel = React.forwardRef<
       htmlFor={formItemId}
       {...props}
     />
-  )
+  
 })
 FormLabel.displayName = "FormLabel"
 
-const FormControl = React.forwardRef<
+const FormControl = forwardRef<
   React.ElementRef<typeof Slot>,
   React.ComponentPropsWithoutRef<typeof Slot>
 >(({ ...props }, ref) => {
@@ -119,11 +118,11 @@ const FormControl = React.forwardRef<
       aria-invalid={!!error}
       {...props}
     />
-  )
+  
 })
 FormControl.displayName = "FormControl"
 
-const FormDescription = React.forwardRef<
+const FormDescription = forwardRef<
   HTMLParagraphElement,
   React.HTMLAttributes<HTMLParagraphElement>
 >(({ className, ...props }, ref) => {
@@ -136,11 +135,11 @@ const FormDescription = React.forwardRef<
       className={cn("text-sm text-muted-foreground", className)}
       {...props}
     />
-  )
+  
 })
 FormDescription.displayName = "FormDescription"
 
-const FormMessage = React.forwardRef<
+const FormMessage = forwardRef<
   HTMLParagraphElement,
   React.HTMLAttributes<HTMLParagraphElement>
 >(({ className, children, ...props }, ref) => {
@@ -160,7 +159,7 @@ const FormMessage = React.forwardRef<
     >
       {body}
     </p>
-  )
+  
 })
 FormMessage.displayName = "FormMessage"
 

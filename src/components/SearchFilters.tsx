@@ -1,7 +1,7 @@
+import React, { useState, useEffect, useCallback } from "react";
 
-import React, { useState, useEffect, useCallback } from 'react';
 import { Search as SearchIcon, X, Filter } from 'lucide-react';
-import { Input } from '@/components/ui/input';
+import Input from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';

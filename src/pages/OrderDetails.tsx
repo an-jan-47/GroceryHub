@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
+
 import { Link, useParams } from 'react-router-dom';
 import { ChevronLeft, Package, MapPin, Clock, CreditCard, Truck, CheckCircle, AlertCircle, Tag } from 'lucide-react';
 import { Button } from '@/components/ui/button';

@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
+
 import { Link, useNavigate } from 'react-router-dom';
 import { ChevronLeft, Trash2, Plus, Minus, ShoppingCart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import Input from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { useCart } from '@/hooks/useCart';
 import Header from '@/components/Header';
@@ -116,13 +117,9 @@ const CartPage = () => {
   const handleRemoveCoupon = (couponId) => {
     console.log('Removing coupon with ID:', couponId);
     removeCoupon(couponId);
-    
-    // Force a re-render to update the UI
     setTimeout(() => {
-      // This will trigger a re-render
       setIsApplyingCoupon(false);
     }, 50);
-    
     toast('Coupon removed');
   };
 

@@ -1,5 +1,5 @@
+import React, { useState } from "react";
 
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronLeft, Phone, Mail, MessageCircle, Copy, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -209,7 +209,6 @@ const HelpSupport = () => {
 };
 
 export default HelpSupport;
-
 
 // Add this section after the WhatsApp card and before any other sections
 <div className="mt-8">

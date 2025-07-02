@@ -1,5 +1,5 @@
+import React, { ReactNode, useEffect } from "react";
 
-import { ReactNode, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/components/ui/sonner';

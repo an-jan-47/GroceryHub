@@ -1,5 +1,5 @@
+import React, { useState, useEffect, useRef } from "react";
 
-import React, { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getBanners } from '@/services/bannerService';
 import BannerCard from './BannerCard';

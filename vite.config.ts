@@ -4,6 +4,7 @@ import { fileURLToPath, URL } from "node:url";
 import path from 'path';
 
 export default defineConfig(({ mode }) => ({
+  base: '/',
   server: {
     host: "::",
     port: 8080,
@@ -70,7 +71,11 @@ export default defineConfig(({ mode }) => ({
       cache: false,
       external: ['@capacitor/app'],
       output: {
+        // Add this to your build.rollupOptions.manualChunks configuration
         manualChunks: (id) => {
+          if (id.includes('node_modules/react') || id.includes('node_modules/react-dom')) {
+            return 'react-vendor'; // Keep React in its own chunk
+          }
           if (id.includes('node_modules')) {
             return 'vendor';
           }

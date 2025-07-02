@@ -1,5 +1,5 @@
+import React, { forwardRef } from "react";
 
-import * as React from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -9,7 +9,7 @@ interface SimpleCarouselProps {
   className?: string
 }
 
-const SimpleCarousel = React.forwardRef<HTMLDivElement, SimpleCarouselProps>(
+const SimpleCarousel = forwardRef<HTMLDivElement, SimpleCarouselProps>(
   ({ className, children, ...props }, ref) => {
     return (
       <div
@@ -19,12 +19,12 @@ const SimpleCarousel = React.forwardRef<HTMLDivElement, SimpleCarouselProps>(
       >
         {children}
       </div>
-    )
+    
   }
-)
+
 SimpleCarousel.displayName = "SimpleCarousel"
 
-const SimpleCarouselContent = React.forwardRef<
+const SimpleCarouselContent = forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => {
@@ -36,11 +36,11 @@ const SimpleCarouselContent = React.forwardRef<
         {...props}
       />
     </div>
-  )
+  
 })
 SimpleCarouselContent.displayName = "SimpleCarouselContent"
 
-const SimpleCarouselItem = React.forwardRef<
+const SimpleCarouselItem = forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => {
@@ -50,7 +50,7 @@ const SimpleCarouselItem = React.forwardRef<
       className={cn("min-w-0 shrink-0 grow-0 basis-full", className)}
       {...props}
     />
-  )
+  
 })
 SimpleCarouselItem.displayName = "SimpleCarouselItem"
 

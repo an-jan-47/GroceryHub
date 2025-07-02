@@ -3,6 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <!-- Updated favicon path to point to public directory -->
+    <link rel="icon" type="image/x-icon" href="/public/favicon.ico" />
     <title>GroceryHub</title>
     <meta name="description" content="Where convenience and quality meets" />
     <meta name="author" content="GroceryHub" />
@@ -18,9 +20,19 @@
   </head>
 
   <body>
+    <!-- Only include in development mode -->
     <div id="root"></div>
-    <!-- IMPORTANT: DO NOT REMOVE THIS SCRIPT TAG OR THIS VERY COMMENT! -->
-    <script src="https://cdn.gpteng.co/gptengineer.js" type="module"></script>
+    <script type="module">
+      // Only include in development mode
+      if (import.meta.env.DEV) {
+        const script = document.createElement('script');
+        script.src = "https://cdn.gpteng.co/gptengineer.js";
+        script.type = "module";
+        document.head.appendChild(script);
+      }
+    </script>
+    <!-- Add this line before your application scripts -->
+    <script src="/fix-forwardref.js"></script>
     <script type="module" src="/src/main.tsx"></script>
     
     <!-- Disable service worker during development -->

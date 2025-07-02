@@ -1,5 +1,5 @@
-
 import React, { useEffect, useState } from "react";
+
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -9,7 +9,6 @@ import LoadingScreen from "./components/LoadingScreen";
 import { useNavigationGestures } from './hooks/useNavigationGestures';
 import { history } from './history';
 import PaymentDetails from '@/pages/PaymentDetails';
-
 
 // Pages
 import Index from "./pages/Index";

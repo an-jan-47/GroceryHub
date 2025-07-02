@@ -1,5 +1,5 @@
+import React, { useState } from "react";
 
-import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ChevronLeft, Tag, Copy } from 'lucide-react';
 import Header from '@/components/Header';
@@ -64,7 +64,11 @@ const CouponApply = () => {
       }, 0);
       
       // Validate the coupon before applying
-      await validateCoupon(couponCode, cartTotal, appliedCoupons);
+      await validateCoupon(couponCode, cartTotal, appliedCoupons.map(c => ({
+        coupon: c.coupon,
+        discountAmount: c.discountAmount,
+        appliedToTotal: c.appliedToTotal || 0
+      })));
       const discountAmount = calculateDiscount(couponData, cartTotal);
       
       // Add coupon to global state

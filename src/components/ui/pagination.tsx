@@ -1,4 +1,5 @@
-import * as React from "react"
+import React, { forwardRef } from "react";
+
 import { ChevronLeft, ChevronRight, MoreHorizontal } from "lucide-react"
 
 import { cn } from "@/lib/utils"
@@ -11,10 +12,10 @@ const Pagination = ({ className, ...props }: React.ComponentProps<"nav">) => (
     className={cn("mx-auto flex w-full justify-center", className)}
     {...props}
   />
-)
+
 Pagination.displayName = "Pagination"
 
-const PaginationContent = React.forwardRef<
+const PaginationContent = forwardRef<
   HTMLUListElement,
   React.ComponentProps<"ul">
 >(({ className, ...props }, ref) => (
@@ -26,7 +27,7 @@ const PaginationContent = React.forwardRef<
 ))
 PaginationContent.displayName = "PaginationContent"
 
-const PaginationItem = React.forwardRef<
+const PaginationItem = forwardRef<
   HTMLLIElement,
   React.ComponentProps<"li">
 >(({ className, ...props }, ref) => (
@@ -56,7 +57,7 @@ const PaginationLink = ({
     )}
     {...props}
   />
-)
+
 PaginationLink.displayName = "PaginationLink"
 
 const PaginationPrevious = ({
@@ -72,7 +73,7 @@ const PaginationPrevious = ({
     <ChevronLeft className="h-4 w-4" />
     <span>Previous</span>
   </PaginationLink>
-)
+
 PaginationPrevious.displayName = "PaginationPrevious"
 
 const PaginationNext = ({
@@ -88,7 +89,7 @@ const PaginationNext = ({
     <span>Next</span>
     <ChevronRight className="h-4 w-4" />
   </PaginationLink>
-)
+
 PaginationNext.displayName = "PaginationNext"
 
 const PaginationEllipsis = ({
@@ -103,7 +104,7 @@ const PaginationEllipsis = ({
     <MoreHorizontal className="h-4 w-4" />
     <span className="sr-only">More pages</span>
   </span>
-)
+
 PaginationEllipsis.displayName = "PaginationEllipsis"
 
 export {

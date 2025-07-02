@@ -1,5 +1,5 @@
+import React from "react";
 
-import * as React from "react"
 import * as ResizablePrimitive from "react-resizable-panels"
 
 import { cn } from "@/lib/utils"
@@ -15,7 +15,6 @@ const ResizablePanelGroup = ({
     )}
     {...props}
   />
-)
 
 const ResizablePanel = ResizablePrimitive.Panel
 
@@ -53,6 +52,5 @@ const ResizableHandle = ({
       </div>
     )}
   </ResizablePrimitive.PanelResizeHandle>
-)
 
 export { ResizablePanelGroup, ResizablePanel, ResizableHandle }
