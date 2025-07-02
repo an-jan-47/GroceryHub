@@ -39,7 +39,7 @@ export async function validateCoupon(
   const mockCoupon: Coupon = {
     id: '1',
     code: code,
-    type: 'percentage',
+    type: 'percentage' as const,
     value: 10,
     min_purchase_amount: 100,
     description: 'Get 10% off on orders above ₹100',
@@ -60,7 +60,7 @@ export async function getActiveCoupons(limit: number = 10): Promise<Coupon[]> {
     {
       id: '1',
       code: 'SAVE10',
-      type: 'percentage',
+      type: 'percentage' as const,
       value: 10,
       min_purchase_amount: 100,
       description: 'Get 10% off on orders above ₹100',
@@ -70,7 +70,7 @@ export async function getActiveCoupons(limit: number = 10): Promise<Coupon[]> {
     {
       id: '2',
       code: 'FLAT50',
-      type: 'fixed',
+      type: 'fixed' as const,
       value: 50,
       min_purchase_amount: 200,
       description: 'Get ₹50 off on orders above ₹200',

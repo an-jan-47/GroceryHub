@@ -5,12 +5,13 @@ import { Coupon } from '@/services/couponService';
 interface CouponData {
   coupon: Coupon;
   discountAmount: number;
+  appliedToTotal?: number;
 }
 
 interface CouponStateContextType {
   appliedCoupons: CouponData[];
   setCoupons: (coupons: CouponData[]) => void;
-  addCoupon: (couponData: CouponData) => void;
+  addCoupon: (coupon: Coupon, discountAmount: number) => void;
   removeCoupon: (couponId: string) => void;
   clearCoupons: () => void;
 }
@@ -24,7 +25,12 @@ export function CouponStateProvider({ children }: { children: ReactNode }) {
     setAppliedCoupons(coupons);
   };
 
-  const addCoupon = (couponData: CouponData) => {
+  const addCoupon = (coupon: Coupon, discountAmount: number) => {
+    const couponData: CouponData = {
+      coupon,
+      discountAmount,
+      appliedToTotal: discountAmount
+    };
     setAppliedCoupons(prev => [...prev, couponData]);
   };
 

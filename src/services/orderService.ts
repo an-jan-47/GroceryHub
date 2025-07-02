@@ -41,6 +41,7 @@ export async function createOrder(orderData: {
   
   return {
     id: orderId,
+    orderId: orderId, // Add this for compatibility
     status: 'pending',
     total_amount: orderData.totalAmount,
     created_at: new Date().toISOString()
