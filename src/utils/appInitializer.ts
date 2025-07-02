@@ -1,3 +1,4 @@
+
 export interface AppConfig {
   apiUrl: string;
   environment: 'development' | 'production' | 'testing';
@@ -17,13 +18,14 @@ const defaultConfig: AppConfig = {
 
 export async function initializeApp() {
   try {
-    // Basic app initialization
     console.log('Initializing app...');
     
-    // Add any necessary app initialization logic here
-    // For example: setting up analytics, error tracking, etc.
+    // Basic app initialization
+    console.log('App configuration:', defaultConfig);
     
+    // Add any necessary app initialization logic here
     console.log('App initialized successfully');
+    return true;
   } catch (error) {
     console.error('Failed to initialize app:', error);
     throw error;
@@ -32,12 +34,12 @@ export async function initializeApp() {
 
 export function setupPerformanceMonitoring() {
   try {
-    // Basic performance monitoring setup
     console.log('Setting up performance monitoring...');
     
-    // Add performance monitoring logic here if needed
-    
-    console.log('Performance monitoring setup complete');
+    // Basic performance monitoring setup
+    if (typeof window !== 'undefined') {
+      console.log('Performance monitoring setup complete');
+    }
   } catch (error) {
     console.error('Failed to setup performance monitoring:', error);
   }
