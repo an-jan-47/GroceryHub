@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 
 import { Toaster } from "@/components/ui/sonner";
@@ -57,8 +58,8 @@ const queryClient = new QueryClient({
         }
         return failureCount < 2;
       },
-      staleTime: 0, // Set to 0 to force fresh data
-      cacheTime: 0, // Disable caching
+      staleTime: 0,
+      gcTime: 0,
       refetchOnWindowFocus: true,
       refetchOnMount: true
     }
@@ -69,11 +70,9 @@ const AppContent = () => {
   console.log('AppContent rendering');
   useNavigationGestures();
 
-  // Add this effect to ensure proper history tracking
   useEffect(() => {
     const isCapacitor = !!(window as any).Capacitor;
     if (isCapacitor) {
-      // Initialize GestureHelper if available
       const initGestureHelper = async () => {
         try {
           // @ts-ignore - Custom plugin
@@ -90,7 +89,6 @@ const AppContent = () => {
       };
       initGestureHelper();
       
-      // Add this to ensure proper history management
       window.addEventListener('popstate', (event) => {
         console.log('popstate event', event);
       });
@@ -127,7 +125,7 @@ const AppContent = () => {
         <Route path="/order/:id" element={<ProtectedRoute><OrderDetails /></ProtectedRoute>} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<SignUp />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} /> {/* Add this line */}
+        <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/orders" element={<Navigate to="/order-history" replace />} />
         <Route path="/change-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
         <Route path="/privacy-settings" element={<ProtectedRoute><PrivacySettings /></ProtectedRoute>} />
