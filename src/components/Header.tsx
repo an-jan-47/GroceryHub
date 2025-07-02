@@ -1,10 +1,10 @@
 
-import React, { forwardRef } from "react";
+import React from "react";
 import { Search, ShoppingCart, User } from "lucide-react"
 import { Link } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 
-export function Header() {
+export default function Header() {
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -35,3 +35,6 @@ export function Header() {
     </header>
   )
 }
+
+// Also export as named export for compatibility
+export { Header };

@@ -1,22 +1,22 @@
 
 import { supabase } from '@/integrations/supabase/client'
-import type { Product } from '@/types/product'
+import type { Product } from '@/services/productService'
 
-export async function searchProducts(
-  query: string,
-  filters: {
-    category?: string;
-    minPrice?: number;
-    maxPrice?: number;
-  } = {}
-): Promise<Product[]> {
+export interface SearchFilters {
+  query?: string;
+  category?: string;
+  minPrice?: number;
+  maxPrice?: number;
+}
+
+export async function searchProducts(filters: SearchFilters = {}): Promise<Product[]> {
   let queryBuilder = supabase
     .from('products')
     .select('*')
     .order('name', { ascending: true });
 
-  if (query) {
-    queryBuilder = queryBuilder.ilike('name', `%${query}%`);
+  if (filters.query) {
+    queryBuilder = queryBuilder.ilike('name', `%${filters.query}%`);
   }
 
   if (filters.category) {
