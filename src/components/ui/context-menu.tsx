@@ -1,4 +1,3 @@
-
 import React, { forwardRef } from "react";
 
 import * as ContextMenuPrimitive from "@radix-ui/react-context-menu"
@@ -177,7 +176,7 @@ const ContextMenuShortcut = ({
       )}
       {...props}
     />
-  )
+  
 }
 ContextMenuShortcut.displayName = "ContextMenuShortcut"
 

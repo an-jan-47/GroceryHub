@@ -1,4 +1,3 @@
-
 import React, { forwardRef } from "react";
 
 import { ChevronLeft, ChevronRight } from "lucide-react"
@@ -20,9 +19,8 @@ const SimpleCarousel = forwardRef<HTMLDivElement, SimpleCarouselProps>(
       >
         {children}
       </div>
-    )
+    
   }
-)
 
 SimpleCarousel.displayName = "SimpleCarousel"
 
@@ -38,7 +36,7 @@ const SimpleCarouselContent = forwardRef<
         {...props}
       />
     </div>
-  )
+  
 })
 SimpleCarouselContent.displayName = "SimpleCarouselContent"
 
@@ -52,7 +50,7 @@ const SimpleCarouselItem = forwardRef<
       className={cn("min-w-0 shrink-0 grow-0 basis-full", className)}
       {...props}
     />
-  )
+  
 })
 SimpleCarouselItem.displayName = "SimpleCarouselItem"
 

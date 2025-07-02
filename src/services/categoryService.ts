@@ -1,19 +1,28 @@
 
+import { supabase } from '@/integrations/supabase/client';
+
 export interface Category {
   id: string;
   name: string;
+  image: string;
   description?: string;
-  image?: string;
+  display_order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
-export async function getCategories(): Promise<Category[]> {
-  // Mock data for now - replace with actual Supabase call when ready
-  return [
-    { id: '1', name: 'Fruits & Vegetables', description: 'Fresh produce', image: '/placeholder.svg' },
-    { id: '2', name: 'Dairy & Eggs', description: 'Milk, cheese, eggs', image: '/placeholder.svg' },
-    { id: '3', name: 'Meat & Seafood', description: 'Fresh meat and fish', image: '/placeholder.svg' },
-    { id: '4', name: 'Bakery', description: 'Bread and baked goods', image: '/placeholder.svg' },
-    { id: '5', name: 'Pantry', description: 'Dry goods and essentials', image: '/placeholder.svg' },
-    { id: '6', name: 'Beverages', description: 'Drinks and beverages', image: '/placeholder.svg' },
-  ];
-}
+export const getCategories = async (): Promise<Category[]> => {
+  const { data, error } = await supabase
+    .from('categories')
+    .select('*')
+    .eq('is_active', true)
+    .order('display_order', { ascending: true });
+
+  if (error) {
+    console.error('Error fetching categories:', error);
+    return [];
+  }
+
+  return data || [];
+};

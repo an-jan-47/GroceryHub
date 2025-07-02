@@ -1,4 +1,3 @@
-
 import React, { forwardRef } from "react";
 
 import { type DialogProps } from "@radix-ui/react-dialog"
@@ -34,7 +33,7 @@ const CommandDialog = ({ children, ...props }: CommandDialogProps) => {
         </Command>
       </DialogContent>
     </Dialog>
-  )
+  
 }
 
 const CommandInput = forwardRef<
@@ -138,7 +137,7 @@ const CommandShortcut = ({
       )}
       {...props}
     />
-  )
+  
 }
 CommandShortcut.displayName = "CommandShortcut"
 

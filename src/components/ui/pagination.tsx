@@ -1,4 +1,3 @@
-
 import React, { forwardRef } from "react";
 
 import { ChevronLeft, ChevronRight, MoreHorizontal } from "lucide-react"
@@ -13,7 +12,6 @@ const Pagination = ({ className, ...props }: React.ComponentProps<"nav">) => (
     className={cn("mx-auto flex w-full justify-center", className)}
     {...props}
   />
-)
 
 Pagination.displayName = "Pagination"
 
@@ -59,7 +57,6 @@ const PaginationLink = ({
     )}
     {...props}
   />
-)
 
 PaginationLink.displayName = "PaginationLink"
 
@@ -76,7 +73,6 @@ const PaginationPrevious = ({
     <ChevronLeft className="h-4 w-4" />
     <span>Previous</span>
   </PaginationLink>
-)
 
 PaginationPrevious.displayName = "PaginationPrevious"
 
@@ -93,7 +89,6 @@ const PaginationNext = ({
     <span>Next</span>
     <ChevronRight className="h-4 w-4" />
   </PaginationLink>
-)
 
 PaginationNext.displayName = "PaginationNext"
 
@@ -109,7 +104,6 @@ const PaginationEllipsis = ({
     <MoreHorizontal className="h-4 w-4" />
     <span className="sr-only">More pages</span>
   </span>
-)
 
 PaginationEllipsis.displayName = "PaginationEllipsis"
 

@@ -1,39 +1,50 @@
 
-import React from "react";
-import { Home, Search, ShoppingCart, User } from "lucide-react"
-import { NavLink } from "react-router-dom"
-import { cn } from "@/lib/utils"
+import { Home, Search, ShoppingCart, User } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
+import { Badge } from '@/components/ui/badge';
+import { useCart } from '@/hooks/useCart';
+import { useAuth } from '@/contexts/AuthContext';
 
-const navItems = [
-  { to: "/", icon: Home, label: "Home" },
-  { to: "/search", icon: Search, label: "Search" },
-  { to: "/cart", icon: ShoppingCart, label: "Cart" },
-  { to: "/profile", icon: User, label: "Profile" },
-]
+const BottomNavigation = () => {
+  const location = useLocation();
+  const { cartItems, totalItems } = useCart();
+  const { user } = useAuth();
+  const cartItemsCount = totalItems;
+  
+  const isActive = (path: string) => location.pathname === path;
 
-export default function BottomNavigation() {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
-      <div className="flex justify-around items-center h-16">
-        {navItems.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            className={({ isActive }) =>
-              cn(
-                "flex flex-col items-center justify-center space-y-1 text-xs",
-                isActive ? "text-primary" : "text-gray-500"
-              )
-            }
-          >
-            <item.icon className="h-5 w-5" />
-            <span>{item.label}</span>
-          </NavLink>
-        ))}
+    <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-100 shadow-md pb-safe">
+      <div className="grid grid-cols-4 h-16">
+        <Link to="/" className={`bottom-nav-item ${location.pathname === '/' ? 'bottom-nav-active' : 'text-gray-500'}`}>
+          <Home className="w-6 h-6 mb-1" />
+          <span>Home</span>
+        </Link>
+        <Link to="/explore" className={`bottom-nav-item ${location.pathname.includes('/explore') ? 'bottom-nav-active' : 'text-gray-500'}`}>
+          <Search className="w-6 h-6 mb-1" />
+          <span>Explore</span>
+        </Link>
+        <Link to="/cart" className={`bottom-nav-item ${isActive('/cart') ? 'bottom-nav-active' : 'text-gray-500'}`}>
+          <div className="relative">
+            <ShoppingCart className="w-6 h-6 mb-1" />
+            {cartItemsCount > 0 && (
+              <Badge variant="destructive" className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0">
+                {cartItemsCount}
+              </Badge>
+            )}
+          </div>
+          <span>Cart</span>
+        </Link>
+        <Link 
+          to={user ? "/profile" : "/login"} 
+          className={`bottom-nav-item ${isActive('/profile') || isActive('/login') ? 'bottom-nav-active' : 'text-gray-500'}`}
+        >
+          <User className="w-6 h-6 mb-1" />
+          <span>{user ? "Profile" : "Login"}</span>
+        </Link>
       </div>
-    </nav>
-  )
-}
+    </div>
+  );
+};
 
-// Also export as named export for compatibility
-export { BottomNavigation };
+export default BottomNavigation;

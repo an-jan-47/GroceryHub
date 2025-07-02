@@ -1,88 +1,44 @@
-import { supabase } from '@/integrations/supabase/client'
 
-export interface Product {
-  id: string;
-  name: string;
-  description?: string;
-  price: number;
-  sale_price?: number;
-  images?: string[];
-  brand?: string;
-  category?: string;
-  stock: number;
-  rating: number;
-  review_count: number;
-  features?: string[];
-}
+import { supabase } from '@/integrations/supabase/client';
+import { Product } from '@/types';
 
-export async function getProducts(): Promise<Product[]> {
-  const { data, error } = await supabase
-    .from('products')
-    .select('*');
-
-  if (error) {
-    throw error;
-  }
-
-  return (data || []).map((product: any) => ({
-    ...product,
-    features: product.features || [],
-    review_count: product.review_count || 0,
-  }));
-}
-
-export async function getFeaturedProducts(): Promise<Product[]> {
-  const { data, error } = await supabase
+export const getProducts = async (options?: { featured?: boolean }): Promise<Product[]> => {
+  console.log('Fetching products with options:', options);
+  
+  let query = supabase
     .from('products')
     .select('*')
-    .limit(8);
+    .order('created_at', { ascending: false });
 
-  if (error) {
-    throw error;
+  // If featured is requested, filter by rating
+  if (options?.featured) {
+    query = query.gte('rating', 4.0).order('rating', { ascending: false });
   }
 
-  return (data || []).map((product: any) => ({
-    ...product,
-    features: product.features || [],
-    review_count: product.review_count || 0,
-  }));
-}
-
-export async function getProductsByCategory(category: string): Promise<Product[]> {
-  const { data, error } = await supabase
-    .from('products')
-    .select('*')
-    .eq('category', category);
+  const { data, error } = await query;
 
   if (error) {
-    throw error;
+    console.error('Error fetching products:', error);
+    return [];
   }
 
-  return (data || []).map((product: any) => ({
+  console.log('Products fetched successfully:', data?.length || 0);
+  console.log('Raw products data:', data);
+
+  return data?.map(product => ({
     ...product,
-    features: product.features || [],
-    review_count: product.review_count || 0,
-  }));
-}
+    features: Array.isArray(product.features) ? product.features.map(f => String(f)) : []
+  })) || [];
+};
 
-export async function searchProducts(query: string): Promise<Product[]> {
-  const { data, error } = await supabase
-    .from('products')
-    .select('*')
-    .ilike('name', `%${query}%`);
-
-  if (error) {
-    throw error;
+export const getProduct = async (id: string): Promise<Product | null> => {
+  console.log('Fetching product with ID:', id);
+  
+  if (!id) {
+    console.error('Product ID is required');
+    return null;
   }
 
-  return (data || []).map((product: any) => ({
-    ...product,
-    features: product.features || [],
-    review_count: product.review_count || 0,
-  }));
-}
-
-export async function getProductById(id: string): Promise<Product | null> {
   const { data, error } = await supabase
     .from('products')
     .select('*')
@@ -94,9 +50,162 @@ export async function getProductById(id: string): Promise<Product | null> {
     return null;
   }
 
+  console.log('Product fetched:', data);
+
   return data ? {
     ...data,
-    features: data.features || [],
-    review_count: data.review_count || 0,
+    features: Array.isArray(data.features) ? data.features.map(f => String(f)) : []
   } : null;
-}
+};
+
+// Alias for compatibility
+export const getProductById = getProduct;
+
+export const getProductsByCategory = async (category: string): Promise<Product[]> => {
+  console.log('Fetching products by category:', category);
+  
+  const { data, error } = await supabase
+    .from('products')
+    .select('*')
+    .eq('category', category)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching products by category:', error);
+    return [];
+  }
+
+  return data?.map(product => ({
+    ...product,
+    features: Array.isArray(product.features) ? product.features.map(f => String(f)) : []
+  })) || [];
+};
+
+export const searchProducts = async (query: string): Promise<Product[]> => {
+  console.log('Searching products with query:', query);
+  
+  const { data, error } = await supabase
+    .from('products')
+    .select('*')
+    .or(`name.ilike.%${query}%,description.ilike.%${query}%,category.ilike.%${query}%,brand.ilike.%${query}%`)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error searching products:', error);
+    return [];
+  }
+
+  return data?.map(product => ({
+    ...product,
+    features: Array.isArray(product.features) ? product.features.map(f => String(f)) : []
+  })) || [];
+};
+
+export const getPopularProducts = async (): Promise<Product[]> => {
+  console.log('Fetching popular products...');
+  
+  const { data, error } = await supabase
+    .from('popular_products')
+    .select(`
+      product_id,
+      total_orders,
+      products (*)
+    `)
+    .order('total_orders', { ascending: false })
+    .limit(8);
+
+  if (error) {
+    console.error('Error fetching popular products:', error);
+    return [];
+  }
+
+  console.log('Popular products data:', data);
+
+  return data?.map(item => {
+    if (!item.products) return null;
+    return {
+      ...item.products,
+      features: Array.isArray(item.products?.features) ? item.products.features.map(f => String(f)) : []
+    };
+  }).filter(Boolean) || [];
+};
+
+export const getFeaturedProducts = async (): Promise<Product[]> => {
+  console.log('Fetching featured products...');
+  
+  const { data, error } = await supabase
+    .from('products')
+    .select('*')
+    .gte('rating', 4.0)
+    .order('rating', { ascending: false })
+    .limit(8);
+
+  if (error) {
+    console.error('Error fetching featured products:', error);
+    return [];
+  }
+
+  return data?.map(product => ({
+    ...product,
+    features: Array.isArray(product.features) ? product.features.map(f => String(f)) : []
+  })) || [];
+};
+
+export const getSimilarProducts = async (productId: string, category: string, brand: string): Promise<Product[]> => {
+  console.log('Fetching similar products for:', { productId, category, brand });
+  
+  const { data, error } = await supabase
+    .from('products')
+    .select('*')
+    .neq('id', productId)
+    .or(`category.eq.${category},brand.eq.${brand}`)
+    .order('rating', { ascending: false })
+    .limit(6);
+
+  if (error) {
+    console.error('Error fetching similar products:', error);
+    return [];
+  }
+
+  return data?.map(product => ({
+    ...product,
+    features: Array.isArray(product.features) ? product.features.map(f => String(f)) : []
+  })) || [];
+};
+
+export const getProductCount = async (): Promise<number> => {
+  const { count, error } = await supabase
+    .from('products')
+    .select('*', { count: 'exact', head: true });
+
+  if (error) {
+    console.error('Error fetching product count:', error);
+    return 0;
+  }
+
+  return count || 0;
+};
+
+export const subscribeToProductChanges = (callback: (products: Product[]) => void) => {
+  // Initial fetch
+  getProducts().then(callback);
+
+  // Set up real-time subscription
+  const subscription = supabase
+    .channel('products_changes')
+    .on('postgres_changes', 
+      { event: '*', schema: 'public', table: 'products' }, 
+      () => {
+        getProducts().then(callback);
+      }
+    )
+    .subscribe();
+
+  // Return unsubscribe function
+  return () => {
+    subscription.unsubscribe();
+  };
+};
+
+// Export Product type for components
+export type { Product };

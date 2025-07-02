@@ -1,9 +1,7 @@
-
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import { fileURLToPath, URL } from "node:url";
 import path from 'path';
-import { componentTagger } from "lovable-tagger";
 
 export default defineConfig(({ mode }) => ({
   base: '/',
@@ -21,25 +19,24 @@ export default defineConfig(({ mode }) => ({
   },
   plugins: [
     react(),
-    mode === 'development' && componentTagger(),
-  ].filter(Boolean),
+  ],
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
       stream: 'stream-browserify',
       zlib: 'browserify-zlib',
-      util: 'util/',
-      buffer: 'buffer/',
+      util: 'util/',  // Updated path for util
+      buffer: 'buffer/',  // Updated path for buffer
       crypto: 'crypto-browserify',
       http: 'stream-http',
       https: 'https-browserify',
-      url: 'url/',
+      url: 'url/',  // Updated path for url
       punycode: 'punycode/',
       process: 'process/browser',
-      assert: 'assert/',
-      events: 'events/'
+      assert: 'assert/',  // Added assert polyfill
+      events: 'events/'  // Added events polyfill
     },
-    mainFields: ['browser', 'module', 'jsnext:main', 'jsnext', 'main']
+    mainFields: ['browser', 'module', 'jsnext:main', 'jsnext', 'main']  // Added 'browser' field
   },
   optimizeDeps: {
     force: true,
@@ -56,8 +53,8 @@ export default defineConfig(({ mode }) => ({
       'crypto-browserify',
       'stream-http',
       'https-browserify',
-      'assert',
-      'events'
+      'assert',  // Added assert
+      'events'   // Added events
     ],
     esbuildOptions: {
       define: {
@@ -74,9 +71,10 @@ export default defineConfig(({ mode }) => ({
       cache: false,
       external: ['@capacitor/app'],
       output: {
+        // Add this to your build.rollupOptions.manualChunks configuration
         manualChunks: (id) => {
           if (id.includes('node_modules/react') || id.includes('node_modules/react-dom')) {
-            return 'react-vendor';
+            return 'react-vendor'; // Keep React in its own chunk
           }
           if (id.includes('node_modules')) {
             return 'vendor';

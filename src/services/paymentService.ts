@@ -1,64 +1,193 @@
-export async function createRazorpayOrder(amount: number, orderId: string): Promise<any> {
-  // Mock implementation - replace with actual Razorpay API call
-  return {
-    id: `razorpay_order_${Date.now()}`,
-    amount: amount * 100, // Razorpay expects amount in paise
-    currency: 'INR',
-    status: 'created',
-    key_id: 'rzp_test_NhYbBXqUSxpojf'
+
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from '@/components/ui/sonner';
+
+// Razorpay types
+interface RazorpayOptions {
+  key: string;
+  amount: number;
+  currency: string;
+  name: string;
+  description: string;
+  order_id: string;
+  prefill: {
+    name: string;
+    email: string;
+    contact: string;
   };
+  notes: {
+    address: string;
+  };
+  theme: {
+    color: string;
+  };
+  handler: (response: RazorpayResponse) => void;
 }
 
-export function processRazorpayPayment(
-  options: any,
-  onSuccess: (response: any) => void,
+interface RazorpayResponse {
+  razorpay_payment_id: string;
+  razorpay_order_id: string;
+  razorpay_signature: string;
+}
+
+// Create a Razorpay order on the server
+export const createRazorpayOrder = async (amount: number, receipt: string) => {
+  try {
+    console.log('Creating Razorpay order for amount:', amount, 'receipt:', receipt);
+    
+    // Call your backend function to create a Razorpay order
+    const { data, error } = await supabase.functions.invoke('create-razorpay-order', {
+      body: { 
+        amount: Math.round(amount * 100), // Convert to paise
+        currency: 'INR',
+        receipt 
+      }
+    });
+
+    if (error) {
+      console.error('Supabase function error:', error);
+      
+      // Provide more specific error messages
+      if (error.message?.includes('credentials not configured')) {
+        throw new Error('Payment gateway not configured. Please contact support.');
+      } else if (error.message?.includes('Authentication failed')) {
+        throw new Error('Payment gateway authentication failed. Please contact support.');
+      } else {
+        throw new Error(`Failed to create order: ${error.message}`);
+      }
+    }
+    
+    if (!data || data.error) {
+      console.error('Razorpay order creation failed:', data);
+      throw new Error(data?.error || 'Failed to create payment order');
+    }
+    
+    console.log('Razorpay order created successfully:', data);
+    return data;
+  } catch (error) {
+    console.error('Error creating Razorpay order:', error);
+    throw error;
+  }
+};
+
+// Process payment with Razorpay
+export const processRazorpayPayment = (
+  options: Omit<RazorpayOptions, 'handler'>,
+  onSuccess: (response: RazorpayResponse) => void,
   onError: (error: any) => void
-): void {
-  if (!window.Razorpay) {
-    onError({ description: 'Razorpay SDK not loaded' });
+) => {
+  // Check if Razorpay is loaded
+  if (!(window as any).Razorpay) {
+    toast('Razorpay SDK failed to load', {
+      description: 'Please check your internet connection and try again'
+    });
+    onError(new Error('Razorpay SDK failed to load'));
     return;
   }
 
-  const rzp = new window.Razorpay({
+  // Create Razorpay instance with options
+  const razorpay = new (window as any).Razorpay({
     ...options,
-    handler: onSuccess,
-    modal: {
-      ondismiss: () => {
-        onError({ description: 'Payment cancelled by user' });
-      }
-    }
+    handler: (response: RazorpayResponse) => {
+      console.log('Payment successful:', response);
+      onSuccess(response);
+    },
   });
 
-  rzp.on('payment.failed', onError);
-  rzp.open();
-}
+  // Open Razorpay payment form
+  razorpay.on('payment.failed', (response: any) => {
+    console.error('Payment failed:', response.error);
+    onError(response.error);
+  });
+  
+  razorpay.open();
+};
 
-export async function verifyRazorpayPayment(
+// Verify payment with your backend
+export const verifyRazorpayPayment = async (
   paymentId: string,
   orderId: string,
   signature: string,
   razorpayOrderId: string
-): Promise<boolean> {
-  // Mock implementation - replace with actual signature verification
-  console.log('Verifying payment:', { paymentId, orderId, signature, razorpayOrderId });
-  return true;
-}
+) => {
+  try {
+    console.log('Verifying payment:', { paymentId, orderId, signature, razorpayOrderId });
+    
+    const { data, error } = await supabase.functions.invoke('verify-razorpay-payment', {
+      body: {
+        razorpay_payment_id: paymentId,
+        razorpay_order_id: razorpayOrderId,
+        razorpay_signature: signature
+      }
+    });
 
-export async function savePaymentDetails(
+    if (error) {
+      console.error('Payment verification error:', error);
+      throw new Error(`Verification failed: ${error.message}`);
+    }
+    
+    if (!data || !data.verified) {
+      console.error('Payment verification failed:', data);
+      throw new Error(data?.error || 'Payment verification failed');
+    }
+    
+    console.log('Payment verification result:', data);
+    return data;
+  } catch (error) {
+    console.error('Error verifying payment:', error);
+    throw error;
+  }
+};
+
+// Save payment details to database - FIXED VERSION
+export const savePaymentDetails = async (
   orderId: string,
   paymentId: string,
   amount: number,
   status: string,
-  method: string
-): Promise<any> {
-  // Mock implementation - replace with actual database save
-  return {
-    id: `payment_${Date.now()}`,
-    order_id: orderId,
-    payment_id: paymentId,
-    amount,
-    status,
-    method,
-    created_at: new Date().toISOString()
-  };
-}
+  paymentMethod: string
+) => {
+  try {
+    console.log('Saving payment details:', { orderId, paymentId, amount, status, paymentMethod });
+    
+    // Get current user to ensure we have user context
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !user) {
+      console.error('Authentication error when saving payment:', authError);
+      throw new Error('User not authenticated');
+    }
+    
+    console.log('Current user for payment:', user.id);
+    
+    const { data, error } = await supabase
+      .from('payments')
+      .insert({
+        order_id: orderId,
+        payment_id: paymentId,
+        amount,
+        currency: 'INR',
+        status,
+        payment_method: paymentMethod
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error saving payment details:', error);
+      console.error('Error details:', {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint
+      });
+      throw error;
+    }
+    
+    console.log('Payment details saved successfully:', data);
+    return data;
+  } catch (error) {
+    console.error('Error saving payment details:', error);
+    throw error;
+  }
+};

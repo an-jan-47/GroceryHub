@@ -1,4 +1,3 @@
-
 import React, { forwardRef } from "react";
 
 import * as TogglePrimitive from "@radix-ui/react-toggle"
@@ -25,8 +24,7 @@ const toggleVariants = cva(
       variant: "default",
       size: "default",
     },
-  }
-)
+  },
 
 const Toggle = forwardRef<
   React.ElementRef<typeof TogglePrimitive.Root>,

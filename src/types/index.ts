@@ -1,31 +1,49 @@
 
+export type OrderStatus = 
+  | 'Processing'
+  | 'Shipped' 
+  | 'Delivered'
+  | 'Cancelled'
+  | 'Return Requested';
+
+export interface Product {
+  id: string;
+  name: string;
+  price: number;
+  sale_price?: number;
+  images: string[];
+  rating: number;
+  review_count: number;
+  stock: number;
+  category: string;
+  brand: string;
+  description: string;
+  features?: string[];
+}
+
+export interface CartItem extends Product {
+  quantity: number;
+}
+
+export interface Order {
+  id: string;
+  user_id: string;
+  address_id: string;
+  total_amount: number;
+  order_date: string;
+  status: OrderStatus;
+  payment_method: string;
+  payment_status?: string;
+  products_name?: string[];
+}
+
 export interface Review {
   id: string;
   product_id: string;
-  user_id: string;
+  user_id?: string;
   user_name: string;
   rating: number;
-  comment?: string;
+  comment: string;
+  date?: string;
   created_at: string;
-  updated_at?: string;
-}
-
-export interface User {
-  id: string;
-  email: string;
-  name?: string;
-  phone?: string;
-  created_at: string;
-}
-
-export interface Address {
-  id: string;
-  user_id: string;
-  name: string;
-  phone: string;
-  address: string;
-  city: string;
-  state: string;
-  pincode: string;
-  is_default: boolean;
 }

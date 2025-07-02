@@ -1,13 +1,25 @@
-
-import React, { ReactNode } from 'react';
+import React from 'react';
+import PullToRefresh from 'react-simple-pull-to-refresh';
 
 interface PullToRefreshWrapperProps {
-  onRefresh: () => void;
-  children: ReactNode;
+  onRefresh: () => Promise<any>;
+  children: React.ReactNode;
 }
 
-export default function PullToRefreshWrapper({ onRefresh, children }: PullToRefreshWrapperProps) {
+const PullToRefreshWrapper: React.FC<PullToRefreshWrapperProps> = ({ onRefresh, children }) => {
   return (
-    <div>{children}</div>
+    <PullToRefresh
+      onRefresh={onRefresh}
+      pullingContent={<div className="text-center text-gray-500 text-sm py-2">Pull down to refresh</div>}
+      refreshingContent={<div className="text-center text-gray-500 text-sm py-2">Refreshing...</div>}
+      pullDownThreshold={70}
+      maxPullDownDistance={95}
+      resistance={3}
+      className="h-full"
+    >
+      {children}
+    </PullToRefresh>
   );
-}
+};
+
+export default PullToRefreshWrapper;

@@ -1,5 +1,5 @@
+import React, { useState } from "react";
 
-import React from "react";
 import { Link, useNavigate } from 'react-router-dom';
 import { ChevronLeft, Tag, Copy } from 'lucide-react';
 import Header from '@/components/Header';
@@ -58,16 +58,20 @@ const CouponApply = () => {
     }
 
     try {
-      const cartTotal = cartItems.reduce((total: number, item: any) => {
+      const cartTotal = cartItems.reduce((total, item) => {
         const itemPrice = item.salePrice || item.price;
         return total + (itemPrice * item.quantity);
       }, 0);
       
       // Validate the coupon before applying
-      await validateCoupon(couponCode, cartTotal, appliedCoupons.map(c => c.coupon));
+      await validateCoupon(couponCode, cartTotal, appliedCoupons.map(c => ({
+        coupon: c.coupon,
+        discountAmount: c.discountAmount,
+        appliedToTotal: c.appliedToTotal || 0
+      })));
       const discountAmount = calculateDiscount(couponData, cartTotal);
       
-      // Add coupon to global state - now matches the expected signature
+      // Add coupon to global state
       addCoupon(couponData, discountAmount);
       
       toast('Coupon applied successfully!', {

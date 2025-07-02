@@ -1,4 +1,3 @@
-
 import React, { forwardRef } from "react";
 
 import { OTPInput, OTPInputContext } from "input-otp"
@@ -54,7 +53,7 @@ const InputOTPSlot = forwardRef<
         </div>
       )}
     </div>
-  )
+  
 })
 InputOTPSlot.displayName = "InputOTPSlot"
 

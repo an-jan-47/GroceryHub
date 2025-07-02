@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 
 import { Link, useNavigate } from 'react-router-dom';
@@ -58,7 +57,6 @@ const Coupons = () => {
       
       const discountAmount = calculateDiscount(typedCoupon, cartTotal);
       
-      // Use the updated addCoupon signature
       addCoupon(typedCoupon, discountAmount);
       
       toast('Coupon applied! Redirecting to cart...', {

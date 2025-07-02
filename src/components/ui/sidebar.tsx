@@ -1,4 +1,3 @@
-
 import React, { forwardRef } from "react";
 
 import { Slot } from "@radix-ui/react-slot"
@@ -87,7 +86,6 @@ const SidebarProvider = forwardRef<
         document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
       },
       [setOpenProp, open]
-    )
 
     // Helper to toggle the sidebar.
     const toggleSidebar = React.useCallback(() => {
@@ -127,7 +125,6 @@ const SidebarProvider = forwardRef<
         toggleSidebar,
       }),
       [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar]
-    )
 
     return (
       <SidebarContext.Provider value={contextValue}>
@@ -151,9 +148,8 @@ const SidebarProvider = forwardRef<
           </div>
         </TooltipProvider>
       </SidebarContext.Provider>
-    )
+    
   }
-)
 
 SidebarProvider.displayName = "SidebarProvider"
 
@@ -190,7 +186,7 @@ const Sidebar = forwardRef<
         >
           {children}
         </div>
-      )
+      
     }
 
     if (isMobile) {
@@ -210,7 +206,7 @@ const Sidebar = forwardRef<
             <div className="flex h-full w-full flex-col">{children}</div>
           </SheetContent>
         </Sheet>
-      )
+      
     }
 
     return (
@@ -255,9 +251,8 @@ const Sidebar = forwardRef<
           </div>
         </div>
       </div>
-    )
+    
   }
-)
 
 Sidebar.displayName = "Sidebar"
 
@@ -283,7 +278,7 @@ const SidebarTrigger = forwardRef<
       <PanelLeft />
       <span className="sr-only">Toggle Sidebar</span>
     </Button>
-  )
+  
 })
 SidebarTrigger.displayName = "SidebarTrigger"
 
@@ -312,7 +307,7 @@ const SidebarRail = forwardRef<
       )}
       {...props}
     />
-  )
+  
 })
 SidebarRail.displayName = "SidebarRail"
 
@@ -330,7 +325,7 @@ const SidebarInset = forwardRef<
       )}
       {...props}
     />
-  )
+  
 })
 SidebarInset.displayName = "SidebarInset"
 
@@ -348,7 +343,7 @@ const SidebarInput = forwardRef<
       )}
       {...props}
     />
-  )
+  
 })
 SidebarInput.displayName = "SidebarInput"
 
@@ -363,7 +358,7 @@ const SidebarHeader = forwardRef<
       className={cn("flex flex-col gap-2 p-2", className)}
       {...props}
     />
-  )
+  
 })
 SidebarHeader.displayName = "SidebarHeader"
 
@@ -378,7 +373,7 @@ const SidebarFooter = forwardRef<
       className={cn("flex flex-col gap-2 p-2", className)}
       {...props}
     />
-  )
+  
 })
 SidebarFooter.displayName = "SidebarFooter"
 
@@ -393,7 +388,7 @@ const SidebarSeparator = forwardRef<
       className={cn("mx-2 w-auto bg-sidebar-border", className)}
       {...props}
     />
-  )
+  
 })
 SidebarSeparator.displayName = "SidebarSeparator"
 
@@ -411,7 +406,7 @@ const SidebarContent = forwardRef<
       )}
       {...props}
     />
-  )
+  
 })
 SidebarContent.displayName = "SidebarContent"
 
@@ -426,7 +421,7 @@ const SidebarGroup = forwardRef<
       className={cn("relative flex w-full min-w-0 flex-col p-2", className)}
       {...props}
     />
-  )
+  
 })
 SidebarGroup.displayName = "SidebarGroup"
 
@@ -447,7 +442,7 @@ const SidebarGroupLabel = forwardRef<
       )}
       {...props}
     />
-  )
+  
 })
 SidebarGroupLabel.displayName = "SidebarGroupLabel"
 
@@ -470,7 +465,7 @@ const SidebarGroupAction = forwardRef<
       )}
       {...props}
     />
-  )
+  
 })
 SidebarGroupAction.displayName = "SidebarGroupAction"
 
@@ -533,7 +528,6 @@ const sidebarMenuButtonVariants = cva(
       size: "default",
     },
   }
-)
 
 const SidebarMenuButton = forwardRef<
   HTMLButtonElement,
@@ -567,7 +561,6 @@ const SidebarMenuButton = forwardRef<
         className={cn(sidebarMenuButtonVariants({ variant, size }), className)}
         {...props}
       />
-    )
 
     if (!tooltip) {
       return button
@@ -589,9 +582,8 @@ const SidebarMenuButton = forwardRef<
           {...tooltip}
         />
       </Tooltip>
-    )
+    
   }
-)
 
 SidebarMenuButton.displayName = "SidebarMenuButton"
 
@@ -622,7 +614,7 @@ const SidebarMenuAction = forwardRef<
       )}
       {...props}
     />
-  )
+  
 })
 SidebarMenuAction.displayName = "SidebarMenuAction"
 
@@ -681,7 +673,7 @@ const SidebarMenuSkeleton = forwardRef<
         }
       />
     </div>
-  )
+  
 })
 SidebarMenuSkeleton.displayName = "SidebarMenuSkeleton"
 
@@ -734,7 +726,7 @@ const SidebarMenuSubButton = forwardRef<
       )}
       {...props}
     />
-  )
+  
 })
 SidebarMenuSubButton.displayName = "SidebarMenuSubButton"
 

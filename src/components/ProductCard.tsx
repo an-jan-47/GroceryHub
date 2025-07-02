@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ShoppingCart, Star, Plus, Minus } from 'lucide-react';
@@ -61,7 +62,7 @@ const ProductCard = ({ product, className, showBuyNow = false }: ProductCardProp
       id: product.id,
       name: product.name,
       price: product.price,
-      sale_price: product.sale_price,
+      salePrice: product.sale_price,
       images: product.images,
       quantity: 1,
       stock: product.stock
