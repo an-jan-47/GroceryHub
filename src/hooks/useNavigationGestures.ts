@@ -1,94 +1,44 @@
-import React, { useEffect } from "react";
 
-import { useNavigate, useLocation } from 'react-router-dom';
-import { history } from '../history';
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
-export const useNavigationGestures = () => {
+export function useNavigationGestures() {
   const navigate = useNavigate();
-  const location = useLocation();
 
   useEffect(() => {
-    const isCapacitor = !!(window as any).Capacitor;
+    let startX = 0;
+    let startY = 0;
 
-    const handleBack = async () => {
-      if (location.pathname === '/') {
-        // Only exit on home
-        try {
-          const { App } = await import('@capacitor/app');
-          const shouldExit = window.confirm('Do you want to exit the app?');
-          if (shouldExit) {
-            await App.exitApp();
-          }
-        } catch (err) {
-          console.error("Error exiting app:", err);
+    const handleTouchStart = (e: TouchEvent) => {
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      const endX = e.changedTouches[0].clientX;
+      const endY = e.changedTouches[0].clientY;
+      
+      const deltaX = endX - startX;
+      const deltaY = endY - startY;
+      
+      // Check if it's a horizontal swipe
+      if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
+        if (deltaX > 0) {
+          // Swipe right - go back
+          navigate(-1);
+        } else {
+          // Swipe left - go forward
+          navigate(1);
         }
-      } else {
-        // Use navigate(-1) with state preservation
-        navigate(-1, { state: { preserveState: true } });
       }
     };
 
-    const setupBackHandler = async () => {
-      if (!isCapacitor) return;
+    document.addEventListener('touchstart', handleTouchStart);
+    document.addEventListener('touchend', handleTouchEnd);
 
-      try {
-        const { App } = await import('@capacitor/app');
-
-        // Remove any existing listeners to prevent duplicates
-        await App.removeAllListeners();
-
-        // Set up back button handler
-        App.addListener('backButton', async (data) => {
-          console.log('Back button pressed', data);
-          if (location.pathname === '/') {
-            const shouldExit = window.confirm('Do you want to exit the app?');
-            if (shouldExit) {
-              await App.exitApp();
-            }
-          } else {
-            // Use navigate(-1) with state preservation
-            navigate(-1, { state: { preserveState: true } });
-          }
-        });
-
-        // Initialize the GestureHelper if available
-        if (isCapacitor) {
-          try {
-            // @ts-ignore - Custom plugin
-            const { Plugins } = await import('@capacitor/core');
-            if (Plugins.GestureHelper) {
-              await Plugins.GestureHelper.enableEdgeToEdge();
-              await Plugins.GestureHelper.disableZoom();
-              
-              // Add swipe gesture detection if available
-              if (Plugins.GestureHelper.enableSwipeNavigation) {
-                await Plugins.GestureHelper.enableSwipeNavigation();
-              }
-            }
-          } catch (err) {
-            console.error('Error initializing GestureHelper:', err);
-          }
-        }
-      } catch (err) {
-        console.error('Capacitor back listener failed:', err);
-      }
-    };
-
-    setupBackHandler();
-
-    // Cleanup function
     return () => {
-      const cleanupListeners = async () => {
-        if (isCapacitor) {
-          try {
-            const { App } = await import('@capacitor/app');
-            await App.removeAllListeners();
-          } catch (err) {
-            console.error('Error cleaning up listeners:', err);
-          }
-        }
-      };
-      cleanupListeners();
+      document.removeEventListener('touchstart', handleTouchStart);
+      document.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [location.pathname, navigate]);
-};
+  }, [navigate]);
+}

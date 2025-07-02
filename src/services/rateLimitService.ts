@@ -1,94 +1,39 @@
 
-/**
- * Simple rate limiting service that uses local storage
- * In a production environment, this would likely use Redis or another distributed cache
- */
+export class RateLimitService {
+  private requests: Map<string, number[]> = new Map();
 
-const RATE_LIMIT_PREFIX = 'rate_limit:';
-const DEFAULT_WINDOW_MS = 60000; // 1 minute
-const DEFAULT_MAX_REQUESTS = 60; // 60 requests per minute
-
-/**
- * Check if a request should be rate limited
- * @param key Unique identifier for the rate limit (e.g. 'create_order')
- * @param maxRequests Maximum requests allowed in the time window
- * @param windowMs Time window in milliseconds
- * @returns Boolean indicating if the request should be allowed
- */
-export const checkRateLimit = (
-  key: string, 
-  maxRequests: number = DEFAULT_MAX_REQUESTS, 
-  windowMs: number = DEFAULT_WINDOW_MS
-): boolean => {
-  const storageKey = `${RATE_LIMIT_PREFIX}${key}`;
-  const now = Date.now();
-  
-  try {
-    // Get existing rate limit data
-    const storedData = localStorage.getItem(storageKey);
-    let rateData: { timestamps: number[] } = { timestamps: [] };
-    
-    if (storedData) {
-      rateData = JSON.parse(storedData);
-    }
-    
-    // Filter timestamps to only include those within the current window
+  isRateLimited(key: string, maxRequests: number = 10, windowMs: number = 60000): boolean {
+    const now = Date.now();
     const windowStart = now - windowMs;
-    rateData.timestamps = rateData.timestamps.filter(timestamp => timestamp > windowStart);
     
-    // Check if we're over the limit
-    if (rateData.timestamps.length >= maxRequests) {
-      return false; // Rate limited
+    const timestamps = this.requests.get(key) || [];
+    const validTimestamps = timestamps.filter((timestamp: number) => timestamp > windowStart);
+    
+    this.requests.set(key, validTimestamps);
+    
+    if (validTimestamps.length >= maxRequests) {
+      return true;
     }
     
-    // Add current timestamp and update storage
-    rateData.timestamps.push(now);
-    localStorage.setItem(storageKey, JSON.stringify(rateData));
+    validTimestamps.push(now);
+    this.requests.set(key, validTimestamps);
     
-    return true; // Request allowed
-  } catch (error) {
-    console.error('Error checking rate limit:', error);
-    return true; // Default to allowing request in case of error
+    return false;
   }
-};
 
-/**
- * Reset rate limit for a specific key
- * @param key Unique identifier for the rate limit
- */
-export const resetRateLimit = (key: string): void => {
-  const storageKey = `${RATE_LIMIT_PREFIX}${key}`;
-  localStorage.removeItem(storageKey);
-};
-
-/**
- * Get remaining request count for the current time window
- * @param key Unique identifier for the rate limit
- * @param maxRequests Maximum requests allowed in the time window
- * @param windowMs Time window in milliseconds
- * @returns Number of remaining requests allowed in the current window
- */
-export const getRemainingRequests = (
-  key: string, 
-  maxRequests: number = DEFAULT_MAX_REQUESTS, 
-  windowMs: number = DEFAULT_WINDOW_MS
-): number => {
-  const storageKey = `${RATE_LIMIT_PREFIX}${key}`;
-  const now = Date.now();
-  
-  try {
-    const storedData = localStorage.getItem(storageKey);
-    if (!storedData) {
-      return maxRequests;
+  cleanup(): void {
+    const now = Date.now();
+    const oneHourAgo = now - 3600000; // 1 hour
+    
+    for (const [key, timestamps] of this.requests.entries()) {
+      const validTimestamps = timestamps.filter((timestamp: number) => timestamp > oneHourAgo);
+      if (validTimestamps.length === 0) {
+        this.requests.delete(key);
+      } else {
+        this.requests.set(key, validTimestamps);
+      }
     }
-    
-    const rateData = JSON.parse(storedData);
-    const windowStart = now - windowMs;
-    const validTimestamps = rateData.timestamps.filter(timestamp => timestamp > windowStart);
-    
-    return Math.max(0, maxRequests - validTimestamps.length);
-  } catch (error) {
-    console.error('Error getting remaining requests:', error);
-    return maxRequests;
   }
-};
+}
+
+export const rateLimitService = new RateLimitService();
