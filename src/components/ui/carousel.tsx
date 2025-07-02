@@ -1,3 +1,4 @@
+
 import React, { forwardRef } from "react";
 
 import useEmblaCarousel, {
@@ -63,7 +64,7 @@ const Carousel = forwardRef<
         axis: orientation === "horizontal" ? "x" : "y",
       },
       plugins
-    
+    )
     const [canScrollPrev, setCanScrollPrev] = React.useState(false)
     const [canScrollNext, setCanScrollNext] = React.useState(false)
 
@@ -95,6 +96,7 @@ const Carousel = forwardRef<
         }
       },
       [scrollPrev, scrollNext]
+    )
 
     React.useEffect(() => {
       if (!api || !setApi) {
@@ -143,8 +145,9 @@ const Carousel = forwardRef<
           {children}
         </div>
       </CarouselContext.Provider>
-    
+    )
   }
+)
 
 Carousel.displayName = "Carousel"
 
@@ -166,7 +169,7 @@ const CarouselContent = forwardRef<
         {...props}
       />
     </div>
-  
+  )
 })
 CarouselContent.displayName = "CarouselContent"
 
@@ -188,7 +191,7 @@ const CarouselItem = forwardRef<
       )}
       {...props}
     />
-  
+  )
 })
 CarouselItem.displayName = "CarouselItem"
 
@@ -217,7 +220,7 @@ const CarouselPrevious = forwardRef<
       <ArrowLeft className="h-4 w-4" />
       <span className="sr-only">Previous slide</span>
     </Button>
-  
+  )
 })
 CarouselPrevious.displayName = "CarouselPrevious"
 
@@ -246,7 +249,7 @@ const CarouselNext = forwardRef<
       <ArrowRight className="h-4 w-4" />
       <span className="sr-only">Next slide</span>
     </Button>
-  
+  )
 })
 CarouselNext.displayName = "CarouselNext"
 

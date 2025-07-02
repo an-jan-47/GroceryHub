@@ -1,3 +1,4 @@
+
 import React, { forwardRef } from "react";
 
 import * as MenubarPrimitive from "@radix-ui/react-menubar"
@@ -102,7 +103,8 @@ const MenubarContent = forwardRef<
         {...props}
       />
     </MenubarPrimitive.Portal>
-
+  )
+)
 MenubarContent.displayName = MenubarPrimitive.Content.displayName
 
 const MenubarItem = forwardRef<
@@ -210,9 +212,9 @@ const MenubarShortcut = ({
       )}
       {...props}
     />
-  
+  )
 }
-MenubarShortcut.displayname = "MenubarShortcut"
+MenubarShortcut.displayName = "MenubarShortcut"
 
 export {
   Menubar,
