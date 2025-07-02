@@ -6,6 +6,7 @@ function fixGradleFile(filePath) {
   try {
     if (fs.existsSync(filePath)) {
       let content = fs.readFileSync(filePath, 'utf8');
+      // Replace VERSION_21 with VERSION_17
       content = content.replace(/VERSION_21/g, 'VERSION_17');
       fs.writeFileSync(filePath, content, 'utf8');
       console.log(`Fixed ${filePath}`);
@@ -24,4 +25,4 @@ const capacitorAppGradlePath = path.join(__dirname, '../node_modules/@capacitor/
 fixGradleFile(capacitorGradlePath);
 fixGradleFile(capacitorAppGradlePath);
 
-console.log('Capacitor Gradle files fixed successfully');
+console.log('Capacitor Gradle files processing completed');
