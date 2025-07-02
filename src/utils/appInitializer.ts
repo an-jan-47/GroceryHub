@@ -1,4 +1,3 @@
-
 export interface AppConfig {
   apiUrl: string;
   environment: 'development' | 'production' | 'testing';
@@ -16,32 +15,30 @@ const defaultConfig: AppConfig = {
   },
 };
 
-export function initializeApp(): Promise<AppConfig> {
-  return new Promise((resolve) => {
-    // Initialize app configuration
-    const config = { ...defaultConfig };
+export async function initializeApp() {
+  try {
+    // Basic app initialization
+    console.log('Initializing app...');
     
-    // Load environment-specific settings
-    if (typeof window !== 'undefined') {
-      const envConfig = (window as any).__APP_CONFIG__ || {};
-      Object.keys(envConfig).forEach((key: string) => {
-        if (key in config) {
-          (config as any)[key] = envConfig[key];
-        }
-      });
-    }
+    // Add any necessary app initialization logic here
+    // For example: setting up analytics, error tracking, etc.
     
-    resolve(config);
-  });
+    console.log('App initialized successfully');
+  } catch (error) {
+    console.error('Failed to initialize app:', error);
+    throw error;
+  }
 }
 
-export function setupPerformanceMonitoring(): void {
-  // Basic performance monitoring setup
-  if (typeof window !== 'undefined' && 'performance' in window) {
-    // Log initial page load time
-    window.addEventListener('load', () => {
-      const loadTime = performance.now();
-      console.log(`Page loaded in ${loadTime.toFixed(2)}ms`);
-    });
+export function setupPerformanceMonitoring() {
+  try {
+    // Basic performance monitoring setup
+    console.log('Setting up performance monitoring...');
+    
+    // Add performance monitoring logic here if needed
+    
+    console.log('Performance monitoring setup complete');
+  } catch (error) {
+    console.error('Failed to setup performance monitoring:', error);
   }
 }

@@ -8,7 +8,6 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import LoadingScreen from "./components/LoadingScreen";
 import { useNavigationGestures } from './hooks/useNavigationGestures';
-import { history } from './history';
 import PaymentDetails from '@/pages/PaymentDetails';
 
 // Pages
@@ -149,9 +148,14 @@ const App = () => {
 
   useEffect(() => {
     const initialize = async () => {
-      await initializeApp();
-      setupPerformanceMonitoring();
-      setIsInitialized(true);
+      try {
+        await initializeApp();
+        setupPerformanceMonitoring();
+        setIsInitialized(true);
+      } catch (error) {
+        console.error('Failed to initialize app:', error);
+        setIsInitialized(true); // Still show the app even if initialization fails
+      }
     };
     initialize();
   }, []);
@@ -159,22 +163,24 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="light" attribute="class">
-        <AuthProvider>
-          {!isInitialized ? (
-            <LoadingScreen />
-          ) : (
-            <CartProvider>
-              <CouponStateProvider>
-                <TooltipProvider>
-                  <ErrorBoundary>
-                    <AppContent />
-                    <Toaster />
-                  </ErrorBoundary>
-                </TooltipProvider>
-              </CouponStateProvider>
-            </CartProvider>
-          )}
-        </AuthProvider>
+        <BrowserRouter>
+          <AuthProvider>
+            {!isInitialized ? (
+              <LoadingScreen />
+            ) : (
+              <CartProvider>
+                <CouponStateProvider>
+                  <TooltipProvider>
+                    <ErrorBoundary>
+                      <AppContent />
+                      <Toaster />
+                    </ErrorBoundary>
+                  </TooltipProvider>
+                </CouponStateProvider>
+              </CartProvider>
+            )}
+          </AuthProvider>
+        </BrowserRouter>
       </ThemeProvider>
     </QueryClientProvider>
   );  
