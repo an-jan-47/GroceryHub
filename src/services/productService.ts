@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client'
 
 export interface Product {
@@ -81,4 +80,23 @@ export async function searchProducts(query: string): Promise<Product[]> {
     features: product.features || [],
     review_count: product.review_count || 0,
   }));
+}
+
+export async function getProductById(id: string): Promise<Product | null> {
+  const { data, error } = await supabase
+    .from('products')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (error) {
+    console.error('Error fetching product:', error);
+    return null;
+  }
+
+  return data ? {
+    ...data,
+    features: data.features || [],
+    review_count: data.review_count || 0,
+  } : null;
 }

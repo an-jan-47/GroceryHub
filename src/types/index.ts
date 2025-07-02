@@ -1,37 +1,31 @@
 
-export interface Product {
+export interface Review {
   id: string;
-  name: string;
-  description?: string;
-  price: number;
-  image?: string;
-  category?: string;
-  stock?: number;
-  rating?: number;
-  review_count?: number;
-  features?: string[];
-}
-
-export interface CartItem {
-  id: string;
-  name: string;
-  price: number;
-  quantity: number;
-  image?: string;
-}
-
-export interface Order {
-  id: string;
+  product_id: string;
   user_id: string;
-  status: string;
-  total: number;
+  user_name: string;
+  rating: number;
+  comment?: string;
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
 }
 
 export interface User {
   id: string;
   email: string;
   name?: string;
+  phone?: string;
   created_at: string;
+}
+
+export interface Address {
+  id: string;
+  user_id: string;
+  name: string;
+  phone: string;
+  address: string;
+  city: string;
+  state: string;
+  pincode: string;
+  is_default: boolean;
 }
