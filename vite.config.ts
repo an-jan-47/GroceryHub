@@ -42,6 +42,9 @@ export default defineConfig(({ mode }) => ({
     force: true,
     exclude: ['@capacitor/app'],
     include: [
+      'react',
+      'react-dom',
+      'scheduler',
       '@react-pdf/renderer',
       '@react-pdf/font',
       '@react-pdf/pdfkit',
@@ -71,17 +74,23 @@ export default defineConfig(({ mode }) => ({
       cache: false,
       external: ['@capacitor/app'],
       output: {
-        // Add this to your build.rollupOptions.manualChunks configuration
+        // Modified chunk strategy to keep React and its exports together
         manualChunks: (id) => {
-          if (id.includes('node_modules/react') || id.includes('node_modules/react-dom')) {
-            return 'react-vendor'; // Keep React in its own chunk
+          // Keep all React and React DOM code in a single chunk
+          if (id.includes('node_modules/react') || 
+              id.includes('node_modules/react-dom') || 
+              id.includes('node_modules/scheduler')) {
+            return 'react-vendor';
           }
+          // Keep all other node_modules in a separate vendor chunk
           if (id.includes('node_modules')) {
             return 'vendor';
           }
+          // Keep components together
           if (id.includes('src/components')) {
             return 'components';
           }
+          // Keep pages together
           if (id.includes('src/pages')) {
             return 'pages';
           }

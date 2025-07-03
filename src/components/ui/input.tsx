@@ -1,9 +1,9 @@
-import React, { forwardRef } from "react";
+import React from "react";
+import { safeForwardRef } from "@/lib/forwardRefWrapper";
+import { cn } from "@/lib/utils";
 
-import { cn } from "@/lib/utils"
-
-const Input = forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
-  ({ className, type, ...props }, ref) => {
+const Input = safeForwardRef<HTMLInputElement, React.ComponentProps<"input">>
+  (({ className, type, ...props }, ref) => {
     return (
       <input
         type={type}
@@ -14,10 +14,9 @@ const Input = forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
         ref={ref}
         {...props}
       />
-    )
-  }
-)
+    );
+  });
 
-Input.displayName = "Input"
+Input.displayName = "Input";
 
-export default Input
+export { Input };

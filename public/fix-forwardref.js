@@ -1,25 +1,35 @@
-// Enhanced fix for forwardRef error - v3.0
+// Enhanced fix for forwardRef error - v5.0
 (function() {
-  console.log('ForwardRef patch v3.0 initializing...');
+  console.log('ForwardRef patch v5.0 initializing...');
+  
+  // Track patched objects to avoid duplicates
+  const patchedObjects = new Set();
   
   // Function to apply the patch
   function applyForwardRefPatch() {
     try {
       // If React is available in window
       if (window.React && window.React.forwardRef) {
-        console.log('Found React.forwardRef, applying patches...');
         let patchCount = 0;
         
-        // 1. Patch global variables that might be React instances
-        // This covers minified variables and other global objects
+        // 1. Patch window.n which is commonly used in Vite builds
+        if (window.n && typeof window.n === 'object' && !window.n.forwardRef && 
+            (window.n.useState || window.n.createElement || window.n.Component)) {
+          window.n.forwardRef = window.React.forwardRef;
+          patchedObjects.add('window.n');
+          console.log('Patched forwardRef on window.n');
+          patchCount++;
+        }
+        
+        // 2. Patch all potential React instances in window
         Object.keys(window).forEach(key => {
           try {
-            // Skip non-objects and null
-            if (typeof window[key] !== 'object' || window[key] === null) return;
+            if (typeof window[key] !== 'object' || window[key] === null || patchedObjects.has(`window.${key}`)) return;
             
             // Check if this object uses React but is missing forwardRef
-            if (window[key].createElement && !window[key].forwardRef) {
+            if ((window[key].createElement || window[key].useState || window[key].Component) && !window[key].forwardRef) {
               window[key].forwardRef = window.React.forwardRef;
+              patchedObjects.add(`window.${key}`);
               console.log(`Patched forwardRef on window.${key}`);
               patchCount++;
             }
@@ -28,129 +38,74 @@
           }
         });
         
-        // 2. Patch common minified variable names
-        ['n', 'r', 'a', 'o', 'i', 'e', 't', 's', 'l', 'c', 'u', 'f', 'd', 'Ie'].forEach(varName => {
-          if (window[varName] && typeof window[varName] === 'object' && !window[varName].forwardRef) {
-            // Check if it has other React-like methods
-            if (window[varName].createElement || window[varName].useState || window[varName].Component) {
-              window[varName].forwardRef = window.React.forwardRef;
-              console.log(`Patched forwardRef on window.${varName}`);
-              patchCount++;
-            }
-          }
-        });
-        
-        // 3. Check for React in module systems
-        if (window.__REACT_DEVTOOLS_GLOBAL_HOOK__ && window.__REACT_DEVTOOLS_GLOBAL_HOOK__.renderers) {
-          Object.values(window.__REACT_DEVTOOLS_GLOBAL_HOOK__.renderers).forEach(renderer => {
-            if (renderer && typeof renderer === 'object' && !renderer.forwardRef && renderer.createElement) {
-              renderer.forwardRef = window.React.forwardRef;
-              console.log('Patched forwardRef on React DevTools renderer');
-              patchCount++;
+        // 3. Specifically look for the Vite module system
+        if (window.__vite_is_modern_browser) {
+          console.log('Found Vite modern browser flag, checking for modules');
+          
+          // Try to find the React module in the Vite system
+          const moduleKeys = Object.keys(window).filter(k => 
+            k.startsWith('__vite_chunk_') || 
+            k.startsWith('__vite_module_')
+          );
+          
+          moduleKeys.forEach(moduleKey => {
+            try {
+              const mod = window[moduleKey];
+              if (mod && typeof mod === 'object') {
+                Object.keys(mod).forEach(exportKey => {
+                  try {
+                    const exp = mod[exportKey];
+                    if (exp && typeof exp === 'object' && !patchedObjects.has(`${moduleKey}.${exportKey}`)) {
+                      if ((exp.createElement || exp.useState || exp.Component) && !exp.forwardRef) {
+                        exp.forwardRef = window.React.forwardRef;
+                        patchedObjects.add(`${moduleKey}.${exportKey}`);
+                        console.log(`Patched forwardRef on ${moduleKey}.${exportKey}`);
+                        patchCount++;
+                      }
+                    }
+                  } catch (err) {
+                    // Silently ignore errors for individual exports
+                  }
+                });
+              }
+            } catch (err) {
+              console.warn(`Error checking module ${moduleKey}:`, err);
             }
           });
         }
         
-        // 4. Patch specific module exports that might be used in your app
-        // This targets the specific pattern seen in your bundled files
-        if (window.__vite__mapDeps) {
-          console.log('Found Vite module system, attempting to patch module exports...');
+        // 4. Patch component chunks specifically
+        const componentChunkPattern = /components-[A-Za-z0-9]+\.js/;
+        const scripts = Array.from(document.querySelectorAll('script[src]'))
+          .filter(script => componentChunkPattern.test(script.src));
+        
+        if (scripts.length > 0) {
+          console.log(`Found ${scripts.length} component scripts, applying targeted patches`);
           
-          // Try to find and patch the react-vendor module
-          const reactModuleNames = ['react-vendor', 'vendor'];
-          for (const name of reactModuleNames) {
-            try {
-              // Look for modules with names containing 'react-vendor' or 'vendor'
-              const moduleMap = window.__vite__mapDeps.f || [];
-              const moduleIndex = moduleMap.findIndex(path => path.includes(name));
-              
-              if (moduleIndex !== -1) {
-                console.log(`Found potential React module: ${moduleMap[moduleIndex]}`);
-                
-                // Try to access the module's exports through the window
-                const moduleExports = window[`__vite__module__${moduleIndex}`];
-                if (moduleExports && typeof moduleExports === 'object') {
-                  // Patch all exports that might be React
-                  Object.keys(moduleExports).forEach(exportKey => {
-                    const exportObj = moduleExports[exportKey];
-                    if (exportObj && typeof exportObj === 'object' && !exportObj.forwardRef && 
-                        (exportObj.createElement || exportObj.useState || exportObj.Component)) {
-                      exportObj.forwardRef = window.React.forwardRef;
-                      console.log(`Patched forwardRef on module export ${name}.${exportKey}`);
-                      patchCount++;
-                    }
-                  });
-                }
-              }
-            } catch (err) {
-              console.warn(`Error patching ${name} module:`, err);
-            }
-          }
-        }
-        
-        // 5. Direct patch for the specific component file
-        try {
-          // This targets the specific component file that's causing issues
-          const componentFiles = document.querySelectorAll('script[src*="components-"]');
-          if (componentFiles.length > 0) {
-            console.log('Found component script, will attempt to patch when it loads');
+          // Monitor for new modules being added to window
+          const originalDefineProperty = Object.defineProperty;
+          Object.defineProperty = function(obj, prop, descriptor) {
+            const result = originalDefineProperty.call(this, obj, prop, descriptor);
             
-            // Create a MutationObserver to watch for new script elements
-            const observer = new MutationObserver((mutations) => {
-              mutations.forEach((mutation) => {
-                if (mutation.type === 'childList') {
-                  mutation.addedNodes.forEach((node) => {
-                    if (node.nodeName === 'SCRIPT' && node.src && node.src.includes('components-')) {
-                      console.log('Component script loaded, attempting to patch...');
-                      setTimeout(patchComponentModules, 100);
-                    }
-                  });
-                }
-              });
-            });
-            
-            observer.observe(document.documentElement, {
-              childList: true,
-              subtree: true
-            });
-            
-            // Also try to patch immediately in case the script is already loaded
-            setTimeout(patchComponentModules, 100);
-          }
-        } catch (err) {
-          console.warn('Error setting up component script observer:', err);
-        }
-        
-        function patchComponentModules() {
-          try {
-            // Look for any global variables that might be the component module
-            Object.keys(window).forEach(key => {
-              // Skip non-objects
-              if (typeof window[key] !== 'object' || window[key] === null) return;
-              
-              // Check if this object has component-like properties
-              const obj = window[key];
-              if (obj.Button || obj.Input || obj.Select || obj.Tooltip) {
-                console.log(`Found potential component module: ${key}`);
-                
-                // Patch all component exports that use forwardRef
-                Object.keys(obj).forEach(compKey => {
-                  const comp = obj[compKey];
-                  if (comp && typeof comp === 'function' && comp.displayName) {
-                    // This is likely a component, make sure it has access to forwardRef
-                    const proto = Object.getPrototypeOf(comp);
-                    if (proto && !proto.forwardRef && window.React.forwardRef) {
-                      proto.forwardRef = window.React.forwardRef;
-                      console.log(`Patched forwardRef for component: ${comp.displayName}`);
-                      patchCount++;
-                    }
+            // Check if this is a new React-like object being added
+            if (obj === window && typeof window[prop] === 'object' && window[prop]) {
+              setTimeout(() => {
+                try {
+                  const newObj = window[prop];
+                  if ((newObj.createElement || newObj.useState || newObj.Component) && !newObj.forwardRef && !patchedObjects.has(`window.${prop}`)) {
+                    newObj.forwardRef = window.React.forwardRef;
+                    patchedObjects.add(`window.${prop}`);
+                    console.log(`Patched forwardRef on dynamically added window.${prop}`);
+                    patchCount++;
                   }
-                });
-              }
-            });
-          } catch (err) {
-            console.warn('Error patching component modules:', err);
-          }
+                } catch (err) {
+                  // Silently ignore errors
+                }
+              }, 0);
+            }
+            
+            return result;
+          };
         }
         
         console.log(`ForwardRef patch completed: ${patchCount} objects patched`);
@@ -169,27 +124,33 @@
   if (!applyForwardRefPatch()) {
     // Set up event listeners for different load stages
     window.addEventListener('DOMContentLoaded', applyForwardRefPatch);
-    
-    // Also try on load
     window.addEventListener('load', applyForwardRefPatch);
     
     // Set up a polling mechanism as a fallback
     let attempts = 0;
-    const maxAttempts = 100; // Increased from 50 to 100
+    const maxAttempts = 200; // Increased from 150 to 200
     const checkInterval = setInterval(function() {
       attempts++;
+      
+      // Log every 50 attempts
+      if (attempts % 50 === 0) {
+        console.log(`Still trying to patch forwardRef... (attempt ${attempts})`);
+      }
+      
       if (applyForwardRefPatch() || attempts >= maxAttempts) {
         clearInterval(checkInterval);
         console.log(`ForwardRef patch ${attempts >= maxAttempts ? 'timed out' : 'succeeded'} after ${attempts} attempts`);
       }
-    }, 100);
+    }, 50); // Reduced interval from 100ms to 50ms for faster patching
     
-    // Add a final attempt with a longer delay
-    setTimeout(function() {
-      if (attempts < maxAttempts) {
-        console.log('Making final attempt to patch forwardRef...');
-        applyForwardRefPatch();
-      }
-    }, 5000);
+    // Add multiple final attempts with increasing delays
+    [1000, 2000, 5000].forEach(delay => {
+      setTimeout(function() {
+        if (attempts < maxAttempts) {
+          console.log(`Making additional attempt to patch forwardRef after ${delay}ms...`);
+          applyForwardRefPatch();
+        }
+      }, delay);
+    });
   }
 })();
