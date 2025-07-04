@@ -1,11 +1,12 @@
-import React, { forwardRef } from "react";
+import React from "react";
+import { safeForwardRef } from "@/lib/forwardRefWrapper";
 
 import { cn } from "@/lib/utils";
 
 export interface TextareaProps
   extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {}
 
-const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
+const Textarea = safeForwardRef<HTMLTextAreaElement, TextareaProps>(
   ({ className, ...props }, ref) => (
     <textarea
       className={cn(

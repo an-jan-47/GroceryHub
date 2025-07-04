@@ -1,4 +1,5 @@
-import React, { forwardRef } from "react";
+import React from "react";
+import { safeForwardRef } from "@/lib/forwardRefWrapper";
 
 import * as SheetPrimitive from "@radix-ui/react-dialog";
 import { cva, type VariantProps } from "class-variance-authority";
@@ -11,7 +12,7 @@ const SheetTrigger = SheetPrimitive.Trigger;
 const SheetClose = SheetPrimitive.Close;
 const SheetPortal = SheetPrimitive.Portal;
 
-const SheetOverlay = forwardRef<
+const SheetOverlay = safeForwardRef<
   React.ElementRef<typeof SheetPrimitive.Overlay>,
   React.ComponentPropsWithoutRef<typeof SheetPrimitive.Overlay>
 >(({ className, ...props }, ref) => (
@@ -24,7 +25,7 @@ const SheetOverlay = forwardRef<
     ref={ref}
   />
 ));
-SheetOverlay.displayName = SheetPrimitive.Overlay.displayName;
+SheetOverlay.displayName = SheetPrimitive.Overlay?.displayName || 'SheetOverlay';
 
 const sheetVariants = cva(
   "fixed z-50 gap-4 bg-background p-6 shadow-lg transition ease-in-out data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:duration-300 data-[state=open]:duration-500",
@@ -49,7 +50,7 @@ interface SheetContentProps
   extends React.ComponentPropsWithoutRef<typeof SheetPrimitive.Content>,
     VariantProps<typeof sheetVariants> {}
 
-const SheetContent = forwardRef<
+const SheetContent = safeForwardRef<
   React.ElementRef<typeof SheetPrimitive.Content>,
   SheetContentProps
 >(({ side = "right", className, children, ...props }, ref) => (
@@ -68,7 +69,7 @@ const SheetContent = forwardRef<
     </SheetPrimitive.Content>
   </SheetPortal>
 ));
-SheetContent.displayName = SheetPrimitive.Content.displayName;
+SheetContent.displayName = SheetPrimitive.Content?.displayName || 'SheetContent';
 
 const SheetHeader = ({
   className,
@@ -98,7 +99,7 @@ const SheetFooter = ({
 );
 SheetFooter.displayName = "SheetFooter";
 
-const SheetTitle = forwardRef<
+const SheetTitle = safeForwardRef<
   React.ElementRef<typeof SheetPrimitive.Title>,
   React.ComponentPropsWithoutRef<typeof SheetPrimitive.Title>
 >(({ className, ...props }, ref) => (
@@ -108,9 +109,9 @@ const SheetTitle = forwardRef<
     {...props}
   />
 ));
-SheetTitle.displayName = SheetPrimitive.Title.displayName;
+SheetTitle.displayName = SheetPrimitive.Title?.displayName || 'SheetTitle';
 
-const SheetDescription = forwardRef<
+const SheetDescription = safeForwardRef<
   React.ElementRef<typeof SheetPrimitive.Description>,
   React.ComponentPropsWithoutRef<typeof SheetPrimitive.Description>
 >(({ className, ...props }, ref) => (
@@ -120,7 +121,7 @@ const SheetDescription = forwardRef<
     {...props}
   />
 ));
-SheetDescription.displayName = SheetPrimitive.Description.displayName;
+SheetDescription.displayName = SheetPrimitive.Description?.displayName || 'SheetDescription';
 
 export {
   Sheet,

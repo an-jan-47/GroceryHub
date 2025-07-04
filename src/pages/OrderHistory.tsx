@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { Link } from 'react-router-dom';
 import { ChevronLeft, Package, ShoppingBag, Search, ChevronRight, Calendar, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import Input from '@/components/ui/input';
+import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';

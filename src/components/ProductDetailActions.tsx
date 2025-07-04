@@ -1,6 +1,7 @@
 
 import { Button } from '@/components/ui/button';
 import { ShoppingCart } from 'lucide-react';
+import React from "react";
 
 interface ProductDetailActionsProps {
   product: {

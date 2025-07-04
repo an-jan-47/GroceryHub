@@ -1,8 +1,9 @@
-import React, { forwardRef } from "react";
+import React from "react";
+import { safeForwardRef } from "@/lib/forwardRefWrapper";
 
 import { cn } from "@/lib/utils"
 
-const Table = forwardRef<
+const Table = safeForwardRef<
   HTMLTableElement,
   React.HTMLAttributes<HTMLTableElement>
 >(({ className, ...props }, ref) => (
@@ -16,7 +17,7 @@ const Table = forwardRef<
 ))
 Table.displayName = "Table"
 
-const TableHeader = forwardRef<
+const TableHeader = safeForwardRef<
   HTMLTableSectionElement,
   React.HTMLAttributes<HTMLTableSectionElement>
 >(({ className, ...props }, ref) => (
@@ -24,7 +25,7 @@ const TableHeader = forwardRef<
 ))
 TableHeader.displayName = "TableHeader"
 
-const TableBody = forwardRef<
+const TableBody = safeForwardRef<
   HTMLTableSectionElement,
   React.HTMLAttributes<HTMLTableSectionElement>
 >(({ className, ...props }, ref) => (
@@ -36,7 +37,7 @@ const TableBody = forwardRef<
 ))
 TableBody.displayName = "TableBody"
 
-const TableFooter = forwardRef<
+const TableFooter = safeForwardRef<
   HTMLTableSectionElement,
   React.HTMLAttributes<HTMLTableSectionElement>
 >(({ className, ...props }, ref) => (
@@ -51,7 +52,7 @@ const TableFooter = forwardRef<
 ))
 TableFooter.displayName = "TableFooter"
 
-const TableRow = forwardRef<
+const TableRow = safeForwardRef<
   HTMLTableRowElement,
   React.HTMLAttributes<HTMLTableRowElement>
 >(({ className, ...props }, ref) => (
@@ -66,7 +67,7 @@ const TableRow = forwardRef<
 ))
 TableRow.displayName = "TableRow"
 
-const TableHead = forwardRef<
+const TableHead = safeForwardRef<
   HTMLTableCellElement,
   React.ThHTMLAttributes<HTMLTableCellElement>
 >(({ className, ...props }, ref) => (
@@ -81,7 +82,7 @@ const TableHead = forwardRef<
 ))
 TableHead.displayName = "TableHead"
 
-const TableCell = forwardRef<
+const TableCell = safeForwardRef<
   HTMLTableCellElement,
   React.TdHTMLAttributes<HTMLTableCellElement>
 >(({ className, ...props }, ref) => (
@@ -93,7 +94,7 @@ const TableCell = forwardRef<
 ))
 TableCell.displayName = "TableCell"
 
-const TableCaption = forwardRef<
+const TableCaption = safeForwardRef<
   HTMLTableCaptionElement,
   React.HTMLAttributes<HTMLTableCaptionElement>
 >(({ className, ...props }, ref) => (

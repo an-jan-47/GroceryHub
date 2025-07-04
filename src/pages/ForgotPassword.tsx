@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { Link } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import Input from '@/components/ui/input';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/components/ui/sonner';
 import { supabase } from '@/integrations/supabase/client';

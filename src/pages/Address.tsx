@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ChevronLeft, Plus, MapPin, Home, Briefcase, Edit, Trash2, Truck, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';

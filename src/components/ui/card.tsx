@@ -1,8 +1,9 @@
-import React, { forwardRef } from "react";
+import React from "react";
+import { safeForwardRef } from "@/lib/forwardRefWrapper";
 
 import { cn } from "@/lib/utils"
 
-const Card = forwardRef<
+const Card = safeForwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => (
@@ -17,7 +18,7 @@ const Card = forwardRef<
 ))
 Card.displayName = "Card"
 
-const CardHeader = forwardRef<
+const CardHeader = safeForwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => (
@@ -29,7 +30,7 @@ const CardHeader = forwardRef<
 ))
 CardHeader.displayName = "CardHeader"
 
-const CardTitle = forwardRef<
+const CardTitle = safeForwardRef<
   HTMLParagraphElement,
   React.HTMLAttributes<HTMLHeadingElement>
 >(({ className, ...props }, ref) => (
@@ -44,7 +45,7 @@ const CardTitle = forwardRef<
 ))
 CardTitle.displayName = "CardTitle"
 
-const CardDescription = forwardRef<
+const CardDescription = safeForwardRef<
   HTMLParagraphElement,
   React.HTMLAttributes<HTMLParagraphElement>
 >(({ className, ...props }, ref) => (
@@ -56,7 +57,7 @@ const CardDescription = forwardRef<
 ))
 CardDescription.displayName = "CardDescription"
 
-const CardContent = forwardRef<
+const CardContent = safeForwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => (
@@ -64,7 +65,7 @@ const CardContent = forwardRef<
 ))
 CardContent.displayName = "CardContent"
 
-const CardFooter = forwardRef<
+const CardFooter = safeForwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => (

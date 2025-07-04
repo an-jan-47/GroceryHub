@@ -1,4 +1,5 @@
-import React, { forwardRef } from "react";
+import React from "react";
+import { safeForwardRef } from "@/lib/forwardRefWrapper";
 
 import * as HoverCardPrimitive from "@radix-ui/react-hover-card"
 
@@ -8,7 +9,7 @@ const HoverCard = HoverCardPrimitive.Root
 
 const HoverCardTrigger = HoverCardPrimitive.Trigger
 
-const HoverCardContent = forwardRef<
+const HoverCardContent = safeForwardRef<
   React.ElementRef<typeof HoverCardPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof HoverCardPrimitive.Content>
 >(({ className, align = "center", sideOffset = 4, ...props }, ref) => (
@@ -23,6 +24,6 @@ const HoverCardContent = forwardRef<
     {...props}
   />
 ))
-HoverCardContent.displayName = HoverCardPrimitive.Content.displayName
+HoverCardContent.displayName = HoverCardPrimitive.Content?.displayName || 'HoverCardContent'
 
 export { HoverCard, HoverCardTrigger, HoverCardContent }

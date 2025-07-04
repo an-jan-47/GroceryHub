@@ -1,10 +1,11 @@
-import React, { forwardRef } from "react";
+import React from "react";
+import { safeForwardRef } from "@/lib/forwardRefWrapper";
 
 import * as SeparatorPrimitive from "@radix-ui/react-separator"
 
 import { cn } from "@/lib/utils"
 
-const Separator = forwardRef<
+const Separator = safeForwardRef<
   React.ElementRef<typeof SeparatorPrimitive.Root>,
   React.ComponentPropsWithoutRef<typeof SeparatorPrimitive.Root>
 >(
@@ -24,8 +25,8 @@ const Separator = forwardRef<
       {...props}
     />
   )
-); // ✅ This closes the forwardRef call properly
+); // ✅ This closes the safeForwardRef call properly
 
-Separator.displayName = SeparatorPrimitive.Root.displayName;
+Separator.displayName = SeparatorPrimitive.Root?.displayName || 'Separator';
 
 export { Separator };

@@ -1,15 +1,28 @@
 import React from 'react';
 
-// This is a safe wrapper around React.forwardRef that handles cases where forwardRef might not be available
+/**
+ * A unified wrapper for React.forwardRef that works consistently
+ * across different environments and initialization states
+ */
 export function safeForwardRef<T, P = {}>(render: (props: P, ref: React.Ref<T>) => React.ReactElement | null) {
-  // Check if React.forwardRef is available
-  if (typeof React.forwardRef === 'function') {
-    return React.forwardRef(render);
-  } else {
-    // Fallback implementation when forwardRef is not available
-    return function ForwardRefFallback(props: P & { ref?: React.Ref<T> }) {
-      const { ref, ...rest } = props as any;
-      return render(rest as P, ref);
-    };
+  // In browser environment, use the unified implementation
+  if (typeof window !== 'undefined' && window.unifiedForwardRef) {
+    return window.unifiedForwardRef(render);
   }
+  
+  // Direct React.forwardRef if available
+  if (React && typeof React.forwardRef === 'function') {
+    try {
+      return React.forwardRef(render);
+    } catch (e) {
+      console.warn('React.forwardRef failed, using fallback', e);
+      // Fall through to fallback
+    }
+  }
+  
+  // Last resort fallback
+  return function ForwardRefFallback(props: P & { ref?: React.Ref<T> }) {
+    const { ref, ...rest } = props as any;
+    return render(rest as P, ref);
+  };
 }

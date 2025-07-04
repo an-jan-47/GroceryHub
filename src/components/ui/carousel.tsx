@@ -1,4 +1,5 @@
-import React, { forwardRef } from "react";
+import React from "react";
+import { safeForwardRef } from "@/lib/forwardRefWrapper";
 
 import useEmblaCarousel, {
   type UseEmblaCarouselType,
@@ -41,7 +42,7 @@ function useCarousel() {
   return context
 }
 
-const Carousel = forwardRef<
+const Carousel = safeForwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement> & CarouselProps
 >(
@@ -148,7 +149,7 @@ const Carousel = forwardRef<
 
 Carousel.displayName = "Carousel"
 
-const CarouselContent = forwardRef<
+const CarouselContent = safeForwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => {
@@ -170,7 +171,7 @@ const CarouselContent = forwardRef<
 })
 CarouselContent.displayName = "CarouselContent"
 
-const CarouselItem = forwardRef<
+const CarouselItem = safeForwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => {
@@ -192,7 +193,7 @@ const CarouselItem = forwardRef<
 })
 CarouselItem.displayName = "CarouselItem"
 
-const CarouselPrevious = forwardRef<
+const CarouselPrevious = safeForwardRef<
   HTMLButtonElement,
   React.ComponentProps<typeof Button>
 >(({ className, variant = "outline", size = "icon", ...props }, ref) => {
@@ -221,7 +222,7 @@ const CarouselPrevious = forwardRef<
 })
 CarouselPrevious.displayName = "CarouselPrevious"
 
-const CarouselNext = forwardRef<
+const CarouselNext = safeForwardRef<
   HTMLButtonElement,
   React.ComponentProps<typeof Button>
 >(({ className, variant = "outline", size = "icon", ...props }, ref) => {

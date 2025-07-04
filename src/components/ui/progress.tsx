@@ -1,10 +1,11 @@
-import React, { forwardRef } from "react";
+import React from "react";
+import { safeForwardRef } from "@/lib/forwardRefWrapper";
 
 import * as ProgressPrimitive from "@radix-ui/react-progress"
 
 import { cn } from "@/lib/utils"
 
-const Progress = forwardRef<
+const Progress = safeForwardRef<
   React.ElementRef<typeof ProgressPrimitive.Root>,
   React.ComponentPropsWithoutRef<typeof ProgressPrimitive.Root>
 >(({ className, value, ...props }, ref) => (
@@ -22,6 +23,6 @@ const Progress = forwardRef<
     />
   </ProgressPrimitive.Root>
 ))
-Progress.displayName = ProgressPrimitive.Root.displayName
+Progress.displayName = ProgressPrimitive.Root?.displayName || 'Progress'
 
 export { Progress }

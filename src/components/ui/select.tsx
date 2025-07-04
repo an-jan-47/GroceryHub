@@ -30,7 +30,7 @@ const SelectTrigger = safeForwardRef<
     </SelectPrimitive.Icon>
   </SelectPrimitive.Trigger>
 ))
-SelectTrigger.displayName = SelectPrimitive.Trigger.displayName
+SelectTrigger.displayName = SelectPrimitive.Trigger?.displayName || 'SelectTrigger'
 
 const SelectScrollUpButton = safeForwardRef<
   React.ElementRef<typeof SelectPrimitive.ScrollUpButton>,
@@ -47,7 +47,7 @@ const SelectScrollUpButton = safeForwardRef<
     <ChevronUp className="h-4 w-4" />
   </SelectPrimitive.ScrollUpButton>
 ))
-SelectScrollUpButton.displayName = SelectPrimitive.ScrollUpButton.displayName
+SelectScrollUpButton.displayName = SelectPrimitive.ScrollUpButton?.displayName || 'SelectScrollUpButton'
 
 const SelectScrollDownButton = safeForwardRef<
   React.ElementRef<typeof SelectPrimitive.ScrollDownButton>,
@@ -64,8 +64,7 @@ const SelectScrollDownButton = safeForwardRef<
     <ChevronDown className="h-4 w-4" />
   </SelectPrimitive.ScrollDownButton>
 ))
-SelectScrollDownButton.displayName =
-  SelectPrimitive.ScrollDownButton.displayName
+SelectScrollDownButton.displayName = SelectPrimitive.ScrollDownButton?.displayName || 'SelectScrollDownButton'
 
 const SelectContent = safeForwardRef<
   React.ElementRef<typeof SelectPrimitive.Content>,
@@ -97,7 +96,7 @@ const SelectContent = safeForwardRef<
     </SelectPrimitive.Content>
   </SelectPrimitive.Portal>
 ))
-SelectContent.displayName = SelectPrimitive.Content.displayName
+SelectContent.displayName = SelectPrimitive.Content?.displayName || 'SelectContent'
 
 const SelectLabel = safeForwardRef<
   React.ElementRef<typeof SelectPrimitive.Label>,
@@ -109,7 +108,7 @@ const SelectLabel = safeForwardRef<
     {...props}
   />
 ))
-SelectLabel.displayName = SelectPrimitive.Label.displayName
+SelectLabel.displayName = SelectPrimitive.Label?.displayName || 'SelectLabel'
 
 const SelectItem = safeForwardRef<
   React.ElementRef<typeof SelectPrimitive.Item>,
@@ -132,7 +131,7 @@ const SelectItem = safeForwardRef<
     <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
   </SelectPrimitive.Item>
 ))
-SelectItem.displayName = SelectPrimitive.Item.displayName
+SelectItem.displayName = SelectPrimitive.Item?.displayName || 'SelectItem'
 
 const SelectSeparator = safeForwardRef<
   React.ElementRef<typeof SelectPrimitive.Separator>,
@@ -144,7 +143,7 @@ const SelectSeparator = safeForwardRef<
     {...props}
   />
 ))
-SelectSeparator.displayName = SelectPrimitive.Separator.displayName
+SelectSeparator.displayName = SelectPrimitive.Separator?.displayName || 'SelectSeparator'
 
 export {
   Select,

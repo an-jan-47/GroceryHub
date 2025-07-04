@@ -1,11 +1,12 @@
-import React, { forwardRef } from "react";
+import React from "react";
+import { safeForwardRef } from "@/lib/forwardRefWrapper";
 
 import * as RadioGroupPrimitive from "@radix-ui/react-radio-group"
 import { Circle } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
-const RadioGroup = forwardRef<
+const RadioGroup = safeForwardRef<
   React.ElementRef<typeof RadioGroupPrimitive.Root>,
   React.ComponentPropsWithoutRef<typeof RadioGroupPrimitive.Root>
 >(({ className, ...props }, ref) => {
@@ -18,9 +19,9 @@ const RadioGroup = forwardRef<
   
 );
 })
-RadioGroup.displayName = RadioGroupPrimitive.Root.displayName
+RadioGroup.displayName = RadioGroupPrimitive.Root?.displayName || 'RadioGroup'
 
-const RadioGroupItem = forwardRef<
+const RadioGroupItem = safeForwardRef<
   React.ElementRef<typeof RadioGroupPrimitive.Item>,
   React.ComponentPropsWithoutRef<typeof RadioGroupPrimitive.Item>
 >(({ className, ...props }, ref) => {
@@ -40,6 +41,6 @@ const RadioGroupItem = forwardRef<
   
 );
 })
-RadioGroupItem.displayName = RadioGroupPrimitive.Item.displayName
+RadioGroupItem.displayName = RadioGroupPrimitive.Item?.displayName || 'RadioGroupItem'
 
 export { RadioGroup, RadioGroupItem }

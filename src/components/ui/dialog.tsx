@@ -1,4 +1,5 @@
-import React, { forwardRef } from "react";
+import React from "react";
+import { safeForwardRef } from "@/lib/forwardRefWrapper";
 
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { X } from "lucide-react"
@@ -13,7 +14,7 @@ const DialogPortal = DialogPrimitive.Portal
 
 const DialogClose = DialogPrimitive.Close
 
-const DialogOverlay = forwardRef<
+const DialogOverlay = safeForwardRef<
   React.ElementRef<typeof DialogPrimitive.Overlay>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay>
 >(({ className, ...props }, ref) => (
@@ -26,9 +27,9 @@ const DialogOverlay = forwardRef<
     {...props}
   />
 ))
-DialogOverlay.displayName = DialogPrimitive.Overlay.displayName
+DialogOverlay.displayName = DialogPrimitive.Overlay?.displayName || 'DialogOverlay'
 
-const DialogContent = forwardRef<
+const DialogContent = safeForwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
 >(({ className, children, ...props }, ref) => (
@@ -50,7 +51,7 @@ const DialogContent = forwardRef<
     </DialogPrimitive.Content>
   </DialogPortal>
 ))
-DialogContent.displayName = DialogPrimitive.Content.displayName
+DialogContent.displayName = DialogPrimitive.Content?.displayName || 'DialogContent'
 
 const DialogHeader = ({
   className,
@@ -82,7 +83,7 @@ const DialogFooter = ({
   );
   DialogFooter.displayName = "DialogFooter"
 
-const DialogTitle = forwardRef<
+const DialogTitle = safeForwardRef<
   React.ElementRef<typeof DialogPrimitive.Title>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Title>
 >(({ className, ...props }, ref) => (
@@ -95,9 +96,9 @@ const DialogTitle = forwardRef<
     {...props}
   />
 ))
-DialogTitle.displayName = DialogPrimitive.Title.displayName
+DialogTitle.displayName = DialogPrimitive.Title?.displayName || 'DialogTitle'
 
-const DialogDescription = forwardRef<
+const DialogDescription = safeForwardRef<
   React.ElementRef<typeof DialogPrimitive.Description>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Description>
 >(({ className, ...props }, ref) => (
@@ -107,7 +108,7 @@ const DialogDescription = forwardRef<
     {...props}
   />
 ))
-DialogDescription.displayName = DialogPrimitive.Description.displayName
+DialogDescription.displayName = DialogPrimitive.Description?.displayName || 'DialogDescription'
 
 export {
   Dialog,

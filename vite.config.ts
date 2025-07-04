@@ -25,18 +25,18 @@ export default defineConfig(({ mode }) => ({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
       stream: 'stream-browserify',
       zlib: 'browserify-zlib',
-      util: 'util/',  // Updated path for util
-      buffer: 'buffer/',  // Updated path for buffer
+      util: 'util/',
+      buffer: 'buffer/',
       crypto: 'crypto-browserify',
       http: 'stream-http',
       https: 'https-browserify',
-      url: 'url/',  // Updated path for url
+      url: 'url/',
       punycode: 'punycode/',
       process: 'process/browser',
-      assert: 'assert/',  // Added assert polyfill
-      events: 'events/'  // Added events polyfill
+      assert: 'assert/',
+      events: 'events/'
     },
-    mainFields: ['browser', 'module', 'jsnext:main', 'jsnext', 'main']  // Added 'browser' field
+    mainFields: ['browser', 'module', 'jsnext:main', 'jsnext', 'main']
   },
   optimizeDeps: {
     force: true,
@@ -56,8 +56,8 @@ export default defineConfig(({ mode }) => ({
       'crypto-browserify',
       'stream-http',
       'https-browserify',
-      'assert',  // Added assert
-      'events'   // Added events
+      'assert',
+      'events'
     ],
     esbuildOptions: {
       define: {
@@ -74,9 +74,11 @@ export default defineConfig(({ mode }) => ({
       cache: false,
       external: ['@capacitor/app'],
       output: {
+        // Ensure React is loaded first
+        entryFileNames: 'assets/[name]-[hash].js',
         // Modified chunk strategy to keep React and its exports together
         manualChunks: (id) => {
-          // Keep all React and React DOM code in a single chunk
+          // React and React DOM must be in a single chunk with highest priority
           if (id.includes('node_modules/react') || 
               id.includes('node_modules/react-dom') || 
               id.includes('node_modules/scheduler')) {
@@ -94,6 +96,13 @@ export default defineConfig(({ mode }) => ({
           if (id.includes('src/pages')) {
             return 'pages';
           }
+        },
+        // Ensure react-vendor chunk is loaded first by naming convention
+        chunkFileNames: (chunkInfo) => {
+          if (chunkInfo.name === 'react-vendor') {
+            return 'assets/react-vendor-[hash].js';
+          }
+          return 'assets/[name]-[hash].js';
         }
       }
     },

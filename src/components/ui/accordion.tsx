@@ -1,4 +1,5 @@
-import React, { forwardRef } from "react";
+import React from "react";
+import { safeForwardRef } from "@/lib/forwardRefWrapper";
 
 import * as AccordionPrimitive from "@radix-ui/react-accordion"
 import { ChevronDown } from "lucide-react"
@@ -7,7 +8,7 @@ import { cn } from "@/lib/utils"
 
 const Accordion = AccordionPrimitive.Root
 
-const AccordionItem = forwardRef<
+const AccordionItem = safeForwardRef<
   React.ElementRef<typeof AccordionPrimitive.Item>,
   React.ComponentPropsWithoutRef<typeof AccordionPrimitive.Item>
 >(({ className, ...props }, ref) => (
@@ -19,7 +20,7 @@ const AccordionItem = forwardRef<
 ))
 AccordionItem.displayName = "AccordionItem"
 
-const AccordionTrigger = forwardRef<
+const AccordionTrigger = safeForwardRef<
   React.ElementRef<typeof AccordionPrimitive.Trigger>,
   React.ComponentPropsWithoutRef<typeof AccordionPrimitive.Trigger>
 >(({ className, children, ...props }, ref) => (
@@ -37,9 +38,9 @@ const AccordionTrigger = forwardRef<
     </AccordionPrimitive.Trigger>
   </AccordionPrimitive.Header>
 ))
-AccordionTrigger.displayName = AccordionPrimitive.Trigger.displayName
+AccordionTrigger.displayName = AccordionPrimitive.Trigger?.displayName || 'AccordionTrigger'
 
-const AccordionContent = forwardRef<
+const AccordionContent = safeForwardRef<
   React.ElementRef<typeof AccordionPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof AccordionPrimitive.Content>
 >(({ className, children, ...props }, ref) => (
@@ -52,6 +53,6 @@ const AccordionContent = forwardRef<
   </AccordionPrimitive.Content>
 ))
 
-AccordionContent.displayName = AccordionPrimitive.Content.displayName
+AccordionContent.displayName = AccordionPrimitive.Content?.displayName || 'AccordionContent'
 
 export { Accordion, AccordionItem, AccordionTrigger, AccordionContent }

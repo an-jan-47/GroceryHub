@@ -1,10 +1,11 @@
-import React, { forwardRef } from "react";
+import React from "react";
+import { safeForwardRef } from "@/lib/forwardRefWrapper";
 
 import * as SwitchPrimitives from "@radix-ui/react-switch"
 
 import { cn } from "@/lib/utils"
 
-const Switch = forwardRef<
+const Switch = safeForwardRef<
   React.ElementRef<typeof SwitchPrimitives.Root>,
   React.ComponentPropsWithoutRef<typeof SwitchPrimitives.Root>
 >(({ className, ...props }, ref) => (
@@ -23,6 +24,6 @@ const Switch = forwardRef<
     />
   </SwitchPrimitives.Root>
 ))
-Switch.displayName = SwitchPrimitives.Root.displayName
+Switch.displayName = SwitchPrimitives.Root?.displayName || 'Switch'
 
 export { Switch }

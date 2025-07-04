@@ -1,4 +1,5 @@
-import React, { forwardRef } from "react";
+import React from "react";
+import { safeForwardRef } from "@/lib/forwardRefWrapper";
 
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -9,7 +10,7 @@ interface SimpleCarouselProps {
   className?: string
 }
 
-const SimpleCarousel = forwardRef<HTMLDivElement, SimpleCarouselProps>(
+const SimpleCarousel = safeForwardRef<HTMLDivElement, SimpleCarouselProps>(
   ({ className, children, ...props }, ref) => {
     return (
       <div
@@ -24,7 +25,7 @@ const SimpleCarousel = forwardRef<HTMLDivElement, SimpleCarouselProps>(
 
 SimpleCarousel.displayName = "SimpleCarousel"
 
-const SimpleCarouselContent = forwardRef<
+const SimpleCarouselContent = safeForwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => {
@@ -40,7 +41,7 @@ const SimpleCarouselContent = forwardRef<
 })
 SimpleCarouselContent.displayName = "SimpleCarouselContent"
 
-const SimpleCarouselItem = forwardRef<
+const SimpleCarouselItem = safeForwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => {

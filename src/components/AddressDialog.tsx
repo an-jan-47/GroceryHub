@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { safeForwardRef } from "@/lib/forwardRefWrapper";
 
 // Remove duplicate React 
 import { 
@@ -10,7 +11,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import Input from '@/components/ui/input';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { toast } from '@/components/ui/sonner';
@@ -307,5 +308,5 @@ const AddressDialogComponent = (
   );
 };
 
-// Export the component directly without using forwardRef
+// Export the component directly without using safeForwardRef
 export const AddressDialog = AddressDialogComponent;

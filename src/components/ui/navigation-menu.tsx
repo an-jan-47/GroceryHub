@@ -1,4 +1,5 @@
-import React, { forwardRef } from "react";
+import React from "react";
+import { safeForwardRef } from "@/lib/forwardRefWrapper";
 
 import * as NavigationMenuPrimitive from "@radix-ui/react-navigation-menu"
 import { cva } from "class-variance-authority"
@@ -6,7 +7,7 @@ import { ChevronDown } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
-const NavigationMenu = forwardRef<
+const NavigationMenu = safeForwardRef<
   React.ElementRef<typeof NavigationMenuPrimitive.Root>,
   React.ComponentPropsWithoutRef<typeof NavigationMenuPrimitive.Root>
 >(({ className, children, ...props }, ref) => (
@@ -22,9 +23,9 @@ const NavigationMenu = forwardRef<
     <NavigationMenuViewport />
   </NavigationMenuPrimitive.Root>
 ))
-NavigationMenu.displayName = NavigationMenuPrimitive.Root.displayName
+NavigationMenu.displayName = NavigationMenuPrimitive.Root?.displayName || 'NavigationMenu'
 
-const NavigationMenuList = forwardRef<
+const NavigationMenuList = safeForwardRef<
   React.ElementRef<typeof NavigationMenuPrimitive.List>,
   React.ComponentPropsWithoutRef<typeof NavigationMenuPrimitive.List>
 >(({ className, ...props }, ref) => (
@@ -37,14 +38,14 @@ const NavigationMenuList = forwardRef<
     {...props}
   />
 ))
-NavigationMenuList.displayName = NavigationMenuPrimitive.List.displayName
+NavigationMenuList.displayName = NavigationMenuPrimitive.List?.displayName || 'NavigationMenuList'
 
 const NavigationMenuItem = NavigationMenuPrimitive.Item
 
 const navigationMenuTriggerStyle = cva(
   "group inline-flex h-10 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-accent/50 data-[state=open]:bg-accent/50"
 
-const NavigationMenuTrigger = forwardRef<
+const NavigationMenuTrigger = safeForwardRef<
   React.ElementRef<typeof NavigationMenuPrimitive.Trigger>,
   React.ComponentPropsWithoutRef<typeof NavigationMenuPrimitive.Trigger>
 >(({ className, children, ...props }, ref) => (
@@ -60,9 +61,9 @@ const NavigationMenuTrigger = forwardRef<
     />
   </NavigationMenuPrimitive.Trigger>
 ))
-NavigationMenuTrigger.displayName = NavigationMenuPrimitive.Trigger.displayName
+NavigationMenuTrigger.displayName = NavigationMenuPrimitive.Trigger?.displayName || 'NavigationMenuTrigger'
 
-const NavigationMenuContent = forwardRef<
+const NavigationMenuContent = safeForwardRef<
   React.ElementRef<typeof NavigationMenuPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof NavigationMenuPrimitive.Content>
 >(({ className, ...props }, ref) => (
@@ -75,11 +76,11 @@ const NavigationMenuContent = forwardRef<
     {...props}
   />
 ))
-NavigationMenuContent.displayName = NavigationMenuPrimitive.Content.displayName
+NavigationMenuContent.displayName = NavigationMenuPrimitive.Content?.displayName || 'NavigationMenuContent'
 
 const NavigationMenuLink = NavigationMenuPrimitive.Link
 
-const NavigationMenuViewport = forwardRef<
+const NavigationMenuViewport = safeForwardRef<
   React.ElementRef<typeof NavigationMenuPrimitive.Viewport>,
   React.ComponentPropsWithoutRef<typeof NavigationMenuPrimitive.Viewport>
 >(({ className, ...props }, ref) => (
@@ -94,10 +95,9 @@ const NavigationMenuViewport = forwardRef<
     />
   </div>
 ))
-NavigationMenuViewport.displayName =
-  NavigationMenuPrimitive.Viewport.displayName
+NavigationMenuViewport.displayName = NavigationMenuPrimitive.Viewport?.displayName || 'NavigationMenuViewport'
 
-const NavigationMenuIndicator = forwardRef<
+const NavigationMenuIndicator = safeForwardRef<
   React.ElementRef<typeof NavigationMenuPrimitive.Indicator>,
   React.ComponentPropsWithoutRef<typeof NavigationMenuPrimitive.Indicator>
 >(({ className, ...props }, ref) => (
@@ -112,8 +112,7 @@ const NavigationMenuIndicator = forwardRef<
     <div className="relative top-[60%] h-2 w-2 rotate-45 rounded-tl-sm bg-border shadow-md" />
   </NavigationMenuPrimitive.Indicator>
 ))
-NavigationMenuIndicator.displayName =
-  NavigationMenuPrimitive.Indicator.displayName
+NavigationMenuIndicator.displayName = NavigationMenuPrimitive.Indicator?.displayName || 'NavigationMenuIndicator'
 
 export {
   navigationMenuTriggerStyle,

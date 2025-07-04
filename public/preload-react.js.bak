@@ -1,0 +1,39 @@
+// This script ensures React is properly initialized before any components try to use it
+(function() {
+  // Create a placeholder for React if it doesn't exist yet
+  if (typeof window !== 'undefined') {
+    // Create a global React object if it doesn't exist
+    window.React = window.React || {};
+    
+    // Store the original forwardRef if it exists
+    const originalForwardRef = window.React.forwardRef;
+    
+    // Ensure forwardRef exists on React with proper implementation
+    window.React.forwardRef = function(render) {
+      // Use the original if it was a function
+      if (typeof originalForwardRef === 'function') {
+        return originalForwardRef(render);
+      }
+      
+      // Fallback implementation
+      return function ForwardRefFallback(props) {
+        const { ref, ...rest } = props;
+        return render(rest, ref);
+      };
+    };
+    
+    // Create a global safeForwardRef function
+    window.safeForwardRef = function(render) {
+      if (window.React && typeof window.React.forwardRef === 'function') {
+        return window.React.forwardRef(render);
+      } else {
+        return function ForwardRefFallback(props) {
+          const { ref, ...rest } = props;
+          return render(rest, ref);
+        };
+      }
+    };
+    
+    console.log('React forwardRef and safeForwardRef initialized');
+  }
+})();

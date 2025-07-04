@@ -1,4 +1,5 @@
-import React, { forwardRef } from "react";
+import React from "react";
+import { safeForwardRef } from "@/lib/forwardRefWrapper";
 
 import { Drawer as DrawerPrimitive } from "vaul"
 
@@ -21,7 +22,7 @@ const DrawerPortal = DrawerPrimitive.Portal
 
 const DrawerClose = DrawerPrimitive.Close
 
-const DrawerOverlay = forwardRef<
+const DrawerOverlay = safeForwardRef<
   React.ElementRef<typeof DrawerPrimitive.Overlay>,
   React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Overlay>
 >(({ className, ...props }, ref) => (
@@ -31,9 +32,9 @@ const DrawerOverlay = forwardRef<
     {...props}
   />
 ))
-DrawerOverlay.displayName = DrawerPrimitive.Overlay.displayName
+DrawerOverlay.displayName = DrawerPrimitive.Overlay?.displayName || 'DrawerOverlay'
 
-const DrawerContent = forwardRef<
+const DrawerContent = safeForwardRef<
   React.ElementRef<typeof DrawerPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Content>
 >(({ className, children, ...props }, ref) => (
@@ -76,7 +77,7 @@ const DrawerFooter = ({
 
 DrawerFooter.displayName = "DrawerFooter"
 
-const DrawerTitle = forwardRef<
+const DrawerTitle = safeForwardRef<
   React.ElementRef<typeof DrawerPrimitive.Title>,
   React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Title>
 >(({ className, ...props }, ref) => (
@@ -89,9 +90,9 @@ const DrawerTitle = forwardRef<
     {...props}
   />
 ))
-DrawerTitle.displayName = DrawerPrimitive.Title.displayName
+DrawerTitle.displayName = DrawerPrimitive.Title?.displayName || 'DrawerTitle'
 
-const DrawerDescription = forwardRef<
+const DrawerDescription = safeForwardRef<
   React.ElementRef<typeof DrawerPrimitive.Description>,
   React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Description>
 >(({ className, ...props }, ref) => (
@@ -101,7 +102,7 @@ const DrawerDescription = forwardRef<
     {...props}
   />
 ))
-DrawerDescription.displayName = DrawerPrimitive.Description.displayName
+DrawerDescription.displayName = DrawerPrimitive.Description?.displayName || 'DrawerDescription'
 
 export {
   Drawer,
