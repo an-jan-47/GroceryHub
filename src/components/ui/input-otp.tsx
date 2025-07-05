@@ -1,12 +1,12 @@
 import React from "react";
-import { safeForwardRef } from "@/lib/forwardRefWrapper";
+import { createRefForwarder } from "@/lib/createRefForwarder";
 
 import { OTPInput, OTPInputContext } from "input-otp"
 import { Dot } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
-const InputOTP = safeForwardRef<
+const InputOTP = createRefForwarder<
   React.ElementRef<typeof OTPInput>,
   React.ComponentPropsWithoutRef<typeof OTPInput>
 >(({ className, containerClassName, ...props }, ref) => (
@@ -22,7 +22,7 @@ const InputOTP = safeForwardRef<
 ))
 InputOTP.displayName = "InputOTP"
 
-const InputOTPGroup = safeForwardRef<
+const InputOTPGroup = createRefForwarder<
   React.ElementRef<"div">,
   React.ComponentPropsWithoutRef<"div">
 >(({ className, ...props }, ref) => (
@@ -30,7 +30,7 @@ const InputOTPGroup = safeForwardRef<
 ))
 InputOTPGroup.displayName = "InputOTPGroup"
 
-const InputOTPSlot = safeForwardRef<
+const InputOTPSlot = createRefForwarder<
   React.ElementRef<"div">,
   React.ComponentPropsWithoutRef<"div"> & { index: number }
 >(({ index, className, ...props }, ref) => {
@@ -58,7 +58,7 @@ const InputOTPSlot = safeForwardRef<
 })
 InputOTPSlot.displayName = "InputOTPSlot"
 
-const InputOTPSeparator = safeForwardRef<
+const InputOTPSeparator = createRefForwarder<
   React.ElementRef<"div">,
   React.ComponentPropsWithoutRef<"div">
 >(({ ...props }, ref) => (

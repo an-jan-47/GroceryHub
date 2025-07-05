@@ -1,42 +1,40 @@
-import React from "react";import { safeForwardRef } from "@/lib/forwardRefWrapper";
+import React from "react";
+import { createRefForwarder } from "@/lib/createRefForwarder";
 /**
- * Single source of truth for React safeForwardRef handling
- * This script ensures safeForwardRef is available before any components try to use it
+ * Single source of truth for React createRefForwarder handling
+ * This script ensures createRefForwarder is available before any components try to use it
+ * This avoids initialization issues with minified variable names
  */
 (function() {
   // Only run in browser environment
   if (typeof window === 'undefined') return;
   
-  // Create a global React object if it doesn't exist
-  window.React = window.React || {};
-  
-  // Store original implementation if it exists
-  const originalForwardRef = window.safeForwardRef;
-  
-  // Create a unified safeForwardRef implementation
-  const unifiedForwardRef = function(render) {
-    // If the original was a function, use it
-    if (typeof originalForwardRef === 'function') {
-      try {
-        return originalForwardRef(render);
-      } catch (e) {
-        console.warn('Original safeForwardRef failed, using fallback', e);
-        // Fall through to fallback if original fails
-      }
+  // Wait for React to be defined
+  function initRefForwarder() {
+    // Check if React is available globally
+    if (!window.React) {
+      console.log('Waiting for React to be defined...');
+      setTimeout(initRefForwarder, 10);
+      return;
     }
     
-    // Fallback implementation
-    return function ForwardRefFallback(props) {
-      const { ref, ...rest } = props || {};
-      return render(rest, ref);
+    // Define a global createRefForwarder function
+    window.createRefForwarder = function(render) {
+      // Return a class component that forwards refs
+      return class RefForwarder extends window.React.Component {
+        render() {
+          const { ref, ...rest } = this.props || {};
+          return render(rest, ref);
+        }
+      };
     };
-  };
+    
+    // Also define unifiedForwardRef for compatibility
+    window.unifiedForwardRef = window.createRefForwarder;
+    
+    console.log('RefForwarder HOC implementation initialized');
+  }
   
-  // Replace safeForwardRef with our implementation
-  window.safeForwardRef = unifiedForwardRef;
-  
-  // Also provide it as a global for direct access
-  window.unifiedForwardRef = unifiedForwardRef;
-  
-  console.log('Unified safeForwardRef implementation initialized');
+  // Start initialization
+  initRefForwarder();
 })();

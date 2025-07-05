@@ -1,11 +1,11 @@
 import React from "react";
-import { safeForwardRef } from "@/lib/forwardRefWrapper";
+import { createRefForwarder } from "@/lib/createRefForwarder";
 
 import * as ProgressPrimitive from "@radix-ui/react-progress"
 
 import { cn } from "@/lib/utils"
 
-const Progress = safeForwardRef<
+const Progress = createRefForwarder<
   React.ElementRef<typeof ProgressPrimitive.Root>,
   React.ComponentPropsWithoutRef<typeof ProgressPrimitive.Root>
 >(({ className, value, ...props }, ref) => (

@@ -1,5 +1,5 @@
 import React from "react";
-import { safeForwardRef } from "@/lib/forwardRefWrapper";
+import { createRefForwarder } from "@/lib/createRefForwarder";
 
 import * as NavigationMenuPrimitive from "@radix-ui/react-navigation-menu"
 import { cva } from "class-variance-authority"
@@ -7,7 +7,7 @@ import { ChevronDown } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
-const NavigationMenu = safeForwardRef<
+const NavigationMenu = createRefForwarder<
   React.ElementRef<typeof NavigationMenuPrimitive.Root>,
   React.ComponentPropsWithoutRef<typeof NavigationMenuPrimitive.Root>
 >(({ className, children, ...props }, ref) => (
@@ -25,7 +25,7 @@ const NavigationMenu = safeForwardRef<
 ))
 NavigationMenu.displayName = NavigationMenuPrimitive.Root?.displayName || 'NavigationMenu'
 
-const NavigationMenuList = safeForwardRef<
+const NavigationMenuList = createRefForwarder<
   React.ElementRef<typeof NavigationMenuPrimitive.List>,
   React.ComponentPropsWithoutRef<typeof NavigationMenuPrimitive.List>
 >(({ className, ...props }, ref) => (
@@ -45,7 +45,7 @@ const NavigationMenuItem = NavigationMenuPrimitive.Item
 const navigationMenuTriggerStyle = cva(
   "group inline-flex h-10 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-accent/50 data-[state=open]:bg-accent/50"
 
-const NavigationMenuTrigger = safeForwardRef<
+const NavigationMenuTrigger = createRefForwarder<
   React.ElementRef<typeof NavigationMenuPrimitive.Trigger>,
   React.ComponentPropsWithoutRef<typeof NavigationMenuPrimitive.Trigger>
 >(({ className, children, ...props }, ref) => (
@@ -63,7 +63,7 @@ const NavigationMenuTrigger = safeForwardRef<
 ))
 NavigationMenuTrigger.displayName = NavigationMenuPrimitive.Trigger?.displayName || 'NavigationMenuTrigger'
 
-const NavigationMenuContent = safeForwardRef<
+const NavigationMenuContent = createRefForwarder<
   React.ElementRef<typeof NavigationMenuPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof NavigationMenuPrimitive.Content>
 >(({ className, ...props }, ref) => (
@@ -80,7 +80,7 @@ NavigationMenuContent.displayName = NavigationMenuPrimitive.Content?.displayName
 
 const NavigationMenuLink = NavigationMenuPrimitive.Link
 
-const NavigationMenuViewport = safeForwardRef<
+const NavigationMenuViewport = createRefForwarder<
   React.ElementRef<typeof NavigationMenuPrimitive.Viewport>,
   React.ComponentPropsWithoutRef<typeof NavigationMenuPrimitive.Viewport>
 >(({ className, ...props }, ref) => (
@@ -97,7 +97,7 @@ const NavigationMenuViewport = safeForwardRef<
 ))
 NavigationMenuViewport.displayName = NavigationMenuPrimitive.Viewport?.displayName || 'NavigationMenuViewport'
 
-const NavigationMenuIndicator = safeForwardRef<
+const NavigationMenuIndicator = createRefForwarder<
   React.ElementRef<typeof NavigationMenuPrimitive.Indicator>,
   React.ComponentPropsWithoutRef<typeof NavigationMenuPrimitive.Indicator>
 >(({ className, ...props }, ref) => (

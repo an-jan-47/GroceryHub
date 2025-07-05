@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { safeForwardRef } from "@/lib/forwardRefWrapper";
+import { createRefForwarder } from "@/lib/createRefForwarder";
 
 // Remove duplicate React 
 import { 
@@ -308,5 +308,5 @@ const AddressDialogComponent = (
   );
 };
 
-// Export the component directly without using safeForwardRef
+// Export the component directly without using createRefForwarder
 export const AddressDialog = AddressDialogComponent;

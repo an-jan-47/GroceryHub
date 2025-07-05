@@ -1,12 +1,15 @@
 const CACHE_NAME = 'groceryhub-v1';
 const isDevMode = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+const isCapacitor = self.location.href.includes('capacitor://') || 
+                   self.location.href.includes('http://localhost') ||
+                   navigator.userAgent.includes('capacitor');
 
 // Files to precache (add your app's core files here)
 const precacheFiles = [
   '/',
   '/index.html',
-  '/manifest.json'
-  // Add other important files your app needs to work offline
+  '/manifest.json',
+  '/react-init.js'
 ];
 
 self.addEventListener('install', (event) => {
@@ -44,8 +47,8 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Skip caching in development mode
-  if (isDevMode) {
+  // Skip caching in development mode or Capacitor
+  if (isDevMode || isCapacitor) {
     event.respondWith(fetch(event.request));
     return;
   }

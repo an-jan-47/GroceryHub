@@ -1,5 +1,5 @@
 import React from "react";
-import { safeForwardRef } from "@/lib/forwardRefWrapper";
+import { createRefForwarder } from "@/lib/createRefForwarder";
 
 import * as ToggleGroupPrimitive from "@radix-ui/react-toggle-group"
 import { type VariantProps } from "class-variance-authority"
@@ -14,7 +14,7 @@ const ToggleGroupContext = React.createContext<
   variant: "default",
 })
 
-const ToggleGroup = safeForwardRef<
+const ToggleGroup = createRefForwarder<
   React.ElementRef<typeof ToggleGroupPrimitive.Root>,
   React.ComponentPropsWithoutRef<typeof ToggleGroupPrimitive.Root> &
     VariantProps<typeof toggleVariants>
@@ -32,7 +32,7 @@ const ToggleGroup = safeForwardRef<
 
 ToggleGroup.displayName = ToggleGroupPrimitive.Root?.displayName || 'ToggleGroup'
 
-const ToggleGroupItem = safeForwardRef<
+const ToggleGroupItem = createRefForwarder<
   React.ElementRef<typeof ToggleGroupPrimitive.Item>,
   React.ComponentPropsWithoutRef<typeof ToggleGroupPrimitive.Item> &
     VariantProps<typeof toggleVariants>

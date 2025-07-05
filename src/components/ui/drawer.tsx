@@ -1,5 +1,5 @@
 import React from "react";
-import { safeForwardRef } from "@/lib/forwardRefWrapper";
+import { createRefForwarder } from "@/lib/createRefForwarder";
 
 import { Drawer as DrawerPrimitive } from "vaul"
 
@@ -22,7 +22,7 @@ const DrawerPortal = DrawerPrimitive.Portal
 
 const DrawerClose = DrawerPrimitive.Close
 
-const DrawerOverlay = safeForwardRef<
+const DrawerOverlay = createRefForwarder<
   React.ElementRef<typeof DrawerPrimitive.Overlay>,
   React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Overlay>
 >(({ className, ...props }, ref) => (
@@ -34,7 +34,7 @@ const DrawerOverlay = safeForwardRef<
 ))
 DrawerOverlay.displayName = DrawerPrimitive.Overlay?.displayName || 'DrawerOverlay'
 
-const DrawerContent = safeForwardRef<
+const DrawerContent = createRefForwarder<
   React.ElementRef<typeof DrawerPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Content>
 >(({ className, children, ...props }, ref) => (
@@ -77,7 +77,7 @@ const DrawerFooter = ({
 
 DrawerFooter.displayName = "DrawerFooter"
 
-const DrawerTitle = safeForwardRef<
+const DrawerTitle = createRefForwarder<
   React.ElementRef<typeof DrawerPrimitive.Title>,
   React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Title>
 >(({ className, ...props }, ref) => (
@@ -92,7 +92,7 @@ const DrawerTitle = safeForwardRef<
 ))
 DrawerTitle.displayName = DrawerPrimitive.Title?.displayName || 'DrawerTitle'
 
-const DrawerDescription = safeForwardRef<
+const DrawerDescription = createRefForwarder<
   React.ElementRef<typeof DrawerPrimitive.Description>,
   React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Description>
 >(({ className, ...props }, ref) => (

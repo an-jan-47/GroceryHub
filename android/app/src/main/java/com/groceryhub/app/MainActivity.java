@@ -23,7 +23,7 @@ public class MainActivity extends BridgeActivity {
         settings.setDomStorageEnabled(true);
         settings.setAllowFileAccess(true);
         settings.setAllowContentAccess(true);
-        settings.setCacheMode(WebSettings.LOAD_DEFAULT);
+        settings.setCacheMode(WebSettings.LOAD_NO_CACHE); // Change to NO_CACHE
         settings.setLoadWithOverviewMode(true);
         settings.setUseWideViewPort(true);
         
@@ -40,6 +40,11 @@ public class MainActivity extends BridgeActivity {
         
         // Enable JavaScript
         settings.setJavaScriptEnabled(true);
+        
+        // Add this to ensure scripts load properly
+        settings.setBlockNetworkLoads(false);
+        settings.setBlockNetworkImage(false);
+        settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
         
         // Initialize GestureHelper
         try {

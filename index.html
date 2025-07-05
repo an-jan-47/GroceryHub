@@ -1,12 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>  
-    <!-- Load our unified forwardRef implementation first -->
-    <script src="/react-forward-ref-fix.js"></script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <!-- Load React initialization script first -->
+    <script src="/react-init.js"></script>
+    
     <!-- Updated favicon path to point to public directory -->
-    <link rel="icon" type="image/x-icon" href="/public/favicon.ico" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <title>GroceryHub</title>
     <meta name="description" content="Where convenience and quality meets" />
     <meta name="author" content="GroceryHub" />
@@ -19,25 +20,17 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="" />
     <meta name="twitter:image" content="" />
+    
   </head>
 
   <body>
-    <!-- Only include in development mode -->
     <div id="root"></div>
-    <script type="module">
-      // Only include in development mode
-      if (import.meta.env.DEV) {
-        const script = document.createElement('script');
-        script.src = "https://cdn.gpteng.co/gptengineer.js";
-        script.type = "module";
-        document.head.appendChild(script);
-      }
-    </script>
+    <!-- Load your app code -->
     <script type="module" src="/src/main.tsx"></script>
     
     <!-- Disable service worker during development -->
     <script>
-      if ('serviceWorker' in navigator) {
+      if ('serviceWorker' in navigator && (location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
         navigator.serviceWorker.getRegistrations().then(function(registrations) {
           for(let registration of registrations) {
             registration.unregister();

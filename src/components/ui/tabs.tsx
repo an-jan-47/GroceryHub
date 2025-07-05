@@ -1,5 +1,5 @@
 import React from "react";
-import { safeForwardRef } from "@/lib/forwardRefWrapper";
+import { createRefForwarder } from "@/lib/createRefForwarder";
 
 import * as TabsPrimitive from "@radix-ui/react-tabs"
 
@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils"
 
 const Tabs = TabsPrimitive.Root
 
-const TabsList = safeForwardRef<
+const TabsList = createRefForwarder<
   React.ElementRef<typeof TabsPrimitive.List>,
   React.ComponentPropsWithoutRef<typeof TabsPrimitive.List>
 >(({ className, ...props }, ref) => (
@@ -22,7 +22,7 @@ const TabsList = safeForwardRef<
 ))
 TabsList.displayName = TabsPrimitive.List?.displayName || 'TabsList'
 
-const TabsTrigger = safeForwardRef<
+const TabsTrigger = createRefForwarder<
   React.ElementRef<typeof TabsPrimitive.Trigger>,
   React.ComponentPropsWithoutRef<typeof TabsPrimitive.Trigger>
 >(({ className, ...props }, ref) => (
@@ -37,7 +37,7 @@ const TabsTrigger = safeForwardRef<
 ))
 TabsTrigger.displayName = TabsPrimitive.Trigger?.displayName || 'TabsTrigger'
 
-const TabsContent = safeForwardRef<
+const TabsContent = createRefForwarder<
   React.ElementRef<typeof TabsPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof TabsPrimitive.Content>
 >(({ className, ...props }, ref) => (

@@ -1,8 +1,9 @@
 import React from "react";
-import { safeForwardRef } from "@/lib/forwardRefWrapper";
+import { createRefForwarder } from "@/lib/createRefForwarder";
+
 import { cn } from "@/lib/utils";
 
-const Input = safeForwardRef<HTMLInputElement, React.ComponentProps<"input">>
+const Input = createRefForwarder<HTMLInputElement, React.ComponentProps<"input">>
   (({ className, type, ...props }, ref) => {
     return (
       <input

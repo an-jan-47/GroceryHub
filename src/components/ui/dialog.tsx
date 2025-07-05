@@ -1,5 +1,5 @@
 import React from "react";
-import { safeForwardRef } from "@/lib/forwardRefWrapper";
+import { createRefForwarder } from "@/lib/createRefForwarder";
 
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { X } from "lucide-react"
@@ -14,7 +14,7 @@ const DialogPortal = DialogPrimitive.Portal
 
 const DialogClose = DialogPrimitive.Close
 
-const DialogOverlay = safeForwardRef<
+const DialogOverlay = createRefForwarder<
   React.ElementRef<typeof DialogPrimitive.Overlay>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay>
 >(({ className, ...props }, ref) => (
@@ -29,7 +29,7 @@ const DialogOverlay = safeForwardRef<
 ))
 DialogOverlay.displayName = DialogPrimitive.Overlay?.displayName || 'DialogOverlay'
 
-const DialogContent = safeForwardRef<
+const DialogContent = createRefForwarder<
   React.ElementRef<typeof DialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
 >(({ className, children, ...props }, ref) => (
@@ -83,7 +83,7 @@ const DialogFooter = ({
   );
   DialogFooter.displayName = "DialogFooter"
 
-const DialogTitle = safeForwardRef<
+const DialogTitle = createRefForwarder<
   React.ElementRef<typeof DialogPrimitive.Title>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Title>
 >(({ className, ...props }, ref) => (
@@ -98,7 +98,7 @@ const DialogTitle = safeForwardRef<
 ))
 DialogTitle.displayName = DialogPrimitive.Title?.displayName || 'DialogTitle'
 
-const DialogDescription = safeForwardRef<
+const DialogDescription = createRefForwarder<
   React.ElementRef<typeof DialogPrimitive.Description>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Description>
 >(({ className, ...props }, ref) => (

@@ -1,5 +1,5 @@
 import React from "react";
-import { safeForwardRef } from "@/lib/forwardRefWrapper";
+import { createRefForwarder } from "@/lib/createRefForwarder";
 
 import { cva, type VariantProps } from "class-variance-authority"
 
@@ -21,7 +21,7 @@ const alertVariants = cva(
   }
 
 )
-const Alert = safeForwardRef<
+const Alert = createRefForwarder<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement> & VariantProps<typeof alertVariants>
 >(({ className, variant, ...props }, ref) => (
@@ -34,7 +34,7 @@ const Alert = safeForwardRef<
 ))
 Alert.displayName = "Alert"
 
-const AlertTitle = safeForwardRef<
+const AlertTitle = createRefForwarder<
   HTMLParagraphElement,
   React.HTMLAttributes<HTMLHeadingElement>
 >(({ className, ...props }, ref) => (
@@ -46,7 +46,7 @@ const AlertTitle = safeForwardRef<
 ))
 AlertTitle.displayName = "AlertTitle"
 
-const AlertDescription = safeForwardRef<
+const AlertDescription = createRefForwarder<
   HTMLParagraphElement,
   React.HTMLAttributes<HTMLParagraphElement>
 >(({ className, ...props }, ref) => (

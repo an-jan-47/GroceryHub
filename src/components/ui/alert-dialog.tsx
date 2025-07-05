@@ -1,5 +1,5 @@
 import React from "react";
-import { safeForwardRef } from "@/lib/forwardRefWrapper";
+import { createRefForwarder } from "@/lib/createRefForwarder";
 
 import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog"
 
@@ -12,7 +12,7 @@ const AlertDialogTrigger = AlertDialogPrimitive.Trigger
 
 const AlertDialogPortal = AlertDialogPrimitive.Portal
 
-const AlertDialogOverlay = safeForwardRef<
+const AlertDialogOverlay = createRefForwarder<
   React.ElementRef<typeof AlertDialogPrimitive.Overlay>,
   React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Overlay>
 >(({ className, ...props }, ref) => (
@@ -27,7 +27,7 @@ const AlertDialogOverlay = safeForwardRef<
 ))
 AlertDialogOverlay.displayName = AlertDialogPrimitive.Overlay?.displayName || 'AlertDialogOverlay'
 
-const AlertDialogContent = safeForwardRef<
+const AlertDialogContent = createRefForwarder<
   React.ElementRef<typeof AlertDialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Content>
 >(({ className, ...props }, ref) => (
@@ -73,7 +73,7 @@ const AlertDialogFooter = ({
 
 AlertDialogFooter.displayName = "AlertDialogFooter"
 
-const AlertDialogTitle = safeForwardRef<
+const AlertDialogTitle = createRefForwarder<
   React.ElementRef<typeof AlertDialogPrimitive.Title>,
   React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Title>
 >(({ className, ...props }, ref) => (
@@ -85,7 +85,7 @@ const AlertDialogTitle = safeForwardRef<
 ))
 AlertDialogTitle.displayName = AlertDialogPrimitive.Title?.displayName || 'AlertDialogTitle'
 
-const AlertDialogDescription = safeForwardRef<
+const AlertDialogDescription = createRefForwarder<
   React.ElementRef<typeof AlertDialogPrimitive.Description>,
   React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Description>
 >(({ className, ...props }, ref) => (
@@ -97,7 +97,7 @@ const AlertDialogDescription = safeForwardRef<
 ))
 AlertDialogDescription.displayName = AlertDialogPrimitive.Description?.displayName || 'AlertDialogDescription'
 
-const AlertDialogAction = safeForwardRef<
+const AlertDialogAction = createRefForwarder<
   React.ElementRef<typeof AlertDialogPrimitive.Action>,
   React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Action>
 >(({ className, ...props }, ref) => (
@@ -109,7 +109,7 @@ const AlertDialogAction = safeForwardRef<
 ))
 AlertDialogAction.displayName = AlertDialogPrimitive.Action?.displayName || 'AlertDialogAction'
 
-const AlertDialogCancel = safeForwardRef<
+const AlertDialogCancel = createRefForwarder<
   React.ElementRef<typeof AlertDialogPrimitive.Cancel>,
   React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Cancel>
 >(({ className, ...props }, ref) => (

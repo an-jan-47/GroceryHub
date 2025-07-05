@@ -1,5 +1,5 @@
 import React from "react";
-import { safeForwardRef } from "@/lib/forwardRefWrapper";
+import { createRefForwarder } from "@/lib/createRefForwarder";
 
 import * as ContextMenuPrimitive from "@radix-ui/react-context-menu"
 import { Check, ChevronRight, Circle } from "lucide-react"
@@ -18,7 +18,7 @@ const ContextMenuSub = ContextMenuPrimitive.Sub
 
 const ContextMenuRadioGroup = ContextMenuPrimitive.RadioGroup
 
-const ContextMenuSubTrigger = safeForwardRef<
+const ContextMenuSubTrigger = createRefForwarder<
   React.ElementRef<typeof ContextMenuPrimitive.SubTrigger>,
   React.ComponentPropsWithoutRef<typeof ContextMenuPrimitive.SubTrigger> & {
     inset?: boolean
@@ -39,7 +39,7 @@ const ContextMenuSubTrigger = safeForwardRef<
 ))
 ContextMenuSubTrigger.displayName = ContextMenuPrimitive.SubTrigger?.displayName || 'ContextMenuSubTrigger'
 
-const ContextMenuSubContent = safeForwardRef<
+const ContextMenuSubContent = createRefForwarder<
   React.ElementRef<typeof ContextMenuPrimitive.SubContent>,
   React.ComponentPropsWithoutRef<typeof ContextMenuPrimitive.SubContent>
 >(({ className, ...props }, ref) => (
@@ -54,7 +54,7 @@ const ContextMenuSubContent = safeForwardRef<
 ))
 ContextMenuSubContent.displayName = ContextMenuPrimitive.SubContent?.displayName || 'ContextMenuSubContent'
 
-const ContextMenuContent = safeForwardRef<
+const ContextMenuContent = createRefForwarder<
   React.ElementRef<typeof ContextMenuPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof ContextMenuPrimitive.Content>
 >(({ className, ...props }, ref) => (
@@ -71,7 +71,7 @@ const ContextMenuContent = safeForwardRef<
 ))
 ContextMenuContent.displayName = ContextMenuPrimitive.Content?.displayName || 'ContextMenuContent'
 
-const ContextMenuItem = safeForwardRef<
+const ContextMenuItem = createRefForwarder<
   React.ElementRef<typeof ContextMenuPrimitive.Item>,
   React.ComponentPropsWithoutRef<typeof ContextMenuPrimitive.Item> & {
     inset?: boolean
@@ -89,7 +89,7 @@ const ContextMenuItem = safeForwardRef<
 ))
 ContextMenuItem.displayName = ContextMenuPrimitive.Item?.displayName || 'ContextMenuItem'
 
-const ContextMenuCheckboxItem = safeForwardRef<
+const ContextMenuCheckboxItem = createRefForwarder<
   React.ElementRef<typeof ContextMenuPrimitive.CheckboxItem>,
   React.ComponentPropsWithoutRef<typeof ContextMenuPrimitive.CheckboxItem>
 >(({ className, children, checked, ...props }, ref) => (
@@ -112,7 +112,7 @@ const ContextMenuCheckboxItem = safeForwardRef<
 ))
 ContextMenuCheckboxItem.displayName = ContextMenuPrimitive.CheckboxItem?.displayName || 'ContextMenuCheckboxItem'
 
-const ContextMenuRadioItem = safeForwardRef<
+const ContextMenuRadioItem = createRefForwarder<
   React.ElementRef<typeof ContextMenuPrimitive.RadioItem>,
   React.ComponentPropsWithoutRef<typeof ContextMenuPrimitive.RadioItem>
 >(({ className, children, ...props }, ref) => (
@@ -134,7 +134,7 @@ const ContextMenuRadioItem = safeForwardRef<
 ))
 ContextMenuRadioItem.displayName = ContextMenuPrimitive.RadioItem?.displayName || 'ContextMenuRadioItem'
 
-const ContextMenuLabel = safeForwardRef<
+const ContextMenuLabel = createRefForwarder<
   React.ElementRef<typeof ContextMenuPrimitive.Label>,
   React.ComponentPropsWithoutRef<typeof ContextMenuPrimitive.Label> & {
     inset?: boolean
@@ -152,7 +152,7 @@ const ContextMenuLabel = safeForwardRef<
 ))
 ContextMenuLabel.displayName = ContextMenuPrimitive.Label?.displayName || 'ContextMenuLabel'
 
-const ContextMenuSeparator = safeForwardRef<
+const ContextMenuSeparator = createRefForwarder<
   React.ElementRef<typeof ContextMenuPrimitive.Separator>,
   React.ComponentPropsWithoutRef<typeof ContextMenuPrimitive.Separator>
 >(({ className, ...props }, ref) => (

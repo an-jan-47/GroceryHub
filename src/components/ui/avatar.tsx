@@ -1,11 +1,11 @@
 import React from "react";
-import { safeForwardRef } from "@/lib/forwardRefWrapper";
+import { createRefForwarder } from "@/lib/createRefForwarder";
 
 import * as AvatarPrimitive from "@radix-ui/react-avatar"
 
 import { cn } from "@/lib/utils"
 
-const Avatar = safeForwardRef<
+const Avatar = createRefForwarder<
   React.ElementRef<typeof AvatarPrimitive.Root>,
   React.ComponentPropsWithoutRef<typeof AvatarPrimitive.Root>
 >(({ className, ...props }, ref) => (
@@ -20,7 +20,7 @@ const Avatar = safeForwardRef<
 ))
 Avatar.displayName = AvatarPrimitive.Root?.displayName || 'Avatar'
 
-const AvatarImage = safeForwardRef<
+const AvatarImage = createRefForwarder<
   React.ElementRef<typeof AvatarPrimitive.Image>,
   React.ComponentPropsWithoutRef<typeof AvatarPrimitive.Image>
 >(({ className, ...props }, ref) => (
@@ -32,7 +32,7 @@ const AvatarImage = safeForwardRef<
 ))
 AvatarImage.displayName = AvatarPrimitive.Image?.displayName || 'AvatarImage'
 
-const AvatarFallback = safeForwardRef<
+const AvatarFallback = createRefForwarder<
   React.ElementRef<typeof AvatarPrimitive.Fallback>,
   React.ComponentPropsWithoutRef<typeof AvatarPrimitive.Fallback>
 >(({ className, ...props }, ref) => (

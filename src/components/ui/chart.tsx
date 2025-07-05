@@ -1,5 +1,5 @@
 import React from "react";
-import { safeForwardRef } from "@/lib/forwardRefWrapper";
+import { createRefForwarder } from "@/lib/createRefForwarder";
 
 import * as RechartsPrimitive from "recharts";
 import { cn } from "@/lib/utils";
@@ -31,7 +31,7 @@ function useChart() {
   return context;
 }
 
-const ChartContainer = safeForwardRef<
+const ChartContainer = createRefForwarder<
   HTMLDivElement,
   React.ComponentProps<"div"> & {
     config: ChartConfig;
@@ -100,7 +100,7 @@ ${colorConfig
 
 const ChartTooltip = RechartsPrimitive.Tooltip;
 
-const ChartTooltipContent = safeForwardRef<
+const ChartTooltipContent = createRefForwarder<
   HTMLDivElement,
   React.ComponentProps<"div"> & {
     active?: boolean;
@@ -274,7 +274,7 @@ ChartTooltipContent.displayName = "ChartTooltipContent";
 
 const ChartLegend = RechartsPrimitive.Legend;
 
-const ChartLegendContent = safeForwardRef<
+const ChartLegendContent = createRefForwarder<
   HTMLDivElement,
   React.ComponentProps<"div"> & {
     payload?: any[];

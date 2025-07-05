@@ -1,5 +1,5 @@
 import React from "react";
-import { safeForwardRef } from "@/lib/forwardRefWrapper";
+import { createRefForwarder } from "@/lib/createRefForwarder";
 
 import * as LabelPrimitive from "@radix-ui/react-label"
 import { Slot } from "@radix-ui/react-slot"
@@ -70,7 +70,7 @@ type FormItemContextValue = {
 const FormItemContext = React.createContext<FormItemContextValue>(
   {} as FormItemContextValue
 
-const FormItem = safeForwardRef<
+const FormItem = createRefForwarder<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => {
@@ -84,7 +84,7 @@ const FormItem = safeForwardRef<
 })
 FormItem.displayName = "FormItem"
 
-const FormLabel = safeForwardRef<
+const FormLabel = createRefForwarder<
   React.ElementRef<typeof LabelPrimitive.Root>,
   React.ComponentPropsWithoutRef<typeof LabelPrimitive.Root>
 >(({ className, ...props }, ref) => {
@@ -101,7 +101,7 @@ const FormLabel = safeForwardRef<
 })
 FormLabel.displayName = "FormLabel"
 
-const FormControl = safeForwardRef<
+const FormControl = createRefForwarder<
   React.ElementRef<typeof Slot>,
   React.ComponentPropsWithoutRef<typeof Slot>
 >(({ ...props }, ref) => {
@@ -123,7 +123,7 @@ const FormControl = safeForwardRef<
 })
 FormControl.displayName = "FormControl"
 
-const FormDescription = safeForwardRef<
+const FormDescription = createRefForwarder<
   HTMLParagraphElement,
   React.HTMLAttributes<HTMLParagraphElement>
 >(({ className, ...props }, ref) => {
@@ -140,7 +140,7 @@ const FormDescription = safeForwardRef<
 })
 FormDescription.displayName = "FormDescription"
 
-const FormMessage = safeForwardRef<
+const FormMessage = createRefForwarder<
   HTMLParagraphElement,
   React.HTMLAttributes<HTMLParagraphElement>
 >(({ className, children, ...props }, ref) => {

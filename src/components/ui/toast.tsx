@@ -1,5 +1,5 @@
 import React from "react";
-import { safeForwardRef } from "@/lib/forwardRefWrapper";
+import { createRefForwarder } from "@/lib/createRefForwarder";
 
 import * as ToastPrimitives from "@radix-ui/react-toast"
 import { cva, type VariantProps } from "class-variance-authority"
@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils"
 
 const ToastProvider = ToastPrimitives.Provider
 
-const ToastViewport = safeForwardRef<
+const ToastViewport = createRefForwarder<
   React.ElementRef<typeof ToastPrimitives.Viewport>,
   React.ComponentPropsWithoutRef<typeof ToastPrimitives.Viewport>
 >(({ className, ...props }, ref) => (
@@ -39,7 +39,7 @@ const toastVariants = cva(
     },
   },
 
-const Toast = safeForwardRef<
+const Toast = createRefForwarder<
   React.ElementRef<typeof ToastPrimitives.Root>,
   React.ComponentPropsWithoutRef<typeof ToastPrimitives.Root> &
     VariantProps<typeof toastVariants>
@@ -54,7 +54,7 @@ const Toast = safeForwardRef<
 })
 Toast.displayName = ToastPrimitives.Root?.displayName || 'Toast'
 
-const ToastAction = safeForwardRef<
+const ToastAction = createRefForwarder<
   React.ElementRef<typeof ToastPrimitives.Action>,
   React.ComponentPropsWithoutRef<typeof ToastPrimitives.Action>
 >(({ className, ...props }, ref) => (
@@ -69,7 +69,7 @@ const ToastAction = safeForwardRef<
 ))
 ToastAction.displayName = ToastPrimitives.Action?.displayName || 'ToastAction'
 
-const ToastClose = safeForwardRef<
+const ToastClose = createRefForwarder<
   React.ElementRef<typeof ToastPrimitives.Close>,
   React.ComponentPropsWithoutRef<typeof ToastPrimitives.Close>
 >(({ className, ...props }, ref) => (
@@ -87,7 +87,7 @@ const ToastClose = safeForwardRef<
 ))
 ToastClose.displayName = ToastPrimitives.Close?.displayName || 'ToastClose'
 
-const ToastTitle = safeForwardRef<
+const ToastTitle = createRefForwarder<
   React.ElementRef<typeof ToastPrimitives.Title>,
   React.ComponentPropsWithoutRef<typeof ToastPrimitives.Title>
 >(({ className, ...props }, ref) => (
@@ -99,7 +99,7 @@ const ToastTitle = safeForwardRef<
 ))
 ToastTitle.displayName = ToastPrimitives.Title?.displayName || 'ToastTitle'
 
-const ToastDescription = safeForwardRef<
+const ToastDescription = createRefForwarder<
   React.ElementRef<typeof ToastPrimitives.Description>,
   React.ComponentPropsWithoutRef<typeof ToastPrimitives.Description>
 >(({ className, ...props }, ref) => (

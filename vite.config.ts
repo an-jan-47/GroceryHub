@@ -74,39 +74,24 @@ export default defineConfig(({ mode }) => ({
       cache: false,
       external: ['@capacitor/app'],
       output: {
-        // Ensure React is loaded first
-        entryFileNames: 'assets/[name]-[hash].js',
-        // Modified chunk strategy to keep React and its exports together
+        // Simplified chunk strategy
         manualChunks: (id) => {
-          // React and React DOM must be in a single chunk with highest priority
+          // Keep React and ReactDOM in a single chunk
           if (id.includes('node_modules/react') || 
               id.includes('node_modules/react-dom') || 
               id.includes('node_modules/scheduler')) {
-            return 'react-vendor';
+            return 'vendor-react';
           }
-          // Keep all other node_modules in a separate vendor chunk
+          // All other node_modules
           if (id.includes('node_modules')) {
             return 'vendor';
           }
-          // Keep components together
-          if (id.includes('src/components')) {
-            return 'components';
-          }
-          // Keep pages together
-          if (id.includes('src/pages')) {
-            return 'pages';
-          }
-        },
-        // Ensure react-vendor chunk is loaded first by naming convention
-        chunkFileNames: (chunkInfo) => {
-          if (chunkInfo.name === 'react-vendor') {
-            return 'assets/react-vendor-[hash].js';
-          }
-          return 'assets/[name]-[hash].js';
+          // App code
+          return 'app';
         }
       }
     },
-    cssCodeSplit: true,
+    cssCodeSplit: false, // Keep CSS in a single file for simplicity
     minify: mode !== 'development',
     write: true,
     copyPublicDir: true,
