@@ -33,7 +33,8 @@ public class MainActivity extends BridgeActivity {
         // Critical settings for React
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
-        settings.setCacheMode(WebSettings.LOAD_CACHE_ELSE_NETWORK);
+        // Change from LOAD_CACHE_ELSE_NETWORK to LOAD_DEFAULT
+        settings.setCacheMode(WebSettings.LOAD_DEFAULT);
         settings.setAllowFileAccess(true);
         settings.setAllowContentAccess(true);
         

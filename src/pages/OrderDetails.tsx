@@ -28,7 +28,9 @@ const OrderDetails = () => {
       if (!id) throw new Error('No order ID provided');
       return await getOrderById(id);
     },
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 0, // Change from 5 minutes to 0
+    refetchOnMount: true,
+    refetchOnWindowFocus: true
   });
   
   // Set up real-time subscription to order updates

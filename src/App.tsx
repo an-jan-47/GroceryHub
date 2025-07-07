@@ -60,7 +60,8 @@ const queryClient = new QueryClient({
       staleTime: 0, // Set to 0 to force fresh data
       cacheTime: 0, // Disable caching
       refetchOnWindowFocus: true,
-      refetchOnMount: true
+      refetchOnMount: true,
+      refetchInterval: 5000 // Add polling every 5 seconds for critical data
     }
   }
 });
