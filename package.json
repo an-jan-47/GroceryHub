@@ -4,14 +4,14 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-  "dev": "vite",
-  "build": "vite build",
-  "build:android": "vite build && node copy-android-assets.js",
-  "cap:sync": "npx cap sync",
-  "cap:run": "npx cap run android",
-  "android:full": "npm run build:android && npm run cap:sync && npm run cap:run",
-  "cap:open": "npx cap open android"
-},
+    "dev": "vite",
+    "build": "vite build",
+    "build:android": "vite build && node copy-android-assets.js",
+    "cap:sync": "npx cap sync",
+    "cap:run": "npx cap run android",
+    "android:full": "npm run build:android && npm run cap:sync && npm run cap:run",
+    "cap:open": "npx cap open android"
+  },
   "devDependencies": {
     "@capacitor/cli": "^7.4.1",
     "@capacitor/core": "^7.4.1",
