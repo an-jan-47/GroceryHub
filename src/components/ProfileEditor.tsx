@@ -98,20 +98,19 @@ const ProfileEditor = () => {
       const { error } = await supabase
         .from('profiles')
         .update({
-          name: name.trim(),
-          phone: phone.trim()
+          name: sanitizeInput(name),
+          phone: sanitizeInput(phone)
         })
         .eq('id', user.id);
   
-      if (error) {
-        console.error('Profile update error:', error);
-        throw error;
+      if (error) throw error;
+      
+      // Add this to force refresh user data in AuthContext
+      if (user.user_metadata) {
+        user.user_metadata.name = name;
       }
       
-      // Update local state
-      setProfile(prev => prev ? { ...prev, name: name.trim(), phone: phone.trim() } : null);
-      
-      // Invalidate queries
+      // Invalidate any queries that might use profile data
       queryClient.invalidateQueries({ queryKey: ['profile'] });
       queryClient.invalidateQueries({ queryKey: ['user'] });
       
@@ -119,15 +118,10 @@ const ProfileEditor = () => {
       toast("Profile updated", {
         description: "Your profile has been updated successfully"
       });
-
-      // Reset success message after 3 seconds
-      setTimeout(() => {
-        setSaveSuccess(false);
-      }, 3000);
     } catch (error) {
       console.error('Error updating profile:', error);
       toast("Update failed", {
-        description: "There was a problem updating your profile. Please try again."
+        description: "There was a problem updating your profile"
       });
     } finally {
       setIsSaving(false);

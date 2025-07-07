@@ -11,6 +11,10 @@ import android.webkit.WebResourceResponse;
 import android.util.Log;
 import android.webkit.ConsoleMessage;
 import android.webkit.WebChromeClient;
+import android.content.Intent;
+import android.content.ActivityNotFoundException;
+import android.net.Uri;
+import android.webkit.DownloadListener;
 
 import com.getcapacitor.BridgeActivity;
 
@@ -38,6 +42,21 @@ public class MainActivity extends BridgeActivity {
         settings.setAllowFileAccess(true);
         settings.setAllowContentAccess(true);
         
+        // Enable file downloads
+        settings.setAllowFileAccessFromFileURLs(true);
+        settings.setAllowUniversalAccessFromFileURLs(true);
+        
+        // Set download listener
+        webView.setDownloadListener(new DownloadListener() {
+            @Override
+            public void onDownloadStart(String url, String userAgent, String contentDisposition, 
+                                        String mimetype, long contentLength) {
+                Intent intent = new Intent(Intent.ACTION_VIEW);
+                intent.setData(Uri.parse(url));
+                startActivity(intent);
+            }
+        });
+        
         // Ensure network requests work properly
         settings.setBlockNetworkLoads(false);
         settings.setBlockNetworkImage(false);
@@ -60,6 +79,30 @@ public class MainActivity extends BridgeActivity {
         // Set a custom WebViewClient that DOESN'T load error.html
         webView.setWebViewClient(new WebViewClient() {
             @Override
+            public boolean shouldOverrideUrlLoading(WebView view, String url) {
+                // Handle tel:, mailto:, and WhatsApp links
+                if (url.startsWith("tel:") || url.startsWith("mailto:") || 
+                    url.startsWith("https://wa.me/") || url.startsWith("whatsapp:")) {
+                    Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+                    try {
+                        startActivity(intent);
+                        return true; // Indicate we handled the URL
+                    } catch (ActivityNotFoundException e) {
+                        Log.e(TAG, "No activity found to handle URL: " + url, e);
+                        // Fall back to browser if no app is available
+                        return false;
+                    }
+                }
+                // Let the WebView handle all other URLs
+                return false;
+            }
+            
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                // Forward to the string version for API 21+
+                return shouldOverrideUrlLoading(view, request.getUrl().toString());
+            }
+            
             public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
                 Log.e(TAG, "WebView error: " + description + " (" + errorCode + ") for URL: " + failingUrl);
                 // Don't load error.html - just log the error
