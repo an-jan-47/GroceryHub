@@ -36,7 +36,6 @@ import HelpSupport from "./pages/HelpSupport";
 import TermsOfUse from "./pages/TermsOfUse";
 import ReturnPolicy from "./pages/ReturnPolicy";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
-import DeleteAccount from "./pages/DeleteAccount"; // Add this line
 
 // Providers
 import { CartProvider } from "./hooks/useCart";
@@ -118,7 +117,6 @@ const AppContent = () => {
         <Route path="/privacy-settings" element={<ProtectedRoute><PrivacySettings /></ProtectedRoute>} />
         <Route path="/about-us" element={<AboutUs />} />
         <Route path="/help-support" element={<HelpSupport />} />
-        <Route path="/delete-account" element={<ProtectedRoute><DeleteAccount /></ProtectedRoute>} /> {/* Add this line */}
         <Route path="/coupons" element={<Coupons />} />
         <Route path="/wishlist" element={<Wishlist />} />
         <Route path="*" element={<NotFound />} />
