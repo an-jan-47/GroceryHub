@@ -10,8 +10,7 @@
   "cap:sync": "npx cap sync",
   "cap:run": "npx cap run android",
   "android:full": "npm run build:android && npm run cap:sync && npm run cap:run",
-  "cap:open": "npx cap open android",
-  "postinstall": "powershell -Command \"(Get-Content node_modules/@capacitor/android/capacitor/build.gradle) -replace 'VERSION_21', 'VERSION_17' | Set-Content node_modules/@capacitor/android/capacitor/build.gradle; (Get-Content node_modules/@capacitor/app/android/build.gradle) -replace 'VERSION_21', 'VERSION_17' | Set-Content node_modules/@capacitor/app/android/build.gradle\""
+  "cap:open": "npx cap open android"
 },
   "devDependencies": {
     "@capacitor/cli": "^7.4.1",
