@@ -1,7 +1,6 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import { fileURLToPath, URL } from "node:url";
-import path from 'path';
 
 export default defineConfig(({ mode }) => ({
   base: './',
@@ -72,39 +71,16 @@ export default defineConfig(({ mode }) => ({
     sourcemap: mode === 'development',
     rollupOptions: {
       cache: false,
-      external: ['@capacitor/app'],
-      output: {
-        manualChunks: (id) => {
-          // Put React and ReactDOM in a separate chunk
-          if (id.includes('node_modules/react') || 
-              id.includes('node_modules/react-dom') || 
-              id.includes('node_modules/scheduler')) {
-            return 'vendor-react';
-          }
-          
-          // Put other UI libraries in their own chunk
-          if (id.includes('node_modules/@radix-ui') || 
-              id.includes('node_modules/sonner')) {
-            return 'vendor-ui';
-          }
-          
-          // All other node_modules
-          if (id.includes('node_modules')) {
-            return 'vendor-other';
-          }
-          
-          // App code
-          return 'app';
-        }
-      }
+      external: ['@capacitor/app']
+      // 🚨🚨 NO manualChunks here 🚨🚨
     },
-    cssCodeSplit: false, // Keep CSS in a single file for simplicity
-    minify: true, // Always minify for production
-    target: 'es2015', // Target more modern browsers for better performance
+    cssCodeSplit: false,
+    minify: true,
+    target: 'es2015',
     write: true,
     copyPublicDir: true,
     chunkSizeWarningLimit: 1000,
-    assetsInlineLimit: 4096, // Inline small assets
+    assetsInlineLimit: 4096,
   },
   define: {
     'process.env.NODE_DEBUG': 'false',
