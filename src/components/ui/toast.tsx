@@ -1,3 +1,4 @@
+
 import React from "react";
 import { createRefForwarder } from "@/lib/createRefForwarder";
 
@@ -37,7 +38,8 @@ const toastVariants = cva(
     defaultVariants: {
       variant: "default",
     },
-  },
+  }
+)
 
 const Toast = createRefForwarder<
   React.ElementRef<typeof ToastPrimitives.Root>,
@@ -50,7 +52,7 @@ const Toast = createRefForwarder<
       className={cn(toastVariants({ variant }), className)}
       {...props}
     />
-  
+  )
 })
 Toast.displayName = ToastPrimitives.Root?.displayName || 'Toast'
 

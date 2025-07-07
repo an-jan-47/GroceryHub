@@ -1,3 +1,4 @@
+
 import React from "react";
 import { createRefForwarder } from "@/lib/createRefForwarder";
 
@@ -34,7 +35,7 @@ const CommandDialog = ({ children, ...props }: CommandDialogProps) => {
         </Command>
       </DialogContent>
     </Dialog>
-  
+  )
 }
 
 const CommandInput = createRefForwarder<
@@ -138,7 +139,7 @@ const CommandShortcut = ({
       )}
       {...props}
     />
-  
+  )
 }
 CommandShortcut.displayName = "CommandShortcut"
 

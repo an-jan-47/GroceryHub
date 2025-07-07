@@ -1,3 +1,4 @@
+
 import React from "react";
 import { createRefForwarder } from "@/lib/createRefForwarder";
 
@@ -159,7 +160,7 @@ const DropdownMenuSeparator = createRefForwarder<
 >(({ className, ...props }, ref) => (
   <DropdownMenuPrimitive.Separator
     ref={ref}
-    className={cn("-mx-1 my-1 h-px bg-muted", className)}
+    className={cn("-mx-1 h-px bg-muted", className)}
     {...props}
   />
 ))
@@ -174,7 +175,7 @@ const DropdownMenuShortcut = ({
       className={cn("ml-auto text-xs tracking-widest opacity-60", className)}
       {...props}
     />
-  
+  )
 }
 DropdownMenuShortcut.displayName = "DropdownMenuShortcut"
 
@@ -188,10 +189,10 @@ export {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuShortcut,
-  DropdownMenuGroup,
-  DropdownMenuPortal,
   DropdownMenuSub,
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
+  DropdownMenuGroup,
+  DropdownMenuPortal,
   DropdownMenuRadioGroup,
 }

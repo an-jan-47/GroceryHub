@@ -1,3 +1,4 @@
+
 import React from "react";
 import { createRefForwarder } from "@/lib/createRefForwarder";
 
@@ -85,25 +86,21 @@ MenubarSubContent.displayName = MenubarPrimitive.SubContent?.displayName || 'Men
 const MenubarContent = createRefForwarder<
   React.ElementRef<typeof MenubarPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof MenubarPrimitive.Content>
->(
-  (
-    { className, align = "start", alignOffset = -4, sideOffset = 8, ...props },
-    ref
-  ) => (
-    <MenubarPrimitive.Portal>
-      <MenubarPrimitive.Content
-        ref={ref}
-        align={align}
-        alignOffset={alignOffset}
-        sideOffset={sideOffset}
-        className={cn(
-          "z-50 min-w-[12rem] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
-          className
-        )}
-        {...props}
-      />
-    </MenubarPrimitive.Portal>
-
+>(({ className, align = "start", alignOffset = -4, sideOffset = 8, ...props }, ref) => (
+  <MenubarPrimitive.Portal>
+    <MenubarPrimitive.Content
+      ref={ref}
+      align={align}
+      alignOffset={alignOffset}
+      sideOffset={sideOffset}
+      className={cn(
+        "z-50 min-w-[12rem] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
+        className
+      )}
+      {...props}
+    />
+  </MenubarPrimitive.Portal>
+))
 MenubarContent.displayName = MenubarPrimitive.Content?.displayName || 'MenubarContent'
 
 const MenubarItem = createRefForwarder<
@@ -193,7 +190,7 @@ const MenubarSeparator = createRefForwarder<
 >(({ className, ...props }, ref) => (
   <MenubarPrimitive.Separator
     ref={ref}
-    className={cn("-mx-1 my-1 h-px bg-muted", className)}
+    className={cn("-mx-1 h-px bg-muted", className)}
     {...props}
   />
 ))
@@ -211,9 +208,9 @@ const MenubarShortcut = ({
       )}
       {...props}
     />
-  
+  )
 }
-MenubarShortcut.displayname = "MenubarShortcut"
+MenubarShortcut.displayName = "MenubarShortcut"
 
 export {
   Menubar,
@@ -224,7 +221,6 @@ export {
   MenubarSeparator,
   MenubarLabel,
   MenubarCheckboxItem,
-  MenubarRadioGroup,
   MenubarRadioItem,
   MenubarPortal,
   MenubarSubContent,
@@ -232,4 +228,5 @@ export {
   MenubarGroup,
   MenubarSub,
   MenubarShortcut,
+  MenubarRadioGroup,
 }
