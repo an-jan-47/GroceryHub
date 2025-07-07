@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>  
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <!-- Add this script to ensure proper initialization -->
+    <script>
+      // Ensure localStorage is available
+      try {
+        window.localStorage.setItem('test', 'test');
+        window.localStorage.removeItem('test');
+      } catch (e) {
+        // Create a polyfill if localStorage is not available
+        window.localStorage = {
+          _data: {},
+          setItem: function(id, val) { this._data[id] = String(val); },
+          getItem: function(id) { return this._data.hasOwnProperty(id) ? this._data[id] : null; },
+          removeItem: function(id) { delete this._data[id]; },
+          clear: function() { this._data = {}; }
+        };
+      }
+      
+      // Handle uncaught errors during initialization
+      window.onerror = function(message, source, lineno, colno, error) {
+        console.error('Caught by window.onerror:', message, error);
+        document.getElementById('error-container').style.display = 'flex';
+        return true;
+      };
+    </script>
+    
+    <link rel="icon" type="image/x-icon" href="public/favicon.ico" />
+    <title>GroceryHub</title>
+    <meta name="description" content="Where convenience and quality meets" />
+    <meta name="author" content="GroceryHub" />
+
+    <style>
+      #error-container {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: white;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        z-index: 9999;
+      }
+      .error-box {
+        max-width: 80%;
+        text-align: center;
+      }
+      .error-title {
+        color: #e53e3e;
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+      }
+      .error-message {
+        color: #4a5568;
+        margin-bottom: 1.5rem;
+      }
+      .error-button {
+        background-color: #3182ce;
+        color: white;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 0.25rem;
+        font-size: 1rem;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="root"></div>
+    
+    <!-- Fallback error container -->
+    <div id="error-container">
+      <div class="error-box">
+        <h1 class="error-title">Something went wrong</h1>
+        <p class="error-message">We encountered an unexpected error while loading the application.</p>
+        <button class="error-button" onclick="window.location.reload()">Reload App</button>
+      </div>
+    </div>
+    
+    <!-- Load your app code using standard Vite approach -->
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

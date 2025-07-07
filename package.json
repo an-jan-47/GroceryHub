@@ -4,19 +4,18 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
-    "build:dev": "vite build --mode development",
-    "preview": "vite preview",
-    "clean": "rimraf dist .vite android/app/build",
-    "cap:sync": "npm run build && npx cap sync",
-    "cap:open": "npx cap open android",
-    "cap:run": "npx cap run android",
-    "postinstall": "powershell -Command \"(Get-Content node_modules/@capacitor/android/capacitor/build.gradle) -replace 'VERSION_21', 'VERSION_17' | Set-Content node_modules/@capacitor/android/capacitor/build.gradle; (Get-Content node_modules/@capacitor/app/android/build.gradle) -replace 'VERSION_21', 'VERSION_17' | Set-Content node_modules/@capacitor/app/android/build.gradle\""
-  },
+  "dev": "vite",
+  "build": "vite build",
+  "build:android": "vite build && node copy-android-assets.js",
+  "cap:sync": "npx cap sync",
+  "cap:run": "npx cap run android",
+  "android:full": "npm run build:android && npm run cap:sync && npm run cap:run",
+  "cap:open": "npx cap open android",
+  "postinstall": "powershell -Command \"(Get-Content node_modules/@capacitor/android/capacitor/build.gradle) -replace 'VERSION_21', 'VERSION_17' | Set-Content node_modules/@capacitor/android/capacitor/build.gradle; (Get-Content node_modules/@capacitor/app/android/build.gradle) -replace 'VERSION_21', 'VERSION_17' | Set-Content node_modules/@capacitor/app/android/build.gradle\""
+},
   "devDependencies": {
-    "@capacitor/cli": "^7.3.0",
-    "@capacitor/core": "^7.3.0",
+    "@capacitor/cli": "^7.4.1",
+    "@capacitor/core": "^7.4.1",
     "@eslint/eslintrc": "^3.3.1",
     "@eslint/js": "^9.30.1",
     "@types/react": "^18.2.0",
@@ -44,10 +43,10 @@
     "typescript-eslint": "^8.35.1",
     "url": "^0.11.4",
     "util": "^0.12.5",
-    "vite": "^6.3.5"
+    "vite": "^5.4.19"
   },
   "dependencies": {
-    "@capacitor/android": "^7.3.0",
+    "@capacitor/android": "^7.4.1",
     "@capacitor/app": "^7.0.1",
     "@radix-ui/react-accordion": "^1.2.11",
     "@radix-ui/react-alert-dialog": "^1.1.14",
@@ -79,7 +78,6 @@
     "@react-pdf/renderer": "^4.3.0",
     "@supabase/supabase-js": "^2.50.0",
     "@tanstack/react-query": "^5.80.6",
-    "capacitor-swipe-back-plugin": "^2.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",

@@ -43,11 +43,21 @@ export const initializeApp = async (): Promise<void> => {
     });
   } else if ('serviceWorker' in navigator) {
     // In development, ensure service workers are unregistered
-    navigator.serviceWorker.getRegistrations().then(registrations => {
-      for (const registration of registrations) {
-        registration.unregister();
-      }
-    });
+    // Update the service worker section in initializeApp function
+    
+    // Always unregister service workers
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(registrations => {
+        for (const registration of registrations) {
+          registration.unregister();
+        }
+      });
+      
+      // Clear all caches
+      caches.keys().then(cacheNames => {
+        Promise.all(cacheNames.map(cacheName => caches.delete(cacheName)));
+      });
+    }
   }
   
   // Setup global error handling

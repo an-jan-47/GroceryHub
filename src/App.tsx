@@ -73,23 +73,6 @@ const AppContent = () => {
   useEffect(() => {
     const isCapacitor = !!(window as any).Capacitor;
     if (isCapacitor) {
-      // Initialize GestureHelper if available
-      const initGestureHelper = async () => {
-        try {
-          // @ts-ignore - Custom plugin
-          const { Plugins } = await import('@capacitor/core');
-          if (Plugins.GestureHelper) {
-            console.log('Initializing GestureHelper');
-            await Plugins.GestureHelper.enableEdgeToEdge();
-            await Plugins.GestureHelper.disableZoom();
-            console.log('GestureHelper initialized successfully');
-          }
-        } catch (err) {
-          console.error('Error initializing GestureHelper:', err);
-        }
-      };
-      initGestureHelper();
-      
       // Add this to ensure proper history management
       window.addEventListener('popstate', (event) => {
         console.log('popstate event', event);
@@ -148,35 +131,59 @@ const AppContent = () => {
 
 const App = () => {
   const [isInitialized, setIsInitialized] = useState(false);
+  const [initError, setInitError] = useState<Error | null>(null);
 
   useEffect(() => {
     const initialize = async () => {
-      await initializeApp();
-      setupPerformanceMonitoring();
-      setIsInitialized(true);
+      try {
+        await initializeApp();
+        setupPerformanceMonitoring();
+        setIsInitialized(true);
+      } catch (error) {
+        console.error('Failed to initialize app:', error);
+        setInitError(error instanceof Error ? error : new Error('Unknown initialization error'));
+        setIsInitialized(true); // Still mark as initialized so we can show error UI
+      }
     };
     initialize();
   }, []);
 
+  if (initError) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-white p-4">
+        <h1 className="text-2xl font-bold text-red-600 mb-4">Something went wrong</h1>
+        <p className="text-gray-700 mb-4">We encountered an error while starting the app.</p>
+        <button 
+          onClick={() => window.location.reload()} 
+          className="bg-blue-600 text-white px-4 py-2 rounded-md"
+        >
+          Reload App
+        </button>
+      </div>
+    );
+  }
+
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="light" attribute="class">
-        <AuthProvider>
-          {!isInitialized ? (
-            <LoadingScreen />
-          ) : (
-            <CartProvider>
-              <CouponStateProvider>
-                <TooltipProvider>
-                  <ErrorBoundary>
-                    <AppContent />
-                    <Toaster />
-                  </ErrorBoundary>
-                </TooltipProvider>
-              </CouponStateProvider>
-            </CartProvider>
-          )}
-        </AuthProvider>
+        <ErrorBoundary>
+          <AuthProvider>
+            {!isInitialized ? (
+              <LoadingScreen />
+            ) : (
+              <CartProvider>
+                <CouponStateProvider>
+                  <TooltipProvider>
+                    <ErrorBoundary>
+                      <AppContent />
+                      <Toaster />
+                    </ErrorBoundary>
+                  </TooltipProvider>
+                </CouponStateProvider>
+              </CartProvider>
+            )}
+          </AuthProvider>
+        </ErrorBoundary>
       </ThemeProvider>
     </QueryClientProvider>
   );  

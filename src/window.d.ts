@@ -1,6 +1,4 @@
+// Keep only standard interface extensions if needed
 interface Window {
-  React: typeof import('react');
-  whenReactIsReady: (callback: () => void) => void;
-  createRefForwarder: <T, P = {}>(render: (props: P, ref: React.Ref<T>) => React.ReactElement | null) => any;
-  unifiedForwardRef: <T, P = {}>(render: (props: P, ref: React.Ref<T>) => React.ReactElement | null) => any;
+  // Any other global properties your app needs
 }

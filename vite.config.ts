@@ -4,7 +4,7 @@ import { fileURLToPath, URL } from "node:url";
 import path from 'path';
 
 export default defineConfig(({ mode }) => ({
-  base: '/',
+  base: './',
   server: {
     host: "::",
     port: 8080,
@@ -74,28 +74,37 @@ export default defineConfig(({ mode }) => ({
       cache: false,
       external: ['@capacitor/app'],
       output: {
-        // Simplified chunk strategy
         manualChunks: (id) => {
-          // Keep React and ReactDOM in a single chunk
+          // Put React and ReactDOM in a separate chunk
           if (id.includes('node_modules/react') || 
               id.includes('node_modules/react-dom') || 
               id.includes('node_modules/scheduler')) {
             return 'vendor-react';
           }
+          
+          // Put other UI libraries in their own chunk
+          if (id.includes('node_modules/@radix-ui') || 
+              id.includes('node_modules/sonner')) {
+            return 'vendor-ui';
+          }
+          
           // All other node_modules
           if (id.includes('node_modules')) {
-            return 'vendor';
+            return 'vendor-other';
           }
+          
           // App code
           return 'app';
         }
       }
     },
     cssCodeSplit: false, // Keep CSS in a single file for simplicity
-    minify: mode !== 'development',
+    minify: true, // Always minify for production
+    target: 'es2015', // Target more modern browsers for better performance
     write: true,
     copyPublicDir: true,
-    chunkSizeWarningLimit: 1000
+    chunkSizeWarningLimit: 1000,
+    assetsInlineLimit: 4096, // Inline small assets
   },
   define: {
     'process.env.NODE_DEBUG': 'false',

@@ -3,57 +3,95 @@ package com.groceryhub.app;
 import android.os.Bundle;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
+import android.webkit.WebViewClient;
+import android.content.Context;
+import android.webkit.WebResourceError;
+import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
+import android.util.Log;
+import android.webkit.ConsoleMessage;
+import android.webkit.WebChromeClient;
 
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
+    private static final String TAG = "MainActivity";
+    
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         
-        // Register our plugins
-        registerPlugin(GestureHelper.class);
-        
         // Configure WebView for better navigation
         WebView webView = this.bridge.getWebView();
+        
+        // Enable WebView debugging first
+        WebView.setWebContentsDebuggingEnabled(true);
+        
+        // Inside onCreate method
         WebSettings settings = webView.getSettings();
         
-        // Add these configurations
+        // Critical settings for React
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
+        settings.setCacheMode(WebSettings.LOAD_CACHE_ELSE_NETWORK);
         settings.setAllowFileAccess(true);
         settings.setAllowContentAccess(true);
-        settings.setCacheMode(WebSettings.LOAD_NO_CACHE); // Change to NO_CACHE
-        settings.setLoadWithOverviewMode(true);
-        settings.setUseWideViewPort(true);
         
-        // Disable zooming
-        settings.setBuiltInZoomControls(false);
-        settings.setDisplayZoomControls(false);
-        settings.setSupportZoom(false);
-        
-        // Set text zoom to 100% to prevent text scaling
-        settings.setTextZoom(100);
-        
-        // Enable DOM storage for better state management
-        settings.setDomStorageEnabled(true);
-        
-        // Enable JavaScript
-        settings.setJavaScriptEnabled(true);
-        
-        // Add this to ensure scripts load properly
+        // Ensure network requests work properly
         settings.setBlockNetworkLoads(false);
         settings.setBlockNetworkImage(false);
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
         
-        // Initialize GestureHelper
-        try {
-            GestureHelper gestureHelper = new GestureHelper();
-            gestureHelper.setBridge(this.bridge);
-            gestureHelper.load();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        // Improve WebView performance
+        settings.setRenderPriority(WebSettings.RenderPriority.HIGH);
+        settings.setTextZoom(100); // Prevent text scaling issues
+        
+        // Add console logging
+        webView.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public boolean onConsoleMessage(ConsoleMessage consoleMessage) {
+                Log.d(TAG, "Console: " + consoleMessage.message() + " at line " + 
+                      consoleMessage.lineNumber() + " of " + consoleMessage.sourceId());
+                return true;
+            }
+        });
+        
+        // Set a custom WebViewClient that DOESN'T load error.html
+        webView.setWebViewClient(new WebViewClient() {
+            @Override
+            public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
+                Log.e(TAG, "WebView error: " + description + " (" + errorCode + ") for URL: " + failingUrl);
+                // Don't load error.html - just log the error
+                
+                // Try to reload the page on connection errors
+                if (errorCode == WebViewClient.ERROR_CONNECT || 
+                    errorCode == WebViewClient.ERROR_HOST_LOOKUP ||
+                    errorCode == WebViewClient.ERROR_TIMEOUT) {
+                    view.reload();
+                }
+            }
+            
+            @Override
+            public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
+                Log.e(TAG, "WebView resource error: " + error.getDescription() + " (" + error.getErrorCode() + ") for URL: " + request.getUrl());
+                // Don't load error.html - just log the error
+                
+                // Only try to reload for main frame errors, not resource errors
+                if (request.isForMainFrame()) {
+                    int errorCode = error.getErrorCode();
+                    if (errorCode == WebViewClient.ERROR_CONNECT || 
+                        errorCode == WebViewClient.ERROR_HOST_LOOKUP ||
+                        errorCode == WebViewClient.ERROR_TIMEOUT) {
+                        view.reload();
+                    }
+                }
+            }
+            
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                Log.d(TAG, "Page loaded: " + url);
+            }
+        });
     }
     
     @Override

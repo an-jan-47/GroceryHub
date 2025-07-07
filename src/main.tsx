@@ -1,24 +1,24 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
-import { history } from './history';
 import './index.css';
 
-import { unstable_HistoryRouter as HistoryRouter } from 'react-router-dom';
+import { BrowserRouter } from 'react-router-dom';
 
-// Make React available globally
-window.React = React;
-
-// Ensure React is fully initialized before rendering
-window.whenReactIsReady(() => {
+// Wait for the device to be ready when using Capacitor
+const initialize = async () => {
+  // Standard React initialization
   const rootElement = document.getElementById('root');
   if (rootElement) {
     createRoot(rootElement).render(
-      <HistoryRouter history={history}>
+      <BrowserRouter>
         <App />
-      </HistoryRouter>
+      </BrowserRouter>
     );
   } else {
     console.error('Root element not found');
   }
-});
+};
+
+// Start the app
+initialize();
