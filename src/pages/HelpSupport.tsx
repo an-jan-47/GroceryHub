@@ -71,7 +71,8 @@ const HelpSupport = () => {
                     <p className="text-sm text-gray-500">Available 24/7</p>
                   </div>
                 </div>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-0">
+                  
                   <Button
                     variant="ghost"
                     size="sm"
@@ -82,7 +83,7 @@ const HelpSupport = () => {
                   >
                     <Copy className="h-4 w-4" />
                   </Button>
-                  <ExternalLink className="h-5 w-5 text-gray-400" />
+                  <ExternalLink className="h-5 w-4 text-gray-400" />
                 </div>
               </div>
             </CardContent>
@@ -102,7 +103,7 @@ const HelpSupport = () => {
                     <p className="text-sm text-gray-500">We'll respond within 24 hours</p>
                   </div>
                 </div>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-0">
                   <Button
                     variant="ghost"
                     size="sm"
@@ -113,7 +114,7 @@ const HelpSupport = () => {
                   >
                     <Copy className="h-4 w-4" />
                   </Button>
-                  <ExternalLink className="h-5 w-5 text-gray-400" />
+                  <ExternalLink className="h-5 w-4 text-gray-400" />
                 </div>
               </div>
             </CardContent>
@@ -176,6 +177,9 @@ const HelpSupport = () => {
               <div className="space-y-2">
                 <Link to="/terms-of-use" className="block text-blue-600 hover:underline">Terms of Use</Link>
                 <Link to="/return-policy" className="block text-blue-600 hover:underline">Return Policy</Link>
+                <Link to="/return-policy" className="block text-blue-600 hover:underline">Privacy Policy</Link>
+                <Link to="/delete-account" className="block text-red-600 hover:underline">Delete Account</Link>
+              
               </div>
             </CardContent>
           </Card>
