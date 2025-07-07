@@ -1,3 +1,4 @@
+
 import React from "react";
 import { createRefForwarder } from "@/lib/createRefForwarder";
 
@@ -25,7 +26,8 @@ const toggleVariants = cva(
       variant: "default",
       size: "default",
     },
-  },
+  }
+)
 
 const Toggle = createRefForwarder<
   React.ElementRef<typeof TogglePrimitive.Root>,

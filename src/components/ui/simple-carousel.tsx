@@ -1,3 +1,4 @@
+
 import React from "react";
 import { createRefForwarder } from "@/lib/createRefForwarder";
 
@@ -20,9 +21,9 @@ const SimpleCarousel = createRefForwarder<HTMLDivElement, SimpleCarouselProps>(
       >
         {children}
       </div>
-    
+    )
   }
-
+)
 SimpleCarousel.displayName = "SimpleCarousel"
 
 const SimpleCarouselContent = createRefForwarder<
@@ -37,7 +38,7 @@ const SimpleCarouselContent = createRefForwarder<
         {...props}
       />
     </div>
-  
+  )
 })
 SimpleCarouselContent.displayName = "SimpleCarouselContent"
 
@@ -51,7 +52,7 @@ const SimpleCarouselItem = createRefForwarder<
       className={cn("min-w-0 shrink-0 grow-0 basis-full", className)}
       {...props}
     />
-  
+  )
 })
 SimpleCarouselItem.displayName = "SimpleCarouselItem"
 

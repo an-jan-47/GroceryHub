@@ -1,3 +1,4 @@
+
 import React from "react";
 import { createRefForwarder } from "@/lib/createRefForwarder";
 
@@ -53,7 +54,7 @@ const ToggleGroupItem = createRefForwarder<
     >
       {children}
     </ToggleGroupPrimitive.Item>
-  
+  )
 })
 
 ToggleGroupItem.displayName = ToggleGroupPrimitive.Item?.displayName || 'ToggleGroupItem'

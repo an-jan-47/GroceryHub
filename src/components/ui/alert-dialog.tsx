@@ -1,3 +1,4 @@
+
 import React from "react";
 import { createRefForwarder } from "@/lib/createRefForwarder";
 
@@ -56,7 +57,7 @@ const AlertDialogHeader = ({
     )}
     {...props}
   />
-
+)
 AlertDialogHeader.displayName = "AlertDialogHeader"
 
 const AlertDialogFooter = ({
@@ -70,7 +71,7 @@ const AlertDialogFooter = ({
     )}
     {...props}
   />
-
+)
 AlertDialogFooter.displayName = "AlertDialogFooter"
 
 const AlertDialogTitle = createRefForwarder<
