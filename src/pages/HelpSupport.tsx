@@ -177,7 +177,7 @@ const HelpSupport = () => {
               <div className="space-y-2">
                 <Link to="/terms-of-use" className="block text-blue-600 hover:underline">Terms of Use</Link>
                 <Link to="/return-policy" className="block text-blue-600 hover:underline">Return Policy</Link>
-                <Link to="/return-policy" className="block text-blue-600 hover:underline">Privacy Policy</Link>
+                <Link to="/privacy-policy" className="block text-blue-600 hover:underline">Privacy Policy</Link>
                 <Link to="/delete-account" className="block text-red-600 hover:underline">Delete Account</Link>
               
               </div>
