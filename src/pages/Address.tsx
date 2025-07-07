@@ -29,7 +29,10 @@ const AddressPage = () => {
   const { data: addresses = [], isLoading: isLoadingAddresses } = useQuery({
     queryKey: ['addresses'],
     queryFn: getAddresses,
-    enabled: !!user
+    enabled: !!user,
+    staleTime: 0, // Add this to ensure fresh data
+    refetchOnMount: true,
+    refetchOnWindowFocus: true
   });
 
   useEffect(() => {

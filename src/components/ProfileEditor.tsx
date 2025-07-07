@@ -85,40 +85,34 @@ const ProfileEditor = () => {
     }
 
     try {
-      setSaveSuccess(false);
       setIsSaving(true);
-
-      const sanitizedName = sanitizeInput(name);
-      const sanitizedPhone = sanitizeInput(phone);
-
-      const { error: profileError } = await supabase
+      const { error } = await supabase
         .from('profiles')
         .update({
-          name: sanitizedName,
-          phone: sanitizedPhone,
-          updated_at: new Date().toISOString()
+          name: sanitizeInput(name),
+          phone: sanitizeInput(phone)
         })
         .eq('id', user.id);
-
-      if (profileError) throw profileError;
-
-      const { error: authError } = await supabase.auth.updateUser({
-        data: { name: sanitizedName, phone: sanitizedPhone }
-      });
-
-      if (authError) throw authError;
-
-      toast("Profile updated", {
-        description: "Your profile has been successfully updated"
-      });
-
+  
+      if (error) throw error;
+      
+      // Add this to force refresh user data in AuthContext
+      if (user.user_metadata) {
+        user.user_metadata.name = name;
+      }
+      
+      // Invalidate any queries that might use profile data
+      queryClient.invalidateQueries({ queryKey: ['profile'] });
+      queryClient.invalidateQueries({ queryKey: ['user'] });
+      
       setSaveSuccess(true);
-      setProfile(prev => prev ? { ...prev, name: sanitizedName, phone: sanitizedPhone } : null);
-
+      toast("Profile updated", {
+        description: "Your profile has been updated successfully"
+      });
     } catch (error) {
       console.error('Error updating profile:', error);
       toast("Update failed", {
-        description: "There was an error updating your profile"
+        description: "There was a problem updating your profile"
       });
     } finally {
       setIsSaving(false);
