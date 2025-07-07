@@ -1,3 +1,4 @@
+
 import React from "react";
 import { createRefForwarder } from "@/lib/createRefForwarder";
 
@@ -54,7 +55,7 @@ const InputOTPSlot = createRefForwarder<
         </div>
       )}
     </div>
-  
+  )
 })
 InputOTPSlot.displayName = "InputOTPSlot"
 

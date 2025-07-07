@@ -1,3 +1,4 @@
+
 import React from "react";
 import { createRefForwarder } from "@/lib/createRefForwarder";
 
@@ -13,6 +14,7 @@ const Drawer = ({
     shouldScaleBackground={shouldScaleBackground}
     {...props}
   />
+)
 
 Drawer.displayName = "Drawer"
 
@@ -63,6 +65,7 @@ const DrawerHeader = ({
     className={cn("grid gap-1.5 p-4 text-center sm:text-left", className)}
     {...props}
   />
+)
 
 DrawerHeader.displayName = "DrawerHeader"
 
@@ -74,6 +77,7 @@ const DrawerFooter = ({
     className={cn("mt-auto flex flex-col gap-2 p-4", className)}
     {...props}
   />
+)
 
 DrawerFooter.displayName = "DrawerFooter"
 
