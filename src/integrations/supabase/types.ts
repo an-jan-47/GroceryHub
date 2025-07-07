@@ -919,6 +919,10 @@ export type Database = {
         Args: { product_id: string; quantity: number }
         Returns: undefined
       }
+      delete_user_data: {
+        Args: { user_id_param: string }
+        Returns: undefined
+      }
       get_dashboard_stats: {
         Args: Record<PropertyKey, never>
         Returns: {

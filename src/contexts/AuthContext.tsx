@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
 import { Session, User } from '@supabase/supabase-js';
@@ -12,7 +13,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
-  deleteAccount: () => Promise<void>; // Add the deleteAccount function
+  deleteAccount: () => Promise<void>;
   loading: boolean;
 }
 
@@ -179,59 +180,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Add the deleteAccount function
   const deleteAccount = async () => {
     try {
       setLoading(true);
       
-      if (!user) throw new Error("No user is logged in");
-      
-      // First, delete user data from all related tables
-      // This ensures we clean up all user data before removing the account
-      const userId = user.id;
-      
-      // Delete user data from various tables
-      // We'll use transactions to ensure all operations succeed or fail together
-      const { error: dataError } = await supabase.rpc('delete_user_data', { user_id: userId });
-      
-      if (dataError) {
-        console.error('Error deleting user data:', dataError);
-        throw dataError;
+      if (!user || !session) {
+        throw new Error("No user is logged in");
       }
       
-      // Now delete the user authentication record
-      // We'll use the client-side method which is allowed for users to delete their own accounts
-      const { error: authError } = await supabase.auth.admin.deleteUser(userId, { shouldSoftDelete: true });
+      console.log('Starting account deletion process for user:', user.id);
       
-      if (authError) {
-        // If the admin method fails, try a different approach
-        // Create a custom endpoint in your API to handle user deletion securely
-        const { error: deleteError } = await supabase.functions.invoke('delete-user', {
-          body: { user_id: userId }
-        });
-        
-        if (deleteError) throw deleteError;
+      // Call our edge function to delete the account
+      const { data, error } = await supabase.functions.invoke('delete-user-account', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+      
+      if (error) {
+        console.error('Error calling delete function:', error);
+        throw error;
       }
       
-      // Clear local storage
+      console.log('Account deletion response:', data);
+      
+      // Clear local storage and session
       localStorage.clear();
+      sessionStorage.clear();
       
-      // Sign out the user
+      // Sign out locally (the user is already deleted on the server)
       await supabase.auth.signOut();
+      
+      // Reset local state
+      setUser(null);
+      setSession(null);
       
       toast('Account deleted successfully', {
         description: 'Your account has been permanently deleted.'
       });
+      
+      // Force redirect to login page
+      window.location.href = '/login';
+      
     } catch (error: any) {
-      // Log the detailed error for debugging
       console.error('Account deletion error:', error);
       
-      // Display a generic message to the user
       toast('Account deletion failed', {
         description: 'Unable to delete your account. Please try again later.'
       });
       
-      // Throw a sanitized error
       throw new Error('Account deletion failed');
     } finally {
       setLoading(false);
@@ -247,7 +244,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signIn,
         signInWithGoogle,
         signOut,
-        deleteAccount, // Add the deleteAccount function to the context
+        deleteAccount,
         loading,
       }}>
       {children}
