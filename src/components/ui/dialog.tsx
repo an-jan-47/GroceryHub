@@ -1,3 +1,4 @@
+
 import React from "react";
 import { createRefForwarder } from "@/lib/createRefForwarder";
 
@@ -64,9 +65,8 @@ const DialogHeader = ({
     )}
     {...props}
   />
-
-  )
-  DialogHeader.displayName = "DialogHeader"
+)
+DialogHeader.displayName = "DialogHeader"
 
 const DialogFooter = ({
   className,
@@ -79,9 +79,8 @@ const DialogFooter = ({
     )}
     {...props}
   />
-
-  );
-  DialogFooter.displayName = "DialogFooter"
+)
+DialogFooter.displayName = "DialogFooter"
 
 const DialogTitle = createRefForwarder<
   React.ElementRef<typeof DialogPrimitive.Title>,

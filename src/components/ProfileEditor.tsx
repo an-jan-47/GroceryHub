@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from "react";
 
+import React, { useState, useEffect } from "react";
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -9,7 +10,6 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { toast } from '@/components/ui/sonner';
 import { User, Mail, Phone, Shield, Lock } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { sanitizeInput } from '@/services/securityService';
 
 interface Profile {
   id: string;
@@ -20,6 +20,7 @@ interface Profile {
 
 const ProfileEditor = () => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [name, setName] = useState('');
@@ -48,7 +49,15 @@ const ProfileEditor = () => {
               email: user.email
             };
 
-            await supabase.from('profiles').insert(newProfile);
+            const { error: insertError } = await supabase
+              .from('profiles')
+              .insert(newProfile);
+
+            if (insertError) {
+              console.error('Error creating profile:', insertError);
+              throw insertError;
+            }
+
             setProfile(newProfile);
             setName(newProfile.name);
             setPhone(newProfile.phone || '');
@@ -89,19 +98,20 @@ const ProfileEditor = () => {
       const { error } = await supabase
         .from('profiles')
         .update({
-          name: sanitizeInput(name),
-          phone: sanitizeInput(phone)
+          name: name.trim(),
+          phone: phone.trim()
         })
         .eq('id', user.id);
   
-      if (error) throw error;
-      
-      // Add this to force refresh user data in AuthContext
-      if (user.user_metadata) {
-        user.user_metadata.name = name;
+      if (error) {
+        console.error('Profile update error:', error);
+        throw error;
       }
       
-      // Invalidate any queries that might use profile data
+      // Update local state
+      setProfile(prev => prev ? { ...prev, name: name.trim(), phone: phone.trim() } : null);
+      
+      // Invalidate queries
       queryClient.invalidateQueries({ queryKey: ['profile'] });
       queryClient.invalidateQueries({ queryKey: ['user'] });
       
@@ -109,10 +119,15 @@ const ProfileEditor = () => {
       toast("Profile updated", {
         description: "Your profile has been updated successfully"
       });
+
+      // Reset success message after 3 seconds
+      setTimeout(() => {
+        setSaveSuccess(false);
+      }, 3000);
     } catch (error) {
       console.error('Error updating profile:', error);
       toast("Update failed", {
-        description: "There was a problem updating your profile"
+        description: "There was a problem updating your profile. Please try again."
       });
     } finally {
       setIsSaving(false);
@@ -225,7 +240,7 @@ const ProfileEditor = () => {
           <Button
             type="submit"
             disabled={isSaving}
-            className="w-full sm:w-auto bg-primaryBlue hover:bg-primaryBlue-dark text-white"
+            className="w-full sm:w-auto bg-blue-500 hover:bg-blue-600 text-white"
           >
             {isSaving ? 'Saving...' : 'Save Changes'}
           </Button>
