@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { toast } from '@/components/ui/sonner';
 
@@ -13,12 +14,14 @@ export interface CartItem {
 
 interface CartContextType {
   items: CartItem[];
+  cartItems: CartItem[]; // Alias for backward compatibility
   addToCart: (product: any, quantity?: number) => void;
   removeFromCart: (productId: string) => void;
   updateQuantity: (productId: string, quantity: number) => void;
   clearCart: () => void;
   getTotalPrice: () => number;
   getTotalItems: () => number;
+  totalItems: number; // Computed property for backward compatibility
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -128,12 +131,14 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   return (
     <CartContext.Provider value={{
       items,
+      cartItems: items, // Alias for backward compatibility
       addToCart,
       removeFromCart,
       updateQuantity,
       clearCart,
       getTotalPrice,
       getTotalItems,
+      totalItems: getTotalItems(), // Computed property
     }}>
       {children}
     </CartContext.Provider>

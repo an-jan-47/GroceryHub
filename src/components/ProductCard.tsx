@@ -16,7 +16,7 @@ interface ProductCardProps {
 
 // Update the discount percentage calculation in the ProductCard component
 const ProductCard = ({ product, className, showBuyNow = false }: ProductCardProps) => {
-  const { addToCart, cartItems, updateQuantity } = useCart();
+  const { addToCart, items: cartItems, updateQuantity } = useCart();
   const navigate = useNavigate();
   
   const handleAddToCart = (e: React.MouseEvent) => {
@@ -74,7 +74,7 @@ const ProductCard = ({ product, className, showBuyNow = false }: ProductCardProp
   
   // Get quantity in cart
   const getQuantityInCart = () => {
-    const item = cartItems.find(item => item.id === product.id);
+    const item = cartItems.find((item: any) => item.id === product.id);
     return item ? item.quantity : 0;
   };
   

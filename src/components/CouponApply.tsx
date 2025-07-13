@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 
 import { Link, useNavigate } from 'react-router-dom';
@@ -16,7 +17,7 @@ import { useCart } from '@/hooks/useCart';
 const CouponApply = () => {
   const navigate = useNavigate();
   const { addCoupon, appliedCoupons } = useCouponState();
-  const { cartItems } = useCart();
+  const { items: cartItems } = useCart();
 
   // Fetch all active coupons
   const { data: coupons = [], isLoading } = useQuery({
@@ -58,7 +59,7 @@ const CouponApply = () => {
     }
 
     try {
-      const cartTotal = cartItems.reduce((total, item) => {
+      const cartTotal = cartItems.reduce((total: number, item: any) => {
         const itemPrice = item.salePrice || item.price;
         return total + (itemPrice * item.quantity);
       }, 0);
