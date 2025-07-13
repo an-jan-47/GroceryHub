@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
     // Create user account
     const { data: userData, error: userError } = await supabaseClient.auth.admin.createUser({
       email: email,
-      password: pendingUser.password_hash, // This won't work as expected, we need a different approach
+      password: pendingUser.password_hash,
       email_confirm: true,
       user_metadata: {
         name: pendingUser.name,
@@ -89,17 +89,10 @@ Deno.serve(async (req) => {
       .delete()
       .eq('email', email);
 
-    // Generate session for the new user
-    const { data: sessionData, error: sessionError } = await supabaseClient.auth.admin.generateLink({
-      type: 'magiclink',
-      email: email
-    });
-
     return new Response(
       JSON.stringify({ 
         message: 'Account verified successfully',
-        user: userData.user,
-        session: sessionData
+        user: userData.user
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

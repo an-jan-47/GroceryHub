@@ -1,5 +1,7 @@
+
 // Import at the top of the file instead of using require
 import { createClient } from '@supabase/supabase-js';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 // Create a more robust safe storage object that handles all edge cases
 const safeStorage = {
@@ -34,9 +36,9 @@ const safeStorage = {
 };
 
 // Create a lazy-loaded Supabase client
-let supabaseInstance = null;
+let supabaseInstance: SupabaseClient | null = null;
 
-const createSupabaseClient = () => {
+const createSupabaseClient = (): SupabaseClient => {
   if (!supabaseInstance) {
     try {
       // Use the imported createClient directly instead of requiring it
@@ -60,7 +62,7 @@ const createSupabaseClient = () => {
           getSession: () => Promise.resolve({ data: { session: null } }),
           onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } })
         }
-      };
+      } as any;
     }
   }
   return supabaseInstance;
