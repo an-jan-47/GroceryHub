@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
 export interface CartItem {
@@ -65,12 +66,13 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const existingItem = prevItems.find(item => item.id === product.id);
       
       if (existingItem) {
+        // If item already exists, replace with the new quantity (don't add to existing)
         const updatedItems = prevItems.map(item =>
           item.id === product.id
             ? { 
                 ...item,
                 salePrice: product.salePrice || product.sale_price, // Handle both property names
-                quantity: Number(quantity) // Use the passed quantity directly instead of adding to existing
+                quantity: Number(quantity) // Use the passed quantity directly
               }
             : item
         );

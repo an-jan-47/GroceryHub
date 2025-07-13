@@ -93,7 +93,7 @@ const ProductDetailPage = () => {
         images: product.images,
         quantity: qty,
         stock: product.stock
-      });
+      }, qty);
       toast('Added to cart', {
         description: `${qty} × ${product.name}`
       });
@@ -104,7 +104,7 @@ const ProductDetailPage = () => {
   const handleBuyNow = (qty: number = quantity) => {
     if (product) {
       const total = (product.sale_price ?? product.price) * qty;
-      if (total <= 2000) {
+      if (total < 2000) {
         toast('Minimum order value is ₹2000 to proceed ', { position: 'bottom-center' });
         return;
       }
@@ -116,7 +116,7 @@ const ProductDetailPage = () => {
         images: product.images,
         quantity: qty,
         stock: product.stock
-      });
+      }, qty);
       navigate('/address');
     }
   };

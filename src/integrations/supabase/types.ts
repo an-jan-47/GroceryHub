@@ -595,6 +595,7 @@ export type Database = {
           created_at: string | null
           description: string
           features: Json | null
+          gst_rate: number | null
           hsn_number: string | null
           id: string
           images: string[]
@@ -613,6 +614,7 @@ export type Database = {
           created_at?: string | null
           description: string
           features?: Json | null
+          gst_rate?: number | null
           hsn_number?: string | null
           id?: string
           images: string[]
@@ -631,6 +633,7 @@ export type Database = {
           created_at?: string | null
           description?: string
           features?: Json | null
+          gst_rate?: number | null
           hsn_number?: string | null
           id?: string
           images?: string[]

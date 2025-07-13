@@ -75,6 +75,14 @@ const CartPage = () => {
     }
   };
 
+  // Handle direct quantity input
+  const handleQuantityInputChange = (itemId: string, value: string) => {
+    const newQuantity = parseInt(value) || 1;
+    if (newQuantity > 0 && newQuantity <= 999) {
+      updateQuantity(itemId, newQuantity);
+    }
+  };
+
   const handleCouponApply = async () => {
     if (!couponCode.trim()) {
       toast("Please enter a coupon code");
@@ -178,7 +186,14 @@ const CartPage = () => {
                           >
                             <Minus className="h-4 w-4" />
                           </Button>
-                          <span className="mx-3 font-medium">{item.quantity}</span>
+                          <Input
+                            type="number"
+                            min="1"
+                            max="999"
+                            value={item.quantity}
+                            onChange={(e) => handleQuantityInputChange(item.id, e.target.value)}
+                            className="w-16 h-8 text-center"
+                          />
                           <Button
                             variant="outline"
                             size="sm"
@@ -334,8 +349,6 @@ const CartPage = () => {
                     Checkout (Minimum ₹2000)
                   </Button>
                 )}
-                
-                {/* Clear Cart Button removed */}
               </div>
             </div>
           </>
