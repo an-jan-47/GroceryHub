@@ -18,6 +18,8 @@ import Explore from "./pages/Explore";
 import Profile from "./pages/Profile";
 import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
+import VerifySignup from "./pages/VerifySignup";
+import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 import Address from "./pages/Address";
 import Payment from "./pages/Payment";
@@ -36,7 +38,7 @@ import HelpSupport from "./pages/HelpSupport";
 import TermsOfUse from "./pages/TermsOfUse";
 import ReturnPolicy from "./pages/ReturnPolicy";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
-import DeleteAccount from "./pages/DeleteAccount"; // Add this line
+import DeleteAccount from "./pages/DeleteAccount";
 
 // Providers
 import { CartProvider } from "./hooks/useCart";
@@ -58,11 +60,11 @@ const queryClient = new QueryClient({
         }
         return failureCount < 2;
       },
-      staleTime: 0, // Set to 0 to force fresh data
-      cacheTime: 0, // Disable caching
+      staleTime: 0,
+      gcTime: 0,
       refetchOnWindowFocus: true,
       refetchOnMount: true,
-      refetchInterval: 5000 // Add polling every 5 seconds for critical data
+      refetchInterval: 5000
     }
   }
 });
@@ -112,13 +114,15 @@ const AppContent = () => {
         <Route path="/order/:id" element={<ProtectedRoute><OrderDetails /></ProtectedRoute>} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<SignUp />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} /> {/* Add this line */}
+        <Route path="/verify-signup" element={<VerifySignup />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/orders" element={<Navigate to="/order-history" replace />} />
         <Route path="/change-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
         <Route path="/privacy-settings" element={<ProtectedRoute><PrivacySettings /></ProtectedRoute>} />
         <Route path="/about-us" element={<AboutUs />} />
         <Route path="/help-support" element={<HelpSupport />} />
-        <Route path="/delete-account" element={<ProtectedRoute><DeleteAccount /></ProtectedRoute>} /> {/* Add this line */}
+        <Route path="/delete-account" element={<ProtectedRoute><DeleteAccount /></ProtectedRoute>} />
         <Route path="/coupons" element={<Coupons />} />
         <Route path="/wishlist" element={<Wishlist />} />
         <Route path="*" element={<NotFound />} />
@@ -145,7 +149,7 @@ const App = () => {
       } catch (error) {
         console.error('Failed to initialize app:', error);
         setInitError(error instanceof Error ? error : new Error('Unknown initialization error'));
-        setIsInitialized(true); // Still mark as initialized so we can show error UI
+        setIsInitialized(true);
       }
     };
     initialize();

@@ -3,3 +3,15 @@ project_id = "wvhtcmtmxazcetbwgyyz"
 
 [functions.delete-user-account]
 verify_jwt = true
+
+[functions.send-signup-otp]
+verify_jwt = false
+
+[functions.verify-signup-otp]
+verify_jwt = false
+
+[functions.send-reset-otp]
+verify_jwt = false
+
+[functions.verify-reset-otp]
+verify_jwt = false
