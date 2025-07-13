@@ -1,8 +1,6 @@
-
 import { Toaster } from '@/components/ui/sonner';
-import React from 'react';
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body>

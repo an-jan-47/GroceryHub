@@ -39,12 +39,19 @@ Deno.serve(async (req) => {
     const { data: otpData } = await supabaseClient.rpc('generate_otp');
     const otp = otpData;
 
-    // Store pending user data (password will be hashed by Supabase auth when user is created)
+    // Hash password
+    const encoder = new TextEncoder();
+    const data = encoder.encode(password);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const passwordHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+    // Store pending user data
     const { error: pendingUserError } = await supabaseClient
       .from('pending_users')
       .upsert({
         email,
-        password_hash: password, // We'll let Supabase handle the actual hashing
+        password_hash: passwordHash,
         name,
         phone: phone || null
       });
@@ -75,13 +82,23 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`Generated OTP for ${email}: ${otp}`);
+    // Send OTP email (using Supabase's built-in email service)
+    const { error: emailError } = await supabaseClient.auth.admin.inviteUserByEmail(email, {
+      data: {
+        otp_code: otp,
+        type: 'signup_otp'
+      },
+      redirectTo: `${req.headers.get('origin')}/verify-signup`
+    });
+
+    if (emailError) {
+      console.error('Error sending email:', emailError);
+    }
 
     return new Response(
       JSON.stringify({ 
         message: 'OTP sent successfully',
-        email: email,
-        otp: otp // In production, remove this - only for testing
+        email: email
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

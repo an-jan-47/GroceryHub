@@ -57,13 +57,23 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`Generated password reset OTP for ${email}: ${otp}`);
+    // Send OTP email
+    const { error: emailError } = await supabaseClient.auth.admin.inviteUserByEmail(email, {
+      data: {
+        otp_code: otp,
+        type: 'password_reset_otp'
+      },
+      redirectTo: `${req.headers.get('origin')}/reset-password`
+    });
+
+    if (emailError) {
+      console.error('Error sending email:', emailError);
+    }
 
     return new Response(
       JSON.stringify({ 
         message: 'Password reset OTP sent successfully',
-        email: email,
-        otp: otp // In production, remove this - only for testing
+        email: email
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

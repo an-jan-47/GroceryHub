@@ -37,10 +37,7 @@ const ProductsGrid: React.FC<ProductsGridProps> = ({
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
       {displayProducts.map((product) => (
         <div key={product.id}>
-          <ProductCard product={{
-            ...product,
-            review_count: product.review_count || 0 // Add default value
-          }} />
+          <ProductCard product={product} />
         </div>
       ))}
     </div>
