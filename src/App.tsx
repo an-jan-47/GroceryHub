@@ -83,53 +83,51 @@ const AppContent = () => {
   }, []);
 
   return (
-    <ErrorBoundary>
-      <Routes>
-        <Route path="/" element={<Index />} />
-        <Route path="/product/:productId" element={<ProductDetail />} />
-        <Route path="/cart" element={<Cart />} />
-        <Route path="/address" element={
-          <ProtectedRoute>
-            <OrderCompletedGuard>
-              <Address />
-            </OrderCompletedGuard>
-          </ProtectedRoute>
-        } />
-        <Route path="/payment" element={
-          <ProtectedRoute>
-            <OrderCompletedGuard>
-              <ErrorBoundary>
-                <Payment />
-              </ErrorBoundary>
-            </OrderCompletedGuard>
-          </ProtectedRoute>
-        } />
-        <Route path="/order-confirmation" element={<ProtectedRoute><OrderConfirmation /></ProtectedRoute>} />
-        <Route path="/explore" element={<Explore />} />
-        <Route path="/categories" element={<Categories />} />
-        <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-        <Route path="/order-history" element={<ProtectedRoute><OrderHistory /></ProtectedRoute>} />
-        <Route path="/order/:id" element={<ProtectedRoute><OrderDetails /></ProtectedRoute>} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<SignUp />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="/orders" element={<Navigate to="/order-history" replace />} />
-        <Route path="/change-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
-        <Route path="/privacy-settings" element={<ProtectedRoute><PrivacySettings /></ProtectedRoute>} />
-        <Route path="/about-us" element={<AboutUs />} />
-        <Route path="/help-support" element={<HelpSupport />} />
-        <Route path="/delete-account" element={<ProtectedRoute><DeleteAccount /></ProtectedRoute>} />
-        <Route path="/coupons" element={<Coupons />} />
-        <Route path="/wishlist" element={<Wishlist />} />
-        <Route path="*" element={<NotFound />} />
-        <Route path="/write-review/:productId" element={<ProtectedRoute><WriteReview /></ProtectedRoute>} />
-        <Route path="/terms-of-use" element={<TermsOfUse />} />
-        <Route path="/return-policy" element={<ReturnPolicy />} />
-        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-        <Route path="/payment-details" element={<PaymentDetails />} />
-      </Routes>
-    </ErrorBoundary>
+    <Routes>
+      <Route path="/" element={<Index />} />
+      <Route path="/product/:productId" element={<ProductDetail />} />
+      <Route path="/cart" element={<Cart />} />
+      <Route path="/address" element={
+        <ProtectedRoute>
+          <OrderCompletedGuard>
+            <Address />
+          </OrderCompletedGuard>
+        </ProtectedRoute>
+      } />
+      <Route path="/payment" element={
+        <ProtectedRoute>
+          <OrderCompletedGuard>
+            <ErrorBoundary>
+              <Payment />
+            </ErrorBoundary>
+          </OrderCompletedGuard>
+        </ProtectedRoute>
+      } />
+      <Route path="/order-confirmation" element={<ProtectedRoute><OrderConfirmation /></ProtectedRoute>} />
+      <Route path="/explore" element={<Explore />} />
+      <Route path="/categories" element={<Categories />} />
+      <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+      <Route path="/order-history" element={<ProtectedRoute><OrderHistory /></ProtectedRoute>} />
+      <Route path="/order/:id" element={<ProtectedRoute><OrderDetails /></ProtectedRoute>} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/signup" element={<SignUp />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/orders" element={<Navigate to="/order-history" replace />} />
+      <Route path="/change-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
+      <Route path="/privacy-settings" element={<ProtectedRoute><PrivacySettings /></ProtectedRoute>} />
+      <Route path="/about-us" element={<AboutUs />} />
+      <Route path="/help-support" element={<HelpSupport />} />
+      <Route path="/delete-account" element={<ProtectedRoute><DeleteAccount /></ProtectedRoute>} />
+      <Route path="/coupons" element={<Coupons />} />
+      <Route path="/wishlist" element={<Wishlist />} />
+      <Route path="*" element={<NotFound />} />
+      <Route path="/write-review/:productId" element={<ProtectedRoute><WriteReview /></ProtectedRoute>} />
+      <Route path="/terms-of-use" element={<TermsOfUse />} />
+      <Route path="/return-policy" element={<ReturnPolicy />} />
+      <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+      <Route path="/payment-details" element={<PaymentDetails />} />
+    </Routes>
   );
 };
 
