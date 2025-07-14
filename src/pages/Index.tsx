@@ -1,180 +1,76 @@
 
-import React, { useState, useCallback } from "react";
-
-import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import Header from "@/components/Header";
-import BottomNavigation from "@/components/BottomNavigation";
-import ProductsGrid from "@/components/ProductsGrid";
-import PopularProducts from "@/components/PopularProducts";
-import SearchFilters from "@/components/SearchFilters";
-import { useNavigationGestures } from "@/hooks/useNavigationGestures";
-import { useQuery } from "@tanstack/react-query";
-import { getCategories } from "@/services/categoryService";
-import { getProducts } from "@/services/productService";
-import { searchProducts, type SearchFiltersType } from "@/services/searchService";
-import BannerCarousel from "@/components/BannerCarousel";
+import React, { useState } from 'react';
+import Header from '@/components/Header';
+import BottomNavigation from '@/components/BottomNavigation';
+import ProductCard from '@/components/ProductCard';
+import SearchFilters from '@/components/SearchFilters';
+import { useSearchProducts } from '@/hooks/useSearchProducts';
+import { SearchFiltersType } from '@/services/searchService';
 
 const Index = () => {
-  console.log('Index page rendering');
-  
   const [filters, setFilters] = useState<SearchFiltersType>({
     query: '',
     category: '',
-    minPrice: undefined,
-    maxPrice: undefined,
+    minPrice: 0,
+    maxPrice: 10000,
     sortBy: 'name',
     sortOrder: 'asc',
     brands: [],
-    categories: []
-  });
-  const [isSearchActive, setIsSearchActive] = useState(false);
-
-  const { data: categories = [] } = useQuery({
-    queryKey: ['categories'],
-    queryFn: getCategories
+    inStock: false
   });
 
-  const { data: featuredProducts = [] } = useQuery({
-    queryKey: ['featuredProducts'],
-    queryFn: () => getProducts()
-  });
+  const { data: products = [], isLoading } = useSearchProducts(filters);
 
-  const { data: searchResults = [], isLoading: isSearching } = useQuery({
-    queryKey: ['searchProducts', filters],
-    queryFn: () => searchProducts(filters),
-    enabled: isSearchActive && (!!filters.query || !!filters.category || filters.minPrice !== undefined || filters.maxPrice !== undefined),
-    staleTime: 1000 * 60 * 5,
-  });
+  const handleFilterChange = (newFilters: SearchFiltersType) => {
+    setFilters(newFilters);
+  };
 
-  // Memoized filter change handler to prevent infinite loops
-  const handleFilterChange = useCallback((newFilters: SearchFiltersType) => {
-    console.log('Index: Filter change received:', newFilters);
-    // Only set filters and activate search if there are actual filter values
-    if (newFilters.query || newFilters.category || newFilters.minPrice !== undefined || newFilters.maxPrice !== undefined) {
-      setFilters(newFilters);
-      setIsSearchActive(true);
-    }
-  }, []);
-
-  const clearSearch = () => {
-    console.log('Index: Clearing search');
+  const handleClearFilters = () => {
     setFilters({
       query: '',
       category: '',
-      minPrice: undefined,
-      maxPrice: undefined,
+      minPrice: 0,
+      maxPrice: 10000,
       sortBy: 'name',
       sortOrder: 'asc',
       brands: [],
-      categories: []
+      inStock: false
     });
-    setIsSearchActive(false);
   };
 
   return (
-    <div className="pb-20 bg-gray-50 min-h-screen">
+    <div className="pb-20">
       <Header />
-
+      
       <main className="container px-4 py-4 mx-auto">
-        <div className="mb-6">
-          <SearchFilters 
-            onFilterChange={handleFilterChange}
-            initialQuery=""
-          />
-        </div>
-
-        {isSearchActive ? (
-          <div className="mb-8">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">Search Results</h2>
-              <Button 
-                onClick={clearSearch} 
-                variant="outline"
-                className="text-sm"
-              >
-                Clear Search
-              </Button>
-            </div>
-
-            {isSearching ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {Array.from({ length: 8 }).map((_, i) => (
-                  <div key={`search-loading-${i}`} className="bg-gray-200 animate-pulse rounded-lg h-64"></div>
-                ))}
-              </div>
-            ) : searchResults.length > 0 ? (
-              <ProductsGrid customProducts={searchResults} />
-            ) : (
-              <div className="text-center py-12">
-                <p className="text-gray-500 text-lg">No products found</p>
-                <p className="text-gray-400">Try adjusting your search or filters</p>
-              </div>
-            )}
+        <h1 className="text-2xl font-bold mb-6">Welcome to GroceryHub</h1>
+        
+        <SearchFilters 
+          onFilterChange={handleFilterChange}
+          initialFilters={filters}
+        />
+        
+        {isLoading ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-6">
+            {[...Array(8)].map((_, i) => (
+              <div key={i} className="h-64 bg-gray-100 animate-pulse rounded-lg"></div>
+            ))}
           </div>
         ) : (
-          <>
-            {/* Static Banner */}
-            <BannerCarousel />
-
-            {/* Shop by Category Section */}
-            <div className="mb-8">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold text-gray-800">Shop by Category</h2>
-                <Link 
-                  to="/categories" 
-                  className="text-blue-600 hover:text-blue-800 font-medium"
-                >
-                  View All
-                </Link>
-              </div>
-
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {categories.slice(0, 6).map((category) => (
-                  <Link
-                    key={category.id}
-                    to={`/explore?category=${encodeURIComponent(category.name)}`}
-                    className="group"
-                  >
-                    <div className="relative overflow-hidden rounded-lg bg-gray-100 transition-all duration-300 group-hover:shadow-lg">
-                      <div className="aspect-[4/3]">
-                        <img
-                          src={category.image || '/placeholder.svg'}
-                          alt={category.name}
-                          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                        />
-                      </div>
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent">
-                        <div className="absolute bottom-0 p-4 text-white">
-                          <h3 className="text-lg font-semibold">{category.name}</h3>
-                          <p className="text-sm opacity-90">{category.description}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            </div>
-
-            <PopularProducts />
-
-            <div className="mb-8">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold">Featured Products</h2>
-                <Link 
-                  to="/explore" 
-                  className="text-blue-600 hover:text-blue-800 font-medium"
-                >
-                  View All
-                </Link>
-              </div>
-
-              <ProductsGrid customProducts={featuredProducts.slice(0, 8)} />
-            </div>
-          </>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-6">
+            {products.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        )}
+        
+        {!isLoading && products.length === 0 && (
+          <div className="text-center py-8">
+            <p className="text-gray-500">No products found.</p>
+          </div>
         )}
       </main>
-
+      
       <BottomNavigation />
     </div>
   );

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useCart } from '@/hooks/useCart';
@@ -47,7 +46,7 @@ const Cart: React.FC = () => {
 
   const calculateDiscountedTotal = () => {
     if (appliedCoupons.length > 0) {
-      const totalDiscount = appliedCoupons.reduce((sum, coupon) => sum + coupon.discount_amount, 0);
+      const totalDiscount = appliedCoupons.reduce((sum, coupon) => sum + coupon.discountAmount, 0);
       return cartTotal - totalDiscount;
     }
     return cartTotal;
@@ -159,9 +158,9 @@ const Cart: React.FC = () => {
                 <span>₹{cartTotal.toFixed(2)}</span>
               </div>
               {appliedCoupons.length > 0 && appliedCoupons.map((coupon) => (
-                <div key={coupon.id} className="flex justify-between mb-2 text-green-500">
-                  <span>Coupon Discount ({coupon.code}):</span>
-                  <span>-₹{coupon.discount_amount.toFixed(2)}</span>
+                <div key={coupon.coupon.id} className="flex justify-between mb-2 text-green-500">
+                  <span>Coupon Discount ({coupon.coupon.code}):</span>
+                  <span>-₹{coupon.discountAmount.toFixed(2)}</span>
                 </div>
               ))}
               <Separator className="my-2" />
@@ -191,9 +190,9 @@ const Cart: React.FC = () => {
                 </Button>
               </div>
               {appliedCoupons.length > 0 && appliedCoupons.map((coupon) => (
-                <div key={coupon.id} className="mt-2 text-sm text-gray-500">
-                  Applied Coupon: {coupon.code} ({coupon.discount_amount}% off)
-                  <Button variant="link" onClick={() => handleCouponRemove(coupon.id)} className="ml-2">
+                <div key={coupon.coupon.id} className="mt-2 text-sm text-gray-500">
+                  Applied Coupon: {coupon.coupon.code} ({coupon.discountAmount}% off)
+                  <Button variant="link" onClick={() => handleCouponRemove(coupon.coupon.id)} className="ml-2">
                     Remove
                   </Button>
                 </div>

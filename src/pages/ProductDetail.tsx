@@ -1,58 +1,30 @@
-
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Share2, ShoppingCart, Plus, Minus, Star, Heart } from 'lucide-react';
+import React, { useState } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import { ArrowLeft, Star, ShoppingCart, Plus, Minus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
+import { Separator } from '@/components/ui/separator';
+import { toast } from '@/components/ui/sonner';
 import { useCart } from '@/hooks/useCart';
-import { useToast } from '@/hooks/use-toast';
-import { getProductById } from '@/services/productService';
-import { getProductReviews } from '@/services/reviewService';
+import { useProductDetail } from '@/hooks/useProductDetail';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
-import ReviewForm from '@/components/ReviewForm';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import { Product, CartItem } from '@/types';
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-  const { toast } = useToast();
-  const { addToCart, getItemQuantity } = useCart();
   const [quantity, setQuantity] = useState(1);
-  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-  const [isWishlisted, setIsWishlisted] = useState(false);
+  const { addToCart, getItemQuantity } = useCart();
+  
+  const { data: product, isLoading, error } = useProductDetail(id || '');
 
-  const { data: product, isLoading: productLoading, error: productError } = useQuery({
-    queryKey: ['product', id],
-    queryFn: () => getProductById(id!),
-    enabled: !!id,
-  });
-
-  const { data: reviews = [], isLoading: reviewsLoading } = useQuery({
-    queryKey: ['reviews', id],
-    queryFn: () => getProductReviews(id!),
-    enabled: !!id,
-  });
-
-  useEffect(() => {
-    if (productError) {
-      toast({
-        title: "Error",
-        description: "Failed to load product details",
-        variant: "destructive",
-      });
-    }
-  }, [productError, toast]);
-
-  if (productLoading) {
+  if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="pb-20">
         <Header />
-        <div className="flex items-center justify-center h-96">
+        <div className="flex justify-center items-center min-h-screen">
           <LoadingSpinner />
         </div>
         <BottomNavigation />
@@ -60,352 +32,190 @@ const ProductDetail = () => {
     );
   }
 
-  if (!product) {
+  if (error) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="pb-20">
         <Header />
-        <div className="flex flex-col items-center justify-center h-96 space-y-4">
-          <h2 className="text-2xl font-bold text-gray-700">Product not found</h2>
-          <Button onClick={() => navigate('/')}>Go back to home</Button>
+        <div className="container px-4 py-8 mx-auto">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold mb-4">Product Not Found</h2>
+            <p className="text-gray-600 mb-4">The product you're looking for doesn't exist.</p>
+            <Link to="/" className="text-blue-600 hover:underline">
+              Go back to home
+            </Link>
+          </div>
         </div>
         <BottomNavigation />
       </div>
     );
   }
 
-  const currentQuantityInCart = getItemQuantity(product.id);
-  const isInStock = product.stock > 0;
-  const canAddMore = currentQuantityInCart + quantity <= product.stock;
+  if (!product) {
+    return null;
+  }
 
-  // Calculate pricing
-  const hasDiscount = product.sale_price && product.sale_price < product.price;
-  const displayPrice = product.sale_price || product.price;
-  const originalPrice = product.price;
-  const discountPercentage = hasDiscount 
-    ? Math.round(((originalPrice - displayPrice) / originalPrice) * 100)
-    : 0;
+  const currentQuantity = getItemQuantity(product.id);
+  const isOutOfStock = product.stock === 0;
+  const discount = product.sale_price ? 
+    Math.round(((product.price - product.sale_price) / product.price) * 100) : 0;
 
   const handleAddToCart = () => {
-    if (!canAddMore) {
-      toast({
-        title: "Stock Limit",
-        description: `Only ${product.stock - currentQuantityInCart} items available`,
-        variant: "destructive",
-      });
+    if (isOutOfStock) {
+      toast('Product is out of stock');
       return;
     }
 
-    addToCart({
+    const cartItem = {
       ...product,
       quantity: quantity
-    } as CartItem);
+    } as CartItem;
 
-    toast({
-      title: "Added to Cart",
-      description: `${quantity} ${product.name} added to cart`,
+    addToCart(cartItem, quantity);
+    toast('Added to cart!', {
+      description: `${quantity} x ${product.name} added to your cart.`
     });
   };
 
-  const handleShare = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: product.name,
-          text: product.description,
-          url: window.location.href,
-        });
-      } catch (error) {
-        console.log('Error sharing:', error);
-      }
-    } else {
-      // Fallback: copy to clipboard
-      navigator.clipboard.writeText(window.location.href);
-      toast({
-        title: "Link Copied",
-        description: "Product link copied to clipboard",
-      });
+  const handleQuantityChange = (newQuantity: number) => {
+    if (newQuantity >= 1 && newQuantity <= product.stock) {
+      setQuantity(newQuantity);
     }
   };
 
-  const toggleWishlist = () => {
-    setIsWishlisted(!isWishlisted);
-    toast({
-      title: isWishlisted ? "Removed from Wishlist" : "Added to Wishlist",
-      description: `${product.name} ${isWishlisted ? 'removed from' : 'added to'} your wishlist`,
-    });
-  };
-
-  const renderStars = (rating: number) => {
-    return Array.from({ length: 5 }, (_, i) => (
-      <Star
-        key={i}
-        className={`w-4 h-4 ${
-          i < rating 
-            ? 'text-yellow-400 fill-current' 
-            : 'text-gray-300'
-        }`}
-      />
-    ));
-  };
-
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div className="pb-20">
       <Header />
       
-      {/* Navigation Header */}
-      <div className="bg-white px-4 py-3 flex items-center justify-between border-b">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => navigate(-1)}
-          className="p-2"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </Button>
-        <div className="flex items-center space-x-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={toggleWishlist}
-            className="p-2"
-          >
-            <Heart 
-              className={`w-5 h-5 ${
-                isWishlisted ? 'text-red-500 fill-current' : 'text-gray-600'
-              }`} 
-            />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleShare}
-            className="p-2"
-          >
-            <Share2 className="w-5 h-5" />
-          </Button>
+      <main className="container px-4 py-4 mx-auto max-w-4xl">
+        <div className="flex items-center mb-4">
+          <Link to="/" className="flex items-center text-gray-600 hover:text-gray-800">
+            <ArrowLeft className="w-5 h-5 mr-1" />
+            Back to Products
+          </Link>
         </div>
-      </div>
 
-      <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
-        {/* Product Images */}
-        <Card>
-          <CardContent className="p-0">
-            <Carousel className="w-full">
-              <CarouselContent>
-                {product.images.map((image, index) => (
-                  <CarouselItem key={index}>
-                    <div className="aspect-square relative">
-                      <img
-                        src={image}
-                        alt={`${product.name} - Image ${index + 1}`}
-                        className="w-full h-full object-cover rounded-t-lg"
-                        onError={(e) => {
-                          e.currentTarget.src = '/api/placeholder/400/400';
-                        }}
-                      />
-                      {hasDiscount && (
-                        <Badge className="absolute top-4 left-4 bg-red-500 text-white">
-                          {discountPercentage}% OFF
-                        </Badge>
-                      )}
-                      {!isInStock && (
-                        <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-t-lg">
-                          <Badge variant="destructive" className="text-lg py-2 px-4">
-                            Out of Stock
-                          </Badge>
-                        </div>
-                      )}
-                    </div>
-                  </CarouselItem>
-                ))}
-              </CarouselContent>
-              {product.images.length > 1 && (
-                <>
-                  <CarouselPrevious className="left-4" />
-                  <CarouselNext className="right-4" />
-                </>
-              )}
-            </Carousel>
-          </CardContent>
-        </Card>
+        <div className="grid md:grid-cols-2 gap-8">
+          <div>
+            <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden mb-4">
+              <img 
+                src={product.images[0]} 
+                alt={product.name}
+                className="w-full h-full object-cover"
+              />
+            </div>
+          </div>
 
-        {/* Product Info */}
-        <Card>
-          <CardContent className="p-6 space-y-4">
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <Badge variant="secondary">{product.brand}</Badge>
-                <div className="flex items-center space-x-1">
-                  {renderStars(Math.floor(product.rating))}
-                  <span className="text-sm text-gray-600 ml-1">
-                    ({product.review_count} reviews)
+          <div>
+            <div className="mb-4">
+              <Badge variant="secondary" className="mb-2">
+                {product.category}
+              </Badge>
+              <h1 className="text-3xl font-bold mb-2">{product.name}</h1>
+              <div className="flex items-center mb-4">
+                <div className="flex items-center">
+                  {[...Array(5)].map((_, i) => (
+                    <Star
+                      key={i}
+                      className={`w-4 h-4 ${
+                        i < Math.floor(product.rating)
+                          ? 'text-yellow-400 fill-current'
+                          : 'text-gray-300'
+                      }`}
+                    />
+                  ))}
+                  <span className="ml-2 text-sm text-gray-600">
+                    {product.rating} ({product.review_count} reviews)
                   </span>
                 </div>
               </div>
-              
-              <h1 className="text-2xl font-bold text-gray-900 mb-2">
-                {product.name}
-              </h1>
-              
-              <div className="flex items-center space-x-2 mb-3">
-                <span className="text-2xl font-bold text-green-600">
-                  ₹{displayPrice.toFixed(2)}
-                </span>
-                {hasDiscount && (
-                  <span className="text-lg text-gray-500 line-through">
-                    ₹{originalPrice.toFixed(2)}
+            </div>
+
+            <div className="mb-6">
+              <div className="flex items-center space-x-2 mb-2">
+                {product.sale_price ? (
+                  <>
+                    <span className="text-3xl font-bold text-green-600">
+                      ₹{product.sale_price.toFixed(2)}
+                    </span>
+                    <span className="text-lg text-gray-500 line-through">
+                      ₹{product.price.toFixed(2)}
+                    </span>
+                    <Badge variant="destructive" className="text-xs">
+                      {discount}% OFF
+                    </Badge>
+                  </>
+                ) : (
+                  <span className="text-3xl font-bold">
+                    ₹{product.price.toFixed(2)}
                   </span>
                 )}
               </div>
-
-              <p className="text-gray-600 leading-relaxed">
-                {product.description}
+              <p className="text-sm text-gray-600">
+                Stock: {product.stock} available
               </p>
             </div>
 
-            {/* Stock Info */}
-            <div className="flex items-center justify-between py-3 border-t border-b">
-              <span className="text-sm font-medium">
-                Availability:
-              </span>
-              <Badge variant={isInStock ? "default" : "destructive"}>
-                {isInStock ? `${product.stock} in stock` : 'Out of stock'}
-              </Badge>
-            </div>
+            <Card className="mb-6">
+              <CardContent className="p-4">
+                <h3 className="font-semibold mb-2">Description</h3>
+                <p className="text-gray-600">{product.description}</p>
+                {product.features && product.features.length > 0 && (
+                  <div className="mt-4">
+                    <h4 className="font-medium mb-2">Features:</h4>
+                    <ul className="text-sm text-gray-600 space-y-1">
+                      {product.features.map((feature, index) => (
+                        <li key={index}>• {feature}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
-            {/* Quantity Selector */}
-            {isInStock && (
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Quantity:</span>
-                <div className="flex items-center space-x-3">
+            <div className="space-y-4">
+              <div className="flex items-center space-x-4">
+                <span className="font-medium">Quantity:</span>
+                <div className="flex items-center border rounded">
                   <Button
-                    variant="outline"
+                    variant="ghost"
                     size="sm"
-                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                    onClick={() => handleQuantityChange(quantity - 1)}
                     disabled={quantity <= 1}
                   >
                     <Minus className="w-4 h-4" />
                   </Button>
-                  <span className="text-lg font-semibold w-8 text-center">
-                    {quantity}
-                  </span>
+                  <span className="px-4 py-2">{quantity}</span>
                   <Button
-                    variant="outline"
+                    variant="ghost"
                     size="sm"
-                    onClick={() => setQuantity(quantity + 1)}
-                    disabled={!canAddMore}
+                    onClick={() => handleQuantityChange(quantity + 1)}
+                    disabled={quantity >= product.stock}
                   >
                     <Plus className="w-4 h-4" />
                   </Button>
                 </div>
               </div>
-            )}
 
-            {/* Add to Cart Button */}
-            {isInStock && (
-              <Button
+              <Button 
                 onClick={handleAddToCart}
-                className="w-full bg-green-600 hover:bg-green-700 text-white py-3"
-                disabled={!canAddMore}
+                disabled={isOutOfStock}
+                className="w-full"
+                size="lg"
               >
                 <ShoppingCart className="w-5 h-5 mr-2" />
-                Add to Cart - ₹{(displayPrice * quantity).toFixed(2)}
+                {isOutOfStock ? 'Out of Stock' : `Add to Cart - ₹${((product.sale_price || product.price) * quantity).toFixed(2)}`}
               </Button>
-            )}
 
-            {currentQuantityInCart > 0 && (
-              <p className="text-sm text-gray-600 text-center">
-                {currentQuantityInCart} already in cart
-              </p>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Tabs for Details and Reviews */}
-        <Tabs defaultValue="details" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="details">Details & Features</TabsTrigger>
-            <TabsTrigger value="reviews">
-              Reviews ({reviews.length})
-            </TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="details" className="mt-4">
-            <Card>
-              <CardContent className="p-6">
-                <h3 className="text-lg font-semibold mb-4">Product Features</h3>
-                {product.features && product.features.length > 0 ? (
-                  <ul className="space-y-2">
-                    {product.features.map((feature, index) => (
-                      <li key={index} className="flex items-start">
-                        <span className="w-2 h-2 bg-green-500 rounded-full mt-2 mr-3 flex-shrink-0"></span>
-                        <span className="text-gray-700">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-gray-500">No additional features listed.</p>
-                )}
-                
-                <div className="mt-6 pt-6 border-t">
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <span className="font-medium">Category:</span>
-                      <span className="ml-2 text-gray-600">{product.category}</span>
-                    </div>
-                    <div>
-                      <span className="font-medium">Brand:</span>
-                      <span className="ml-2 text-gray-600">{product.brand}</span>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="reviews" className="mt-4">
-            <div className="space-y-4">
-              {/* Reviews List */}
-              {reviewsLoading ? (
-                <Card>
-                  <CardContent className="p-6">
-                    <LoadingSpinner />
-                  </CardContent>
-                </Card>
-              ) : reviews.length > 0 ? (
-                reviews.map((review) => (
-                  <Card key={review.id}>
-                    <CardContent className="p-6">
-                      <div className="flex items-start justify-between mb-3">
-                        <div>
-                          <h4 className="font-semibold">{review.user_name}</h4>
-                          <div className="flex items-center space-x-1 mt-1">
-                            {renderStars(review.rating)}
-                          </div>
-                        </div>
-                        <span className="text-sm text-gray-500">
-                          {new Date(review.created_at || review.date || '').toLocaleDateString()}
-                        </span>
-                      </div>
-                      <p className="text-gray-700">{review.comment}</p>
-                    </CardContent>
-                  </Card>
-                ))
-              ) : (
-                <Card>
-                  <CardContent className="p-6 text-center">
-                    <p className="text-gray-500">No reviews yet</p>
-                  </CardContent>
-                </Card>
+              {currentQuantity > 0 && (
+                <p className="text-sm text-green-600 text-center">
+                  {currentQuantity} item(s) in cart
+                </p>
               )}
-              
-              {/* Review Form */}
-              <ReviewForm productId={product.id} />
             </div>
-          </TabsContent>
-        </Tabs>
-      </div>
-
+          </div>
+        </div>
+      </main>
+      
       <BottomNavigation />
     </div>
   );
