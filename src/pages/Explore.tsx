@@ -6,7 +6,7 @@ import BottomNavigation from '@/components/BottomNavigation';
 import ProductsGrid from '@/components/ProductsGrid';
 import SearchFiltersComponent from '@/components/SearchFilters';
 import { useQuery } from '@tanstack/react-query';
-import { searchProducts, SearchFilters } from '@/services/searchService';
+import { searchProducts, SearchFiltersType } from '@/services/searchService';
 import PullToRefreshWrapper from '@/components/PullToRefresh';
 
 const Explore = () => {
@@ -21,9 +21,15 @@ const Explore = () => {
     ? `Search: ${initialQuery}` 
     : 'Explore Products';
 
-  const [filters, setFilters] = useState<SearchFilters>({ 
+  const [filters, setFilters] = useState<SearchFiltersType>({ 
     query: initialQuery,
-    category: initialCategory 
+    category: initialCategory,
+    minPrice: undefined,
+    maxPrice: undefined,
+    sortBy: 'name',
+    sortOrder: 'asc',
+    brands: [],
+    categories: []
   });
 
   // Update filters when URL params change
@@ -31,7 +37,7 @@ const Explore = () => {
     const newQuery = searchParams.get('q') || '';
     const newCategory = searchParams.get('category') || '';
     
-    setFilters((prev: SearchFilters) => ({
+    setFilters((prev: SearchFiltersType) => ({
       ...prev,
       query: newQuery,
       category: newCategory

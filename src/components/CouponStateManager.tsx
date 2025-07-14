@@ -1,13 +1,6 @@
 
 import React, { createContext, useContext, useState, ReactNode } from 'react';
-
-interface AppliedCoupon {
-  id: string;
-  code: string;
-  discount_amount: number;
-  type: string;
-  value: number;
-}
+import { AppliedCoupon } from '@/services/couponService';
 
 interface CouponContextType {
   appliedCoupons: AppliedCoupon[];
@@ -43,12 +36,12 @@ export const CouponProvider: React.FC<CouponProviderProps> = ({ children }) => {
   const [appliedCoupons, setAppliedCoupons] = useState<AppliedCoupon[]>([]);
 
   const addCoupon = (coupon: AppliedCoupon) => {
-    setAppliedCoupons(prev => [...prev.filter(c => c.id !== coupon.id), coupon]);
+    setAppliedCoupons(prev => [...prev.filter(c => c.coupon.id !== coupon.coupon.id), coupon]);
   };
 
   const removeCoupon = (couponId?: string) => {
     if (couponId) {
-      setAppliedCoupons(prev => prev.filter(c => c.id !== couponId));
+      setAppliedCoupons(prev => prev.filter(c => c.coupon.id !== couponId));
     } else {
       setAppliedCoupons([]);
     }
@@ -59,7 +52,7 @@ export const CouponProvider: React.FC<CouponProviderProps> = ({ children }) => {
   };
 
   const getTotalDiscount = () => {
-    return appliedCoupons.reduce((total, coupon) => total + coupon.discount_amount, 0);
+    return appliedCoupons.reduce((total, coupon) => total + coupon.discountAmount, 0);
   };
 
   return (

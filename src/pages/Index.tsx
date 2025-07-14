@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from "react";
 
 import { Link } from "react-router-dom";
@@ -11,13 +12,22 @@ import { useNavigationGestures } from "@/hooks/useNavigationGestures";
 import { useQuery } from "@tanstack/react-query";
 import { getCategories } from "@/services/categoryService";
 import { getProducts } from "@/services/productService";
-import { searchProducts, type SearchFilters as SearchFiltersType } from "@/services/searchService";
+import { searchProducts, type SearchFiltersType } from "@/services/searchService";
 import BannerCarousel from "@/components/BannerCarousel";
 
 const Index = () => {
   console.log('Index page rendering');
   
-  const [filters, setFilters] = useState<SearchFiltersType>({});
+  const [filters, setFilters] = useState<SearchFiltersType>({
+    query: '',
+    category: '',
+    minPrice: undefined,
+    maxPrice: undefined,
+    sortBy: 'name',
+    sortOrder: 'asc',
+    brands: [],
+    categories: []
+  });
   const [isSearchActive, setIsSearchActive] = useState(false);
 
   const { data: categories = [] } = useQuery({
@@ -49,7 +59,16 @@ const Index = () => {
 
   const clearSearch = () => {
     console.log('Index: Clearing search');
-    setFilters({});
+    setFilters({
+      query: '',
+      category: '',
+      minPrice: undefined,
+      maxPrice: undefined,
+      sortBy: 'name',
+      sortOrder: 'asc',
+      brands: [],
+      categories: []
+    });
     setIsSearchActive(false);
   };
 

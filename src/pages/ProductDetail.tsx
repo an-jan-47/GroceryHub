@@ -98,7 +98,7 @@ const ProductDetail = () => {
     addToCart({
       ...product,
       quantity: quantity
-    });
+    } as CartItem);
 
     toast({
       title: "Added to Cart",
