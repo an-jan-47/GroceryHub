@@ -1,47 +1,28 @@
 
 import React, { useState } from "react";
-
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { toast } from '@/components/ui/sonner';
-import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const navigate = useNavigate();
+  const { resetPassword } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) {
-      toast('Please enter your email address');
       return;
     }
 
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('send-reset-otp', {
-        body: { email }
-      });
-
-      if (error) throw error;
-
-      toast('Password reset OTP sent!', {
-        description: 'Check your email for the OTP to reset your password.',
-      });
-
-      // Navigate to reset password page with email
-      navigate('/reset-password', { 
-        state: { email } 
-      });
-    } catch (error: any) {
+      await resetPassword(email);
+    } catch (error) {
       console.error('Reset password error:', error);
-      toast('Error', {
-        description: 'Failed to send reset OTP. Please try again.',
-      });
     } finally {
       setIsLoading(false);
     }
@@ -59,7 +40,7 @@ const ForgotPassword = () => {
             Forgot your password?
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Enter your email address and we'll send you an OTP to reset your password.
+            Enter your email address and we'll send you a password reset link.
           </p>
         </div>
 
@@ -85,7 +66,7 @@ const ForgotPassword = () => {
             className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             disabled={isLoading}
           >
-            {isLoading ? 'Sending OTP...' : 'Send Reset OTP'}
+            {isLoading ? 'Sending...' : 'Send Reset Link'}
           </Button>
         </form>
       </div>

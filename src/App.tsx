@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
 
+import React, { useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -7,7 +7,6 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import LoadingScreen from "./components/LoadingScreen";
 import { useNavigationGestures } from './hooks/useNavigationGestures';
-import { history } from './history';
 import PaymentDetails from '@/pages/PaymentDetails';
 
 // Pages
@@ -18,7 +17,6 @@ import Explore from "./pages/Explore";
 import Profile from "./pages/Profile";
 import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
-import VerifySignup from "./pages/VerifySignup";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 import Address from "./pages/Address";
@@ -114,7 +112,6 @@ const AppContent = () => {
         <Route path="/order/:id" element={<ProtectedRoute><OrderDetails /></ProtectedRoute>} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<SignUp />} />
-        <Route path="/verify-signup" element={<VerifySignup />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/orders" element={<Navigate to="/order-history" replace />} />
@@ -172,26 +169,28 @@ const App = () => {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider defaultTheme="light" attribute="class">
-        <ErrorBoundary>
-          <AuthProvider>
-            {!isInitialized ? (
-              <LoadingScreen />
-            ) : (
-              <CartProvider>
-                <CouponStateProvider>
-                  <TooltipProvider>
-                    <ErrorBoundary>
-                      <AppContent />
-                      <Toaster />
-                    </ErrorBoundary>
-                  </TooltipProvider>
-                </CouponStateProvider>
-              </CartProvider>
-            )}
-          </AuthProvider>
-        </ErrorBoundary>
-      </ThemeProvider>
+      <BrowserRouter>
+        <ThemeProvider defaultTheme="light" attribute="class">
+          <ErrorBoundary>
+            <AuthProvider>
+              {!isInitialized ? (
+                <LoadingScreen />
+              ) : (
+                <CartProvider>
+                  <CouponStateProvider>
+                    <TooltipProvider>
+                      <ErrorBoundary>
+                        <AppContent />
+                        <Toaster />
+                      </ErrorBoundary>
+                    </TooltipProvider>
+                  </CouponStateProvider>
+                </CartProvider>
+              )}
+            </AuthProvider>
+          </ErrorBoundary>
+        </ThemeProvider>
+      </BrowserRouter>
     </QueryClientProvider>
   );  
 };

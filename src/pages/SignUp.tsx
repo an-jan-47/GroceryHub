@@ -1,6 +1,5 @@
 
 import React, { useState, useEffect } from "react";
-
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,7 +8,6 @@ import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/components/ui/sonner';
 import { ArrowLeft } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 
 const SignUp = () => {
   const [formData, setFormData] = useState({
@@ -22,7 +20,7 @@ const SignUp = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, signUp } = useAuth();
   
   useEffect(() => {
     // Redirect if user is already logged in
@@ -84,24 +82,9 @@ const SignUp = () => {
     setFormError(null);
     
     try {
-      const { data, error } = await supabase.functions.invoke('send-signup-otp', {
-        body: {
-          email: formData.email,
-          password: formData.password,
-          name: formData.name,
-          phone: formData.phone
-        }
-      });
-
-      if (error) throw error;
-
-      toast('OTP sent to your email!', {
-        description: 'Please check your email and enter the OTP to verify your account.'
-      });
-
-      // Navigate to OTP verification page with email
-      navigate('/verify-signup', { 
-        state: { email: formData.email } 
+      await signUp(formData.email, formData.password, {
+        name: formData.name,
+        phone: formData.phone
       });
     } catch (error: any) {
       console.error('Signup error:', error);
@@ -213,7 +196,7 @@ const SignUp = () => {
             className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             disabled={isSubmitting}
           >
-            {isSubmitting ? 'Sending OTP...' : 'Create account'}
+            {isSubmitting ? 'Creating account...' : 'Create account'}
           </Button>
         </form>
       </div>
