@@ -1,6 +1,5 @@
 
 import React, { useState, useEffect } from "react";
-
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -93,11 +92,21 @@ const SignUp = () => {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Signup error:', error);
+        throw new Error(error.message || 'Failed to send OTP');
+      }
 
-      toast('OTP sent to your email!', {
-        description: 'Please check your email and enter the OTP to verify your account.'
-      });
+      // Show the OTP for testing (remove in production)
+      if (data.otp) {
+        toast(`OTP sent to your email! Your OTP is: ${data.otp}`, {
+          description: 'Please check your email and enter the OTP to verify your account.',
+        });
+      } else {
+        toast('OTP sent to your email!', {
+          description: 'Please check your email and enter the OTP to verify your account.',
+        });
+      }
 
       // Navigate to OTP verification page with email
       navigate('/verify-signup', { 

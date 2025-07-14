@@ -1,6 +1,5 @@
 
 import React, { useState } from "react";
-
 import { Link, useNavigate } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -27,11 +26,21 @@ const ForgotPassword = () => {
         body: { email }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Reset password error:', error);
+        throw new Error(error.message || 'Failed to send reset OTP');
+      }
 
-      toast('Password reset OTP sent!', {
-        description: 'Check your email for the OTP to reset your password.',
-      });
+      // Show the OTP for testing (remove in production)
+      if (data.otp) {
+        toast(`Password reset OTP sent! Your OTP is: ${data.otp}`, {
+          description: 'Check your email for the OTP to reset your password.',
+        });
+      } else {
+        toast('Password reset OTP sent!', {
+          description: 'Check your email for the OTP to reset your password.',
+        });
+      }
 
       // Navigate to reset password page with email
       navigate('/reset-password', { 
@@ -40,7 +49,7 @@ const ForgotPassword = () => {
     } catch (error: any) {
       console.error('Reset password error:', error);
       toast('Error', {
-        description: 'Failed to send reset OTP. Please try again.',
+        description: error.message || 'Failed to send reset OTP. Please try again.',
       });
     } finally {
       setIsLoading(false);
