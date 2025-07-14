@@ -41,7 +41,7 @@ import DeleteAccount from "./pages/DeleteAccount";
 // Providers
 import { CartProvider } from "./hooks/useCart";
 import { AuthProvider } from "./contexts/AuthContext";
-import { CouponStateProvider } from "./components/CouponStateManager";
+import { CouponProvider } from "./components/CouponStateManager";
 import ProtectedRoute from "./components/ProtectedRoute";
 import OrderCompletedGuard from "./components/OrderCompletedGuard";
 import ErrorBoundary from './components/ErrorBoundary';
@@ -177,14 +177,14 @@ const App = () => {
                 <LoadingScreen />
               ) : (
                 <CartProvider>
-                  <CouponStateProvider>
+                  <CouponProvider>
                     <TooltipProvider>
                       <ErrorBoundary>
                         <AppContent />
                         <Toaster />
                       </ErrorBoundary>
                     </TooltipProvider>
-                  </CouponStateProvider>
+                  </CouponProvider>
                 </CartProvider>
               )}
             </AuthProvider>

@@ -11,8 +11,10 @@ interface AppliedCoupon {
 
 interface CouponContextType {
   appliedCoupons: AppliedCoupon[];
+  appliedCoupon: AppliedCoupon | null;
   addCoupon: (coupon: AppliedCoupon) => void;
-  removeCoupon: (couponId: string) => void;
+  applyCoupon: (code: string) => Promise<void>;
+  removeCoupon: (couponId?: string) => void;
   clearCoupons: () => void;
   getTotalDiscount: () => number;
 }
@@ -23,6 +25,14 @@ export const useCoupon = () => {
   const context = useContext(CouponContext);
   if (!context) {
     throw new Error('useCoupon must be used within a CouponProvider');
+  }
+  return context;
+};
+
+export const useCouponState = () => {
+  const context = useContext(CouponContext);
+  if (!context) {
+    throw new Error('useCouponState must be used within a CouponProvider');
   }
   return context;
 };
@@ -38,8 +48,17 @@ export const CouponProvider: React.FC<CouponProviderProps> = ({ children }) => {
     setAppliedCoupons(prev => [...prev.filter(c => c.id !== coupon.id), coupon]);
   };
 
-  const removeCoupon = (couponId: string) => {
-    setAppliedCoupons(prev => prev.filter(c => c.id !== couponId));
+  const applyCoupon = async (code: string) => {
+    // Mock implementation for now
+    console.log('Applying coupon:', code);
+  };
+
+  const removeCoupon = (couponId?: string) => {
+    if (couponId) {
+      setAppliedCoupons(prev => prev.filter(c => c.id !== couponId));
+    } else {
+      setAppliedCoupons([]);
+    }
   };
 
   const clearCoupons = () => {
@@ -50,10 +69,14 @@ export const CouponProvider: React.FC<CouponProviderProps> = ({ children }) => {
     return appliedCoupons.reduce((total, coupon) => total + coupon.discount_amount, 0);
   };
 
+  const appliedCoupon = appliedCoupons.length > 0 ? appliedCoupons[0] : null;
+
   return (
     <CouponContext.Provider value={{
       appliedCoupons,
+      appliedCoupon,
       addCoupon,
+      applyCoupon,
       removeCoupon,
       clearCoupons,
       getTotalDiscount
@@ -62,3 +85,5 @@ export const CouponProvider: React.FC<CouponProviderProps> = ({ children }) => {
     </CouponContext.Provider>
   );
 };
+
+export const CouponStateProvider = CouponProvider;

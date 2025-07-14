@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 
 import { Link, useNavigate } from 'react-router-dom';
@@ -12,6 +13,18 @@ import { toast } from '@/components/ui/sonner';
 import { calculateDiscount, validateCoupon, type Coupon } from '@/services/couponService';
 import { useCouponState } from '@/components/CouponStateManager';
 import { useCart } from '@/hooks/useCart';
+
+interface DatabaseCoupon {
+  id: string;
+  code: string;
+  type: string;
+  value: number;
+  description?: string;
+  min_purchase_amount: number;
+  max_discount_amount?: number;
+  is_active: boolean;
+  expiry_date: string;
+}
 
 const CouponApply = () => {
   const navigate = useNavigate();
@@ -42,14 +55,14 @@ const CouponApply = () => {
       return;
     }
 
-    const couponData = coupons.find(c => c.code === couponCode);
+    const couponData = coupons.find((c: DatabaseCoupon) => c.code === couponCode);
     if (!couponData) {
       toast('Coupon not found');
       return;
     }
 
     // Check if coupon is already applied
-    const isAlreadyApplied = appliedCoupons.some(c => c.coupon.code === couponCode);
+    const isAlreadyApplied = appliedCoupons.some((c) => c.code === couponCode);
     if (isAlreadyApplied) {
       toast('Coupon already applied', {
         description: 'This coupon is already in your cart.'
@@ -59,20 +72,26 @@ const CouponApply = () => {
 
     try {
       const cartTotal = cartItems.reduce((total, item) => {
-        const itemPrice = item.salePrice || item.price;
+        const itemPrice = item.sale_price || item.price;
         return total + (itemPrice * item.quantity);
       }, 0);
       
       // Validate the coupon before applying
-      await validateCoupon(couponCode, cartTotal, appliedCoupons.map(c => ({
-        coupon: c.coupon,
-        discountAmount: c.discountAmount,
-        appliedToTotal: c.appliedToTotal || 0
+      await validateCoupon(couponCode, cartTotal, appliedCoupons.map((c) => ({
+        coupon: c,
+        discountAmount: c.discount_amount,
+        appliedToTotal: c.discount_amount || 0
       })));
       const discountAmount = calculateDiscount(couponData, cartTotal);
       
       // Add coupon to global state
-      addCoupon(couponData, discountAmount);
+      addCoupon({
+        id: couponData.id,
+        code: couponData.code,
+        discount_amount: discountAmount,
+        type: couponData.type,
+        value: couponData.value
+      });
       
       toast('Coupon applied successfully!', {
         description: `₹${discountAmount.toFixed(2)} discount will be applied at checkout.`
@@ -94,7 +113,7 @@ const CouponApply = () => {
   };
 
   const isApplied = (couponId: string) => {
-    return appliedCoupons.some(c => c.coupon.id === couponId);
+    return appliedCoupons.some((c) => c.id === couponId);
   };
 
   return (
@@ -129,7 +148,7 @@ const CouponApply = () => {
               </div>
             ) : (
               <div className="space-y-3">
-                {coupons.map((coupon) => {
+                {coupons.map((coupon: DatabaseCoupon) => {
                   const applied = isApplied(coupon.id);
                   
                   return (
