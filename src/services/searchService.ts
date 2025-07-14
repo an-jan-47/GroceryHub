@@ -1,53 +1,84 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { Product } from '@/types';
 
-interface SearchOptions {
-  query: string;
+export interface SearchFilters {
+  query?: string;
   category?: string;
+  minPrice?: number;
+  maxPrice?: number;
   brand?: string;
-  priceRange?: [number, number];
   minRating?: number;
+  sortBy?: 'price' | 'rating' | 'name' | 'popularity';
+  sortOrder?: 'asc' | 'desc';
 }
 
-export const searchProducts = async (options: SearchOptions): Promise<Product[]> => {
-  const { query, category, brand, priceRange, minRating } = options;
+export const searchProducts = async (filters: SearchFilters): Promise<Product[]> => {
+  try {
+    let query = supabase
+      .from('products')
+      .select(`
+        *,
+        features
+      `);
 
-  let searchQuery = `name.ilike.%${query}%,description.ilike.%${query}%`;
+    // Apply text search
+    if (filters.query && filters.query.trim()) {
+      query = query.or(`name.ilike.%${filters.query}%,description.ilike.%${filters.query}%,brand.ilike.%${filters.query}%`);
+    }
 
-  if (category) {
-    searchQuery += `,category.eq.${category}`;
-  }
+    // Apply category filter
+    if (filters.category && filters.category.trim()) {
+      query = query.eq('category', filters.category);
+    }
 
-  if (brand) {
-    searchQuery += `,brand.eq.${brand}`;
-  }
+    // Apply price range filter
+    if (filters.minPrice !== undefined) {
+      query = query.gte('price', filters.minPrice);
+    }
+    if (filters.maxPrice !== undefined) {
+      query = query.lte('price', filters.maxPrice);
+    }
 
-  let priceQuery = '';
-  if (priceRange) {
-    priceQuery = `price.gte.${priceRange[0]},price.lte.${priceRange[1]}`;
-  }
+    // Apply brand filter
+    if (filters.brand && filters.brand.trim()) {
+      query = query.eq('brand', filters.brand);
+    }
 
-  if (priceQuery) {
-    searchQuery += `,and(${priceQuery})`;
-  }
+    // Apply rating filter
+    if (filters.minRating !== undefined) {
+      query = query.gte('rating', filters.minRating);
+    }
 
-  if (minRating) {
-    searchQuery += `,rating.gte.${minRating}`;
-  }
+    // Apply sorting
+    if (filters.sortBy) {
+      const ascending = filters.sortOrder === 'asc';
+      if (filters.sortBy === 'popularity') {
+        // Sort by review count as proxy for popularity
+        query = query.order('review_count', { ascending: !ascending });
+      } else {
+        query = query.order(filters.sortBy, { ascending });
+      }
+    } else {
+      // Default sorting
+      query = query.order('rating', { ascending: false });
+    }
 
-  const { data, error } = await supabase
-    .from('products')
-    .select('*')
-    .or(searchQuery)
-    .order('rating', { ascending: false });
+    const { data, error } = await query;
 
-  if (error) {
+    if (error) {
+      console.error('Search error:', error);
+      throw error;
+    }
+
+    return (data || []).map(product => ({
+      ...product,
+      features: Array.isArray(product.features) 
+        ? product.features.filter((f: string) => f && f.trim() !== '')
+        : []
+    }));
+  } catch (error) {
     console.error('Error searching products:', error);
-    return [];
+    throw error;
   }
-
-  return data?.map(product => ({
-    ...product,
-    features: Array.isArray(product.features) ? product.features.map(f => String(f)) : []
-  })) || [];
 };

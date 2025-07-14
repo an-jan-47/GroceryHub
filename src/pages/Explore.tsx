@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from "react";
 
+import React, { useState, useEffect } from "react";
 import { useSearchParams } from 'react-router-dom';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
 import ProductsGrid from '@/components/ProductsGrid';
 import SearchFiltersComponent from '@/components/SearchFilters';
 import { useQuery } from '@tanstack/react-query';
-import { searchProducts, type SearchFilters as SearchFiltersType } from '@/services/searchService';
+import { searchProducts, SearchFilters } from '@/services/searchService';
 import PullToRefreshWrapper from '@/components/PullToRefresh';
 
 const Explore = () => {
@@ -21,7 +21,7 @@ const Explore = () => {
     ? `Search: ${initialQuery}` 
     : 'Explore Products';
 
-  const [filters, setFilters] = useState<SearchFiltersType>({ 
+  const [filters, setFilters] = useState<SearchFilters>({ 
     query: initialQuery,
     category: initialCategory 
   });
@@ -31,14 +31,14 @@ const Explore = () => {
     const newQuery = searchParams.get('q') || '';
     const newCategory = searchParams.get('category') || '';
     
-    setFilters(prev => ({
+    setFilters((prev: SearchFilters) => ({
       ...prev,
       query: newQuery,
       category: newCategory
     }));
   }, [searchParams]);
 
-  const { data: products = [], isLoading, refetch } = useQuery({  // Add refetch here
+  const { data: products = [], isLoading, refetch } = useQuery({
     queryKey: ['searchProducts', filters],
     queryFn: () => searchProducts(filters),
     staleTime: 1000 * 60 * 5, // 5 minutes

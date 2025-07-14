@@ -1,6 +1,4 @@
-
 import React, { useRef } from 'react';
-import { generatePDF } from 'react-pdf';
 import { Order, CartItem } from '@/types';
 
 interface OrderInvoiceProps {
@@ -31,7 +29,7 @@ const OrderInvoice: React.FC<OrderInvoiceProps> = ({
   };
 
   const calculateItemTotal = (item: CartItem) => {
-    const price = item.salePrice || item.price;
+    const price = item.sale_price || item.price;
     return price * item.quantity;
   };
 
@@ -70,7 +68,7 @@ const OrderInvoice: React.FC<OrderInvoiceProps> = ({
                 <td className="border border-gray-300 px-4 py-2">{item.name}</td>
                 <td className="border border-gray-300 px-4 py-2 text-right">{item.quantity}</td>
                 <td className="border border-gray-300 px-4 py-2 text-right">
-                  {formatCurrency(item.salePrice || item.price)}
+                  {formatCurrency(item.sale_price || item.price)}
                 </td>
                 <td className="border border-gray-300 px-4 py-2 text-right">
                   {formatCurrency(calculateItemTotal(item))}

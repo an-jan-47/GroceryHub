@@ -1,120 +1,64 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
-import type { Coupon } from '@/services/couponService';
+import React, { createContext, useContext, useState, ReactNode } from 'react';
 
-export interface AppliedCouponState {
-  coupon: Coupon;
-  discountAmount: number;
-  appliedToTotal?: number;
+interface AppliedCoupon {
+  id: string;
+  code: string;
+  discount_amount: number;
+  type: string;
+  value: number;
 }
 
-interface CouponStateContextType {
-  appliedCoupons: AppliedCouponState[];
-  addCoupon: (coupon: Coupon, discountAmount: number) => void;
+interface CouponContextType {
+  appliedCoupons: AppliedCoupon[];
+  addCoupon: (coupon: AppliedCoupon) => void;
   removeCoupon: (couponId: string) => void;
   clearCoupons: () => void;
-  setCoupons: (coupons: AppliedCouponState[]) => void;
-  checkCartAndClearCoupons: (cartLength: number) => void;
+  getTotalDiscount: () => number;
 }
 
-const CouponStateContext = createContext<CouponStateContextType | undefined>(undefined);
+const CouponContext = createContext<CouponContextType | undefined>(undefined);
 
-export const CouponStateProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [appliedCoupons, setAppliedCoupons] = useState<AppliedCouponState[]>([]);
-  const [isInitialized, setIsInitialized] = useState(false);
+export const useCoupon = () => {
+  const context = useContext(CouponContext);
+  if (!context) {
+    throw new Error('useCoupon must be used within a CouponProvider');
+  }
+  return context;
+};
 
-  // Load coupons only once on mount
-  useEffect(() => {
-    const storedCouponData = localStorage.getItem('appliedCoupon');
-    if (storedCouponData) {
-      try {
-        const parsedData = JSON.parse(storedCouponData);
-        let couponsToLoad: AppliedCouponState[] = [];
-        if (Array.isArray(parsedData)) {
-          couponsToLoad = parsedData;
-        } else if (parsedData.coupon) {
-          couponsToLoad = [parsedData];
-        }
-        setAppliedCoupons(couponsToLoad);
-      } catch (error) {
-        localStorage.removeItem('appliedCoupon');
-      }
-    }
-    setIsInitialized(true);
-  }, []);
+interface CouponProviderProps {
+  children: ReactNode;
+}
 
-  // Save coupons to localStorage with debounce
-  useEffect(() => {
-    if (!isInitialized) return;
+export const CouponProvider: React.FC<CouponProviderProps> = ({ children }) => {
+  const [appliedCoupons, setAppliedCoupons] = useState<AppliedCoupon[]>([]);
 
-    const timeoutId = setTimeout(() => {
-      if (appliedCoupons.length > 0) {
-        localStorage.setItem('appliedCoupon', JSON.stringify(appliedCoupons));
-      } else {
-        localStorage.removeItem('appliedCoupon');
-      }
-    }, 300);
-
-    return () => clearTimeout(timeoutId);
-  }, [appliedCoupons, isInitialized]);
-
-  const addCoupon = (coupon: Coupon, discountAmount: number) => {
-    setAppliedCoupons(prevCoupons => {
-      // Check for existing coupon to prevent duplicates
-      const existingCoupon = prevCoupons.find(c => c.coupon.id === coupon.id);
-      if (existingCoupon) return prevCoupons;
-      return [...prevCoupons, { coupon, discountAmount }];
-    });
+  const addCoupon = (coupon: AppliedCoupon) => {
+    setAppliedCoupons(prev => [...prev.filter(c => c.id !== coupon.id), coupon]);
   };
 
   const removeCoupon = (couponId: string) => {
-    setAppliedCoupons(prevCoupons => {
-      const updatedCoupons = prevCoupons.filter(c => c.coupon.id !== couponId);
-      // Force immediate localStorage update
-      if (updatedCoupons.length > 0) {
-        localStorage.setItem('appliedCoupon', JSON.stringify(updatedCoupons));
-      } else {
-        localStorage.removeItem('appliedCoupon');
-      }
-      return updatedCoupons;
-    });
+    setAppliedCoupons(prev => prev.filter(c => c.id !== couponId));
   };
 
   const clearCoupons = () => {
     setAppliedCoupons([]);
-    // Force immediate localStorage removal
-    localStorage.removeItem('appliedCoupon');
   };
 
-  const setCoupons = (coupons: AppliedCouponState[]) => {
-    setAppliedCoupons(coupons);
-  };
-
-  const checkCartAndClearCoupons = (cartLength: number) => {
-    if (cartLength === 0 && appliedCoupons.length > 0) {
-      clearCoupons();
-    }
+  const getTotalDiscount = () => {
+    return appliedCoupons.reduce((total, coupon) => total + coupon.discount_amount, 0);
   };
 
   return (
-    <CouponStateContext.Provider 
-      value={{ 
-        appliedCoupons,
-        addCoupon,
-        removeCoupon,
-        clearCoupons,
-        setCoupons,
-        checkCartAndClearCoupons
-      }}>
+    <CouponContext.Provider value={{
+      appliedCoupons,
+      addCoupon,
+      removeCoupon,
+      clearCoupons,
+      getTotalDiscount
+    }}>
       {children}
-    </CouponStateContext.Provider>
+    </CouponContext.Provider>
   );
-};
-
-export const useCouponState = () => {
-  const context = useContext(CouponStateContext);
-  if (!context) {
-    throw new Error('useCouponState must be used within a CouponStateProvider');
-  }
-  return context;
 };

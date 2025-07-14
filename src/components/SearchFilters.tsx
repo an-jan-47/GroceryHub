@@ -1,140 +1,207 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
+import { Card, CardContent } from '@/components/ui/card';
+import { Search, Filter } from 'lucide-react';
+import { SearchFilters as SearchFiltersType } from '@/services/searchService';
 
 interface SearchFiltersProps {
-  onFilterChange: (filters: any) => void;
-  categories: string[];
-  brands: string[];
+  onFilterChange: (filters: SearchFiltersType) => void;
+  initialQuery?: string;
+  initialCategory?: string;
 }
 
-const SearchFilters: React.FC<SearchFiltersProps> = ({
-  onFilterChange,
-  categories = [],
-  brands = []
+const SearchFiltersComponent: React.FC<SearchFiltersProps> = ({ 
+  onFilterChange, 
+  initialQuery = '',
+  initialCategory = ''
 }) => {
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000]);
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
-  const [minRating, setMinRating] = useState(0);
+  const [query, setQuery] = useState(initialQuery);
+  const [category, setCategory] = useState(initialCategory);
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000]);
+  const [brand, setBrand] = useState('');
+  const [minRating, setMinRating] = useState<number | undefined>(undefined);
+  const [sortBy, setSortBy] = useState<'price' | 'rating' | 'name' | 'popularity'>('rating');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [showFilters, setShowFilters] = useState(false);
 
-  const handlePriceChange = (value: number[]) => {
-    if (value.length === 2) {
-      setPriceRange([value[0], value[1]]);
-    }
+  // Update local state when props change
+  useEffect(() => {
+    setQuery(initialQuery);
+  }, [initialQuery]);
+
+  useEffect(() => {
+    setCategory(initialCategory);
+  }, [initialCategory]);
+
+  const handleApplyFilters = () => {
+    const filters: SearchFiltersType = {
+      query: query.trim() || undefined,
+      category: category || undefined,
+      minPrice: priceRange[0] > 0 ? priceRange[0] : undefined,
+      maxPrice: priceRange[1] < 1000 ? priceRange[1] : undefined,
+      brand: brand.trim() || undefined,
+      minRating,
+      sortBy,
+      sortOrder
+    };
+    
+    onFilterChange(filters);
   };
 
-  const handleCategoryChange = (category: string, checked: boolean) => {
-    if (checked) {
-      setSelectedCategories([...selectedCategories, category]);
-    } else {
-      setSelectedCategories(selectedCategories.filter(c => c !== category));
-    }
-  };
-
-  const handleBrandChange = (brand: string, checked: boolean) => {
-    if (checked) {
-      setSelectedBrands([...selectedBrands, brand]);
-    } else {
-      setSelectedBrands(selectedBrands.filter(b => b !== brand));
-    }
-  };
-
-  const applyFilters = () => {
+  const handleClearFilters = () => {
+    setQuery(initialQuery);
+    setCategory(initialCategory);
+    setPriceRange([0, 1000]);
+    setBrand('');
+    setMinRating(undefined);
+    setSortBy('rating');
+    setSortOrder('desc');
+    
     onFilterChange({
-      priceRange,
-      categories: selectedCategories,
-      brands: selectedBrands,
-      minRating
-    });
-  };
-
-  const clearFilters = () => {
-    setPriceRange([0, 10000]);
-    setSelectedCategories([]);
-    setSelectedBrands([]);
-    setMinRating(0);
-    onFilterChange({
-      priceRange: [0, 10000],
-      categories: [],
-      brands: [],
-      minRating: 0
+      query: initialQuery || undefined,
+      category: initialCategory || undefined
     });
   };
 
   return (
-    <div className="space-y-6 p-4">
-      <div>
-        <Label className="text-sm font-medium">Price Range</Label>
-        <div className="mt-2">
-          <Slider
-            value={priceRange}
-            onValueChange={handlePriceChange}
-            max={10000}
-            min={0}
-            step={100}
-            className="w-full"
-          />
-          <div className="flex justify-between text-sm text-gray-500 mt-1">
-            <span>₹{priceRange[0]}</span>
-            <span>₹{priceRange[1]}</span>
-          </div>
-        </div>
+    <div className="space-y-4">
+      {/* Search Input */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+        <Input
+          placeholder="Search products..."
+          value={query}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQuery(e.target.value)}
+          className="pl-10"
+          onKeyPress={(e) => {
+            if (e.key === 'Enter') {
+              handleApplyFilters();
+            }
+          }}
+        />
       </div>
 
-      {categories.length > 0 && (
-        <div>
-          <Label className="text-sm font-medium">Categories</Label>
-          <div className="mt-2 space-y-2">
-            {categories.map((category) => (
-              <div key={category} className="flex items-center space-x-2">
-                <Checkbox
-                  id={`category-${category}`}
-                  checked={selectedCategories.includes(category)}
-                  onCheckedChange={(checked) => handleCategoryChange(category, !!checked)}
-                />
-                <Label htmlFor={`category-${category}`} className="text-sm">
-                  {category}
-                </Label>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Filter Toggle */}
+      <Button
+        variant="outline"
+        onClick={() => setShowFilters(!showFilters)}
+        className="w-full"
+      >
+        <Filter className="w-4 h-4 mr-2" />
+        {showFilters ? 'Hide Filters' : 'Show Filters'}
+      </Button>
 
-      {brands.length > 0 && (
-        <div>
-          <Label className="text-sm font-medium">Brands</Label>
-          <div className="mt-2 space-y-2">
-            {brands.map((brand) => (
-              <div key={brand} className="flex items-center space-x-2">
-                <Checkbox
-                  id={`brand-${brand}`}
-                  checked={selectedBrands.includes(brand)}
-                  onCheckedChange={(checked) => handleBrandChange(brand, !!checked)}
-                />
-                <Label htmlFor={`brand-${brand}`} className="text-sm">
-                  {brand}
-                </Label>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Filters Panel */}
+      {showFilters && (
+        <Card>
+          <CardContent className="p-4 space-y-4">
+            {/* Category Filter */}
+            <div>
+              <label className="block text-sm font-medium mb-2">Category</label>
+              <Select value={category} onValueChange={setCategory}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Categories" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All Categories</SelectItem>
+                  <SelectItem value="Fruits">Fruits</SelectItem>
+                  <SelectItem value="Vegetables">Vegetables</SelectItem>
+                  <SelectItem value="Dairy">Dairy</SelectItem>
+                  <SelectItem value="Snacks">Snacks</SelectItem>
+                  <SelectItem value="Beverages">Beverages</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-      <div className="flex space-x-2">
-        <Button onClick={applyFilters} className="flex-1">
-          Apply Filters
-        </Button>
-        <Button variant="outline" onClick={clearFilters} className="flex-1">
-          Clear
-        </Button>
-      </div>
+            {/* Price Range */}
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Price Range: ₹{priceRange[0]} - ₹{priceRange[1]}
+              </label>
+              <Slider
+                value={priceRange}
+                onValueChange={(value: number[]) => setPriceRange(value as [number, number])}
+                max={1000}
+                step={10}
+                className="w-full"
+              />
+            </div>
+
+            {/* Brand Filter */}
+            <div>
+              <label className="block text-sm font-medium mb-2">Brand</label>
+              <Input
+                placeholder="Enter brand name"
+                value={brand}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBrand(e.target.value)}
+              />
+            </div>
+
+            {/* Rating Filter */}
+            <div>
+              <label className="block text-sm font-medium mb-2">Minimum Rating</label>
+              <Select value={minRating?.toString() || ''} onValueChange={(value) => setMinRating(value ? Number(value) : undefined)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Any Rating" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Any Rating</SelectItem>
+                  <SelectItem value="4">4+ Stars</SelectItem>
+                  <SelectItem value="3">3+ Stars</SelectItem>
+                  <SelectItem value="2">2+ Stars</SelectItem>
+                  <SelectItem value="1">1+ Stars</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Sort Options */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Sort By</label>
+                <Select value={sortBy} onValueChange={(value) => setSortBy(value as any)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="rating">Rating</SelectItem>
+                    <SelectItem value="price">Price</SelectItem>
+                    <SelectItem value="name">Name</SelectItem>
+                    <SelectItem value="popularity">Popularity</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">Order</label>
+                <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as any)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="asc">Ascending</SelectItem>
+                    <SelectItem value="desc">Descending</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-2 pt-4">
+              <Button onClick={handleApplyFilters} className="flex-1">
+                Apply Filters
+              </Button>
+              <Button onClick={handleClearFilters} variant="outline" className="flex-1">
+                Clear
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
 
-export default SearchFilters;
+export default SearchFiltersComponent;
