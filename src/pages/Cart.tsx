@@ -1,363 +1,209 @@
-import React, { useState, useEffect } from "react";
-
-import { Link, useNavigate } from 'react-router-dom';
-import { ChevronLeft, Trash2, Plus, Minus, ShoppingCart } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Separator } from '@/components/ui/separator';
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useCart } from '@/hooks/useCart';
-import Header from '@/components/Header';
-import BottomNavigation from '@/components/BottomNavigation';
-import OptimizedCheckoutButton from '@/components/OptimizedCheckoutButton';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { toast } from '@/components/ui/sonner';
-import { validateCoupon, calculateDiscount } from '@/services/couponService';
-import { useCouponState } from '@/components/CouponStateManager';
+import { useCoupon } from '@/components/CouponStateManager';
 
-const CartPage = () => {
+const Cart: React.FC = () => {
+  const { cartItems, cartTotal, removeFromCart, updateQuantity } = useCart();
+  const [quantities, setQuantities] = useState<{ [productId: string]: number }>({});
+  const { appliedCoupon, applyCoupon, removeCoupon } = useCoupon();
   const [couponCode, setCouponCode] = useState('');
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
-  const {
-    cartItems,
-    removeFromCart,
-    updateQuantity,
-    cartTotal,
-    setCartItems
-  } = useCart();
-  const { appliedCoupons, addCoupon, removeCoupon, clearCoupons, checkCartAndClearCoupons } = useCouponState();
-  const navigate = useNavigate();
 
-  // Check if cart is empty and clear coupons accordingly
   useEffect(() => {
-    checkCartAndClearCoupons(cartItems.length);
-  }, [cartItems.length, checkCartAndClearCoupons]);
+    // Initialize quantities state from cartItems
+    const initialQuantities: { [productId: string]: number } = {};
+    cartItems.forEach(item => {
+      initialQuantities[item.id] = item.quantity;
+    });
+    setQuantities(initialQuantities);
+  }, [cartItems]);
 
-  // Pricing configuration 
-  const platformFees = 5.00;
-  const deliveryFees = 0.00;
-  
-  // Calculate item-wise pricing without tax
-  const itemCalculations = cartItems.map(item => {
-    const itemPrice = item.salePrice !== undefined ? Number(item.salePrice) : Number(item.price);
-    const itemTotal = itemPrice * Number(item.quantity);
-    
-    return {
-      ...item,
-      itemPrice,
-      itemTotal
-    };
-  });
-  
-  // Calculate totals without tax
-  const subtotal = itemCalculations.reduce((total, item) => total + Number(item.itemTotal), 0);
-  const totalBeforeDiscount = subtotal + platformFees + deliveryFees;
-  
-  // Calculate total discount from all applied coupons
-  const totalDiscountAmount = appliedCoupons.reduce((total, { discountAmount }) => total + discountAmount, 0);
-  const totalAfterDiscount = Math.max(0, totalBeforeDiscount - totalDiscountAmount);
-  
-  // Final total without transaction fee
-  const finalTotal = totalAfterDiscount;
-  
-  // Fixed clearCart function
-  const clearCart = () => {
-    setCartItems([]);
-    clearCoupons(); // Clear all applied coupons
-    // Don't show toast notification when clearing cart programmatically
-    // toast("Cart cleared");
+  const handleQuantityChange = (productId: string, quantity: number) => {
+    setQuantities(prevQuantities => ({
+      ...prevQuantities,
+      [productId]: quantity
+    }));
   };
-  
-  // Add coupon clearing when removing last item
-  const handleRemoveFromCart = (productId) => {
+
+  const handleUpdateQuantity = (productId: string, quantity: number) => {
+    updateQuantity(productId, quantity);
+  };
+
+  const handleRemoveItem = (productId: string) => {
     removeFromCart(productId);
-    // Check if this was the last item and clear coupons if needed
-    if (cartItems.length === 1) {
-      clearCoupons();
-    }
+    toast('Item removed from cart');
   };
 
-  // Handle direct quantity input
-  const handleQuantityInputChange = (itemId: string, value: string) => {
-    const newQuantity = parseInt(value) || 1;
-    if (newQuantity > 0 && newQuantity <= 999) {
-      updateQuantity(itemId, newQuantity);
-    }
+  const calculateItemTotal = (item: any) => {
+    const price = item.salePrice || item.price;
+    return price * item.quantity;
   };
 
-  const handleCouponApply = async () => {
-    if (!couponCode.trim()) {
-      toast("Please enter a coupon code");
-      return;
+  const calculateDiscountedTotal = () => {
+    if (appliedCoupon) {
+      const discountAmount = (appliedCoupon.discount / 100) * cartTotal;
+      return cartTotal - discountAmount;
     }
+    return cartTotal;
+  };
 
-    // Check if coupon is already applied
-    const isAlreadyApplied = appliedCoupons.some(c => c.coupon.code === couponCode.toUpperCase());
-    if (isAlreadyApplied) {
-      toast("Coupon already applied");
-      return;
-    }
-
+  const handleApplyCoupon = async () => {
     setIsApplyingCoupon(true);
     try {
-      // Convert AppliedCouponState to AppliedCoupon format for validation
-      const appliedCouponsForValidation = appliedCoupons.map(c => ({
-        ...c,
-        appliedToTotal: c.appliedToTotal || totalBeforeDiscount
-      }));
-      
-      const coupon = await validateCoupon(couponCode, totalBeforeDiscount, appliedCouponsForValidation);
-      const discount = calculateDiscount(coupon, totalBeforeDiscount);
-      
-      addCoupon(coupon, discount);
-      setCouponCode('');
-      
-      toast("Coupon applied!", {
-        description: `₹${discount.toFixed(2)} discount applied`
-      });
+      await applyCoupon(couponCode);
+      toast('Coupon applied successfully');
     } catch (error) {
-      toast("Invalid coupon", {
-        description: error.message
+      console.error('Error applying coupon:', error);
+      toast('Error applying coupon', {
+        description: 'Invalid coupon code'
       });
     } finally {
       setIsApplyingCoupon(false);
     }
   };
 
-  const handleRemoveCoupon = (couponId) => {
-    console.log('Removing coupon with ID:', couponId);
-    removeCoupon(couponId);
-    setTimeout(() => {
-      setIsApplyingCoupon(false);
-    }, 50);
-    toast('Coupon removed');
+  const handleCouponRemove = async (couponId: string) => {
+    try {
+      // Remove coupon logic here
+      toast('Coupon removed');
+    } catch (error) {
+      console.error('Error removing coupon:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to remove coupon';
+      toast('Error removing coupon', {
+        description: errorMessage
+      });
+    }
   };
 
   return (
-    <div className="pb-20">
-      <Header />
-      
-      <main className="container px-4 py-4 mx-auto">
-        <div className="py-3 flex items-center">
-          <Link to="/" className="flex items-center text-gray-500">
-            <ChevronLeft className="w-5 h-5 mr-1" />
-            <span>Continue Shopping</span>
-          </Link>
-        </div>
-        
-        <h1 className="text-2xl font-bold mb-4">My Cart</h1>
-        
-        {cartItems.length === 0 ? (
-          <div className="text-center py-8">
-            <div className="mx-auto w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-              <ShoppingCart className="h-12 w-12 text-gray-400" />
-            </div>
-            <h2 className="text-xl font-medium mb-2">Your cart is empty</h2>
-            <p className="text-gray-500 mb-6">Looks like you haven't added any products to your cart yet.</p>
-            <Button onClick={() => navigate('/')} className="bg-brand-blue hover:bg-brand-darkBlue">
-              Start Shopping
-            </Button>
-          </div>
-        ) : (
-          <>
-            <div key={cartItems.length} className="divide-y">
-              {cartItems.map((item) => {
-                const itemPrice = item.salePrice !== undefined ? Number(item.salePrice) : Number(item.price);
-                const totalItemPrice = itemPrice * item.quantity;
-                
-                return (
-                  <div key={item.id} className="flex py-4 border-b">
-                    <Link to={`/product/${item.id}`} className="flex-shrink-0 w-20 h-20">
-                      <img 
-                        src={item.images && item.images.length > 0 ? item.images[0] : '/placeholder.svg'} 
-                        alt={item.name} 
-                        className="w-full h-full object-cover rounded-md" 
-                      />
-                    </Link>
-                    <div className="ml-4 flex-grow flex flex-col">
-                      <Link to={`/product/${item.id}`} className="font-medium text-gray-800 hover:text-brand-blue">
-                        {item.name}
-                      </Link>
-                      <div className="flex items-center justify-between mt-2">
-                        <div className="flex items-center space-x-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1))}
-                            className="h-8 w-8 p-0"
-                          >
-                            <Minus className="h-4 w-4" />
-                          </Button>
-                          <Input
-                            type="number"
-                            min="1"
-                            max="999"
-                            value={item.quantity}
-                            onChange={(e) => handleQuantityInputChange(item.id, e.target.value)}
-                            className="w-16 h-8 text-center"
-                          />
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                            className="h-8 w-8 p-0"
-                          >
-                            <Plus className="h-4 w-4" />
-                          </Button>
-                        </div>
-                        
-                        <div className="flex items-center space-x-4">
-                          <div className="flex flex-col items-end">
-                            <span className="text-gray-800 font-semibold">₹{(item.salePrice || item.price).toFixed(2)}</span>
-                            {item.salePrice && (
-                              <span className="text-gray-500 line-through text-sm">₹{item.price.toFixed(2)}</span>
-                            )}
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleRemoveFromCart(item.id)}
-                            className="text-red-500 hover:text-red-700 p-0"
-                          >
-                            <Trash2 className="h-5 w-5" />
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
+    <div className="container mx-auto mt-8">
+      <h1 className="text-2xl font-bold mb-4">Shopping Cart</h1>
+      {cartItems.length === 0 ? (
+        <p>Your cart is empty.</p>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="md:col-span-2">
+            {cartItems.map((item) => (
+              <div key={item.id} className="flex items-center justify-between border-b py-4">
+                <div className="flex items-center">
+                  <img src={item.images[0]} alt={item.name} className="w-20 h-20 object-cover rounded mr-4" />
+                  <div>
+                    <Link to={`/product/${item.id}`} className="font-semibold">{item.name}</Link>
+                    <p className="text-gray-500 text-sm">
+                      {item.salePrice ? (
+                        <>
+                          <span className="line-through mr-2">₹{item.price.toFixed(2)}</span>
+                          ₹{item.salePrice.toFixed(2)}
+                        </>
+                      ) : (
+                        `₹${item.price.toFixed(2)}`
+                      )}
+                    </p>
                   </div>
-                );
-              })}
-            </div>
-            
-            <div className="mt-6">
-              {/* Applied Coupons Display */}
-              {appliedCoupons.length > 0 && (
-                <div className="space-y-3 mb-4">
-                  {appliedCoupons.map(({ coupon, discountAmount }) => (
-                    <div key={coupon.id} className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <span className="font-semibold text-blue-800">Coupon Applied: {coupon.code}</span>
-                          <p className="text-sm text-blue-600">You saved ₹{discountAmount.toFixed(2)}</p>
-                        </div>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={() => handleRemoveCoupon(coupon.id)}
-                          className="text-red-600 border-red-300 hover:bg-red-50"
-                        >
-                          Remove
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
+                </div>
+                <div className="flex items-center">
+                  <div className="flex items-center border rounded">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        const newQuantity = Math.max(1, quantities[item.id] - 1);
+                        handleQuantityChange(item.id, newQuantity);
+                        handleUpdateQuantity(item.id, newQuantity);
+                      }}
+                      className="px-2"
+                    >
+                      -
+                    </Button>
+                    <Input
+                      type="number"
+                      value={quantities[item.id]}
+                      onChange={(e) => {
+                        const newQuantity = parseInt(e.target.value);
+                        handleQuantityChange(item.id, newQuantity);
+                        handleUpdateQuantity(item.id, newQuantity);
+                      }}
+                      className="w-16 text-center"
+                    />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        const newQuantity = quantities[item.id] + 1;
+                        handleQuantityChange(item.id, newQuantity);
+                        handleUpdateQuantity(item.id, newQuantity);
+                      }}
+                      className="px-2"
+                    >
+                      +
+                    </Button>
+                  </div>
+                  <Button variant="ghost" size="sm" onClick={() => handleRemoveItem(item.id)} className="ml-4">
+                    Remove
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div>
+            <div className="bg-white rounded-lg shadow-md p-4">
+              <h2 className="text-lg font-semibold mb-4">Order Summary</h2>
+              <div className="flex justify-between mb-2">
+                <span>Subtotal:</span>
+                <span>₹{cartTotal.toFixed(2)}</span>
+              </div>
+              {appliedCoupon && (
+                <div className="flex justify-between mb-2 text-green-500">
+                  <span>Coupon Discount ({appliedCoupon.code}):</span>
+                  <span>-₹{((appliedCoupon.discount / 100) * cartTotal).toFixed(2)}</span>
                 </div>
               )}
-              
-              {/* Coupon Entry and Coupons Link */}
-              <div className="space-y-3 mb-6">
-                <div className="flex items-center space-x-2">
-                  <Input 
-                    placeholder="Enter coupon code" 
-                    value={couponCode} 
-                    onChange={e => setCouponCode(e.target.value.toUpperCase())}
-                    onPaste={e => {
-                      // Get pasted text and set it directly
-                      const pastedText = e.clipboardData.getData('text');
-                      if (pastedText) {
-                        setCouponCode(pastedText.trim().toUpperCase());
-                        // Prevent default to avoid double paste
-                        e.preventDefault();
-                      }
-                    }}
-                    className="flex-grow" 
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter') {
-                        handleCouponApply();
-                      }
-                    }}
-                  />
-                  <Button 
-                    onClick={handleCouponApply} 
-                    disabled={!couponCode || isApplyingCoupon}
-                    variant="outline"
-                  >
-                    {isApplyingCoupon ? 'Applying...' : 'Apply'}
-                  </Button>
-                </div>
-                
-                <Button 
-                  variant="outline" 
-                  onClick={() => navigate('/coupons')}
-                  className="w-full border-blue-300 text-blue-700 hover:bg-blue-50"
-                >
-                  View All Coupons
+              <Separator className="my-2" />
+              <div className="flex justify-between font-semibold">
+                <span>Total:</span>
+                <span>₹{calculateDiscountedTotal().toFixed(2)}</span>
+              </div>
+              <Link to="/address">
+                <Button className="w-full mt-4">
+                  Checkout
+                </Button>
+              </Link>
+            </div>
+
+            <div className="bg-white rounded-lg shadow-md p-4 mt-4">
+              <h2 className="text-lg font-semibold mb-4">Apply Coupon</h2>
+              <div className="flex items-center">
+                <Input
+                  type="text"
+                  placeholder="Enter coupon code"
+                  value={couponCode}
+                  onChange={(e) => setCouponCode(e.target.value)}
+                  className="mr-2"
+                />
+                <Button onClick={handleApplyCoupon} disabled={isApplyingCoupon}>
+                  {isApplyingCoupon ? 'Applying...' : 'Apply'}
                 </Button>
               </div>
-              
-              {/* Order Summary */}
-              <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Subtotal</span>
-                  <span>₹{subtotal.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Platform Fees</span>
-                  <span>₹{platformFees.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Delivery Fees</span>
-                  <span className="text-green-600">FREE</span>
-                </div>
-                
-                {/* Individual coupon discounts */}
-                {appliedCoupons.map((applied) => (
-                  <div key={applied.coupon.id} className="flex justify-between text-green-600">
-                    <span className="text-sm">{applied.coupon.code} Discount</span>
-                    <span className="text-sm">-₹{applied.discountAmount.toFixed(2)}</span>
-                  </div>
-                ))}
-                
-                {/* Total discount summary */}
-                {totalDiscountAmount > 0 && (
-                  <div className="flex justify-between font-medium text-green-600 border-t border-green-200 pt-2">
-                    <span>Total Coupon Savings</span>
-                    <span>-₹{totalDiscountAmount.toFixed(2)}</span>
-                  </div>
-                )}
-                
-                <Separator />
-                <div className="flex justify-between font-bold text-lg">
-                  <span>Total</span>
-                  <span>₹{finalTotal.toFixed(2)}</span>
-                </div>
-                {totalDiscountAmount > 0 && (
-                  <div className="text-sm text-green-600 text-center">
-                    You saved ₹{totalDiscountAmount.toFixed(2)} on this order!
-                  </div>
-                )}
-                {finalTotal < 2000 && (
-                  <div className="text-sm text-red-600 text-center mt-2">
-                    Minimum order amount is ₹2000. Please add more items to proceed.
-                  </div>
-                )}
-              </div>
-              
-              <div className="mt-4">
-                {finalTotal >= 2000 ? (
-                  <OptimizedCheckoutButton cartItems={cartItems} />
-                ) : (
-                  <Button disabled className="w-full py-6 text-lg bg-gray-400">
-                    Checkout (Minimum ₹2000)
+              {appliedCoupon && (
+                <div className="mt-2 text-sm text-gray-500">
+                  Applied Coupon: {appliedCoupon.code} ({appliedCoupon.discount}% off)
+                  <Button variant="link" onClick={() => removeCoupon()} className="ml-2">
+                    Remove
                   </Button>
-                )}
-              </div>
+                </div>
+              )}
             </div>
-          </>
-        )}
-      </main>
-      
-      <BottomNavigation />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
-export default CartPage;
+export default Cart;

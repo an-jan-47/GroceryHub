@@ -1,72 +1,53 @@
-
 import { supabase } from '@/integrations/supabase/client';
-import { Product } from '@/types/product';
+import { Product } from '@/types';
 
-export interface SearchFilters {
-  query?: string;
+interface SearchOptions {
+  query: string;
   category?: string;
-  minPrice?: number;
-  maxPrice?: number;
-  sortBy?: string;
+  brand?: string;
+  priceRange?: [number, number];
+  minRating?: number;
 }
 
-export const searchProducts = async (filters: SearchFilters): Promise<Product[]> => {
-  let query = supabase
+export const searchProducts = async (options: SearchOptions): Promise<Product[]> => {
+  const { query, category, brand, priceRange, minRating } = options;
+
+  let searchQuery = `name.ilike.%${query}%,description.ilike.%${query}%`;
+
+  if (category) {
+    searchQuery += `,category.eq.${category}`;
+  }
+
+  if (brand) {
+    searchQuery += `,brand.eq.${brand}`;
+  }
+
+  let priceQuery = '';
+  if (priceRange) {
+    priceQuery = `price.gte.${priceRange[0]},price.lte.${priceRange[1]}`;
+  }
+
+  if (priceQuery) {
+    searchQuery += `,and(${priceQuery})`;
+  }
+
+  if (minRating) {
+    searchQuery += `,rating.gte.${minRating}`;
+  }
+
+  const { data, error } = await supabase
     .from('products')
-    .select('*');
-
-  // Apply search query filter
-  if (filters.query) {
-    query = query.or(`name.ilike.%${filters.query}%,description.ilike.%${filters.query}%`);
-  }
-
-  // Apply category filter
-  if (filters.category) {
-    query = query.eq('category', filters.category);
-  }
-
-  // Apply price range filter - check both price and sale_price
-  if (filters.minPrice !== undefined) {
-    // For minimum price, we need to check if sale_price exists and is >= minPrice
-    // OR if there's no sale_price, then price should be >= minPrice
-    query = query.or(`sale_price.gte.${filters.minPrice},and(sale_price.is.null,price.gte.${filters.minPrice})`);
-  }
-  
-  if (filters.maxPrice !== undefined) {
-    // For maximum price, we need to check if sale_price exists and is <= maxPrice
-    // OR if there's no sale_price, then price should be <= maxPrice
-    query = query.or(`sale_price.lte.${filters.maxPrice},and(sale_price.is.null,price.lte.${filters.maxPrice})`);
-  }
-
-  // Apply sorting
-  if (filters.sortBy) {
-    switch (filters.sortBy) {
-      case 'price-low':
-        // Sort by sale_price if available, otherwise by price
-        query = query.order('sale_price', { ascending: true, nullsLast: true })
-                     .order('price', { ascending: true });
-        break;
-      case 'price-high':
-        // Sort by sale_price if available, otherwise by price
-        query = query.order('sale_price', { ascending: false, nullsFirst: true })
-                     .order('price', { ascending: false });
-        break;
-      case 'name':
-        query = query.order('name', { ascending: true });
-        break;
-      default:
-        query = query.order('created_at', { ascending: false });
-    }
-  } else {
-    query = query.order('created_at', { ascending: false });
-  }
-
-  const { data, error } = await query;
+    .select('*')
+    .or(searchQuery)
+    .order('rating', { ascending: false });
 
   if (error) {
     console.error('Error searching products:', error);
     return [];
   }
 
-  return data || [];
+  return data?.map(product => ({
+    ...product,
+    features: Array.isArray(product.features) ? product.features.map(f => String(f)) : []
+  })) || [];
 };

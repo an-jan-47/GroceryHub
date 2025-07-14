@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
 export interface CartItem {
@@ -35,7 +34,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       try {
         const parsedCart = JSON.parse(savedCart);
         // Force refresh of cart items with current prices
-        const refreshedCart = parsedCart.map(item => ({
+        const refreshedCart = parsedCart.map((item: any) => ({
           ...item,
           price: Number(item.price),
           salePrice: item.salePrice ? Number(item.salePrice) : undefined,
@@ -87,8 +86,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           quantity: Number(quantity), 
           images: product.images || [],
           category: product.category || '',
-          brand: product.brand || '',
-          stock: product.stock || 999
+          brand: product.brand || ''
         };
         console.log('Added new item to cart:', newItem);
         return [...prevItems, newItem];

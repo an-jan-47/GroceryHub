@@ -472,6 +472,18 @@ export const isAddressUsedInOrders = async (addressId: string) => {
   return count > 0;
 };
 
+export const getOrderCount = async (): Promise<number> => {
+  const { count, error } = await supabase
+    .from('orders')
+    .select('*', { count: 'exact', head: true });
+
+  if (error) {
+    console.error('Error fetching order count:', error);
+    return 0;
+  }
+
+  return count ?? 0;
+};
 
 /**
  * Subscribe to real-time updates for a specific order

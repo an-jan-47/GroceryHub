@@ -1,276 +1,181 @@
-import React, { useState, useEffect } from "react";
-
-import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { getProduct, getProducts } from '@/services/productService';
-import { getProductReviews } from '@/services/reviewService';
-import Header from '@/components/Header';
-import BottomNavigation from '@/components/BottomNavigation';
+import React, { useState, useEffect } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import { Star } from 'lucide-react';
+import { Product } from '@/types';
+import { getProductById, getSimilarProducts } from '@/services/productService';
+import ProductsGrid from '@/components/ProductsGrid';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { useCart } from '@/hooks/useCart';
-import { useWishlist } from '@/hooks/useWishlist';
 import { toast } from '@/components/ui/sonner';
-import { Separator } from '@/components/ui/separator';
-import ProductCard from '@/components/ProductCard';
-import StarRating from '@/components/StarRating';
-import ProductDetailImage from '@/components/ProductDetailImage';
-import ProductDetailInfo from '@/components/ProductDetailInfo';
-import ProductDetailActions from '@/components/ProductDetailActions';
+import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
-const ProductDetailPage = () => {
-  const { productId } = useParams();
-  const navigate = useNavigate();
-  const { addToCart } = useCart();
-  const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
+const ProductDetail: React.FC = () => {
+  const { productId } = useParams<{ productId: string }>();
+  const [product, setProduct] = useState<Product | null>(null);
+  const [similarProducts, setSimilarProducts] = useState<Product[]>([]);
   const [quantity, setQuantity] = useState(1);
-  const [isFavorite, setIsFavorite] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [reviews, setReviews] = useState<any[]>([]);
+  const { addToCart } = useCart();
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
-  // Fetch product details
-  const { data: product, isLoading, error, isError } = useQuery({
-    queryKey: ['product', productId],
-    queryFn: () => {
-      if (!productId) {
-        throw new Error('Product ID is required');
-      }
-      return getProduct(productId);
-    },
-    enabled: !!productId,
-    retry: 1
-  });
-
-  // Fetch product reviews
-  const { data: reviews = [] } = useQuery({
-    queryKey: ['reviews', productId],
-    queryFn: () => productId ? getProductReviews(productId) : [],
-    enabled: !!productId
-  });
-
-  // Fetch related products
-  const { data: relatedProducts } = useQuery({
-    queryKey: ['related-products', product?.category],
-    queryFn: () => getProducts(),
-    enabled: !!product?.category,
-    select: (data) => data
-      .filter(p => p.category === product?.category && p.id !== product?.id)
-      .slice(0, 4)
-  });
-
-  // Check if product is in wishlist on component mount (prevent infinite update)
   useEffect(() => {
     if (productId) {
-      // Only set state if needed, don't depend on isInWishlist function reference
-      setIsFavorite(isInWishlist(productId));
+      fetchProductDetails(productId);
     }
-    // Only depend on productId (not isInWishlist, which is unstable)
   }, [productId]);
 
-  // Handle quantity changes
+  const fetchProductDetails = async (id: string) => {
+    try {
+      setLoading(true);
+      const productData = await getProductById(id);
+      if (productData) {
+        setProduct(productData);
+        fetchSimilarProducts(productData.category, productData.brand || '');
+        fetchReviews(id);
+      } else {
+        console.error('Product not found');
+      }
+    } catch (error) {
+      console.error('Error fetching product details:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchSimilarProducts = async (category: string, brand: string) => {
+    if (productId) {
+      try {
+        const similar = await getSimilarProducts(productId, category, brand);
+        setSimilarProducts(similar);
+      } catch (error) {
+        console.error('Error fetching similar products:', error);
+      }
+    }
+  };
+
+  const fetchReviews = async (productId: string) => {
+    try {
+      // Fetch reviews logic here
+      setReviews([]); // Replace with actual reviews
+    } catch (error) {
+      console.error('Error fetching reviews:', error);
+    }
+  };
+
+  const handleAddToCart = () => {
+    if (product) {
+      addToCart(product, quantity);
+      toast(`${quantity} ${product.name} added to cart`);
+    }
+  };
+
   const incrementQuantity = () => {
     if (product && quantity < product.stock) {
-      setQuantity(prev => prev + 1);
-    } else {
-      toast("Limited stock", {
-        description: `Only ${product?.stock} units available`,
-        position: "bottom-center"
-      });
+      setQuantity(quantity + 1);
     }
   };
-  
+
   const decrementQuantity = () => {
     if (quantity > 1) {
-      setQuantity(prev => prev - 1);
-    }
-  };
-  
-  // Add to cart function
-  const handleAddToCart = (qty: number = quantity) => {
-    if (product) {
-      addToCart({
-        id: product.id,
-        name: product.name,
-        price: product.price,
-        salePrice: product.sale_price,
-        images: product.images,
-        quantity: qty,
-        stock: product.stock
-      }, qty);
-      toast('Added to cart', {
-        description: `${qty} × ${product.name}`
-      });
-    }
-  };
-  
-  // Buy now function
-  const handleBuyNow = (qty: number = quantity) => {
-    if (product) {
-      const total = (product.sale_price ?? product.price) * qty;
-      if (total < 2000) {
-        toast('Minimum order value is ₹2000 to proceed ', { position: 'bottom-center' });
-        return;
-      }
-      addToCart({
-        id: product.id,
-        name: product.name,
-        price: product.price,
-        salePrice: product.sale_price,
-        images: product.images,
-        quantity: qty,
-        stock: product.stock
-      }, qty);
-      navigate('/address');
-    }
-  };
-  
-  // Toggle wishlist function
-  const toggleWishlist = () => {
-    if (!product) return;
-    
-    if (isFavorite) {
-      removeFromWishlist(product.id);
-      setIsFavorite(false);
-    } else {
-      addToWishlist({
-        id: product.id,
-        name: product.name,
-        price: product.price,
-        sale_price: product.sale_price,
-        images: product.images,
-      });
-      setIsFavorite(true);
+      setQuantity(quantity - 1);
     }
   };
 
-  if (error) {
-    return (
-      <div className="pb-20">
-        <Header />
-        <div className="container px-4 py-4 mx-auto text-center">
-          <h1 className="text-2xl font-bold">Error loading product</h1>
-          <p className="text-gray-600 mb-4">There was an error loading the product details.</p>
-          <Button onClick={() => navigate('/')} className="mt-4">
-            Go Home
-          </Button>
-        </div>
-        <BottomNavigation />
-      </div>
-    );
+  if (loading) {
+    return <div>Loading product details...</div>;
   }
 
-  if (isLoading) {
-    return (
-      <div className="pb-20">
-        <Header />
-        <main className="container px-4 py-8 mx-auto">
-          <div className="flex justify-center items-center h-64">
-            <div className="animate-spin h-8 w-8 border-4 border-blue-500 rounded-full border-t-transparent"></div>
-          </div>
-        </main>
-        <BottomNavigation />
-      </div>
-    );
+  if (!product) {
+    return <div>Product not found</div>;
   }
-  
-  // Error state
-  if (isError || !product) {
-    return (
-      <div className="pb-20">
-        <Header />
-        <div className="container px-4 py-4 mx-auto text-center">
-          <h1 className="text-2xl font-bold">Product not found</h1>
-          <p className="text-gray-600 mb-4">The product you're looking for doesn't exist or has been removed.</p>
-          <Button onClick={() => navigate('/')} className="mt-4">
-            Go Home
-          </Button>
-        </div>
-        <BottomNavigation />
-      </div>
-    );
-  }
-  
+
   return (
-    <div className="pb-20">
-      <Header />
-      <main className="container px-4 py-2 mx-auto">
-        {/* Product Image Component */}
-        <ProductDetailImage 
-          product={product}
-          isFavorite={isFavorite}
-          onToggleWishlist={toggleWishlist}
-        />
-        
-        {/* Product Info Component */}
-        <ProductDetailInfo 
-          product={product}
-          quantity={quantity}
-          onIncrementQuantity={incrementQuantity}
-          onDecrementQuantity={decrementQuantity}
-        />
-        
-        <Separator className="my-4" />
-        
-        {/* Action Buttons Component */}
-        <ProductDetailActions 
-          product={product}
-          quantity={quantity}
-          onAddToCart={handleAddToCart}
-          onBuyNow={handleBuyNow}
-        />
-        
-        {/* Reviews section */}
-        <div className="mb-6">
-          <h2 className="font-semibold mb-3">Reviews</h2>
-          
-          {reviews.length > 0 ? (
-            <div className="space-y-4">
-              {reviews.map((review) => (
-                <div key={review.id} className="bg-white p-3 rounded-lg shadow-sm">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="font-medium">{review.user_name}</p>
-                      <StarRating rating={review.rating} size="sm" />
-                    </div>
-                    <span className="text-xs text-gray-500">
-                      {new Date(review.created_at || review.date).toLocaleDateString()}
-                    </span>
-                  </div>
-                  <p className="text-sm mt-2 text-gray-700">{review.comment}</p>
-                </div>
+    <div className="container mx-auto mt-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div>
+          <img src={product.images?.[0]} alt={product.name} className="w-full rounded-lg" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold mb-2">{product.name}</h1>
+          <div className="flex items-center gap-2 mb-4">
+            <div className="flex text-yellow-400">
+              {[...Array(5)].map((_, i) => (
+                <Star key={i} className={`w-4 h-4 ${i < product.rating ? 'fill-current' : ''}`} />
               ))}
             </div>
-          ) : (
-            <div className="text-center py-6 bg-gray-50 rounded-lg">
-              <p className="text-gray-500">No reviews yet</p>
-              <Button 
-                variant="link" 
-                onClick={() => navigate(`/write-review/${productId}`)}
-                className="mt-2 text-blue-500"
-              >
-                Be the first to review
-              </Button>
+            <span className="text-gray-500">{product.rating}</span>
+          </div>
+          <p className="text-gray-700 mb-4">{product.description}</p>
+          <div className="flex items-center gap-4 mb-4">
+            <span className="text-xl font-semibold">₹{product.salePrice || product.price}</span>
+            {product.salePrice && (
+              <span className="text-gray-500 line-through">₹{product.price}</span>
+            )}
+          </div>
+          <div className="flex items-center gap-4 mb-4">
+            <div className="flex items-center border rounded-md">
+              <Button onClick={decrementQuantity} className="px-4 py-2">-</Button>
+              <Input
+                type="number"
+                value={quantity}
+                onChange={(e) => setQuantity(parseInt(e.target.value))}
+                className="w-16 text-center"
+              />
+              <Button onClick={incrementQuantity} className="px-4 py-2">+</Button>
             </div>
+            {product.stock ? (
+              <span className="text-green-500">In Stock</span>
+            ) : (
+              <span className="text-red-500">Out of Stock</span>
+            )}
+          </div>
+          <Button onClick={handleAddToCart} className="w-full">Add to Cart</Button>
+          {user ? (
+            <Link to={`/write-review/${productId}`} className="block mt-4 text-blue-500">
+              Write a Review
+            </Link>
+          ) : (
+            <Button variant="link" onClick={() => navigate('/login')} className="w-full mt-4">
+              Login to Write a Review
+            </Button>
           )}
         </div>
-        
-        {/* Related products */}
-        {relatedProducts && relatedProducts.length > 0 && (
-          <div className="mb-6">
-            <h2 className="font-semibold mb-3">Related Products</h2>
-            <div className="grid grid-cols-2 gap-3">
-              {relatedProducts.map((relatedProduct) => (
-                <div key={relatedProduct.id}>
-                  <ProductCard
-                    product={relatedProduct}
-                    className="flex-shrink-0"
-                  />
+      </div>
+
+      {reviews.length > 0 && (
+        <div className="bg-white rounded-lg p-4 mb-4">
+          <h3 className="font-semibold text-lg mb-4">Customer Reviews</h3>
+          {reviews.map((review) => (
+            <div key={review.id} className="border-b pb-4 mb-4 last:border-b-0">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="flex text-yellow-400">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className={`w-4 h-4 ${i < review.rating ? 'fill-current' : ''}`} />
+                  ))}
                 </div>
-              ))}
+                <span className="font-medium">{review.user_name}</span>
+                <span className="text-gray-500 text-sm">
+                  {review.date ? new Date(review.date).toLocaleDateString() : ''}
+                </span>
+              </div>
+              <p className="text-gray-700">{review.comment}</p>
             </div>
-          </div>
-        )}
-      </main>
-      <BottomNavigation />
+          ))}
+        </div>
+      )}
+
+      {similarProducts.length > 0 && (
+        <div className="mt-8">
+          <h2 className="text-xl font-semibold mb-4">Similar Products</h2>
+          <ProductsGrid products={similarProducts} />
+        </div>
+      )}
     </div>
   );
 };
 
-export default ProductDetailPage;
+export default ProductDetail;
