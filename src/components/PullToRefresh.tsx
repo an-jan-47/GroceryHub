@@ -1,4 +1,3 @@
-
 import React from 'react';
 import PullToRefresh from 'react-simple-pull-to-refresh';
 
@@ -18,7 +17,7 @@ const PullToRefreshWrapper: React.FC<PullToRefreshWrapperProps> = ({ onRefresh, 
       resistance={3}
       className="h-full"
     >
-      <div>{children}</div>
+      {children}
     </PullToRefresh>
   );
 };

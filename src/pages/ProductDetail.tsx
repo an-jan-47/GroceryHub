@@ -1,225 +1,276 @@
+import React, { useState, useEffect } from "react";
 
-import React, { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Star, ShoppingCart, Plus, Minus } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { toast } from '@/components/ui/sonner';
-import { useCart } from '@/hooks/useCart';
-import { useProductDetail } from '@/hooks/useProductDetail';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { getProduct, getProducts } from '@/services/productService';
+import { getProductReviews } from '@/services/reviewService';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
-import LoadingSpinner from '@/components/LoadingSpinner';
-import { Product, CartItem } from '@/types';
+import { Button } from '@/components/ui/button';
+import { useCart } from '@/hooks/useCart';
+import { useWishlist } from '@/hooks/useWishlist';
+import { toast } from '@/components/ui/sonner';
+import { Separator } from '@/components/ui/separator';
+import ProductCard from '@/components/ProductCard';
+import StarRating from '@/components/StarRating';
+import ProductDetailImage from '@/components/ProductDetailImage';
+import ProductDetailInfo from '@/components/ProductDetailInfo';
+import ProductDetailActions from '@/components/ProductDetailActions';
 
-const ProductDetail = () => {
-  const { id } = useParams<{ id: string }>();
+const ProductDetailPage = () => {
+  const { productId } = useParams();
+  const navigate = useNavigate();
+  const { addToCart } = useCart();
+  const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
   const [quantity, setQuantity] = useState(1);
-  const { addToCart, getItemQuantity } = useCart();
-  
-  const { data: product, isLoading, error } = useProductDetail(id || '');
+  const [isFavorite, setIsFavorite] = useState(false);
 
-  if (isLoading) {
-    return (
-      <div className="pb-20">
-        <Header />
-        <div className="flex justify-center items-center min-h-screen">
-          <LoadingSpinner />
-        </div>
-        <BottomNavigation />
-      </div>
-    );
-  }
+  // Fetch product details
+  const { data: product, isLoading, error, isError } = useQuery({
+    queryKey: ['product', productId],
+    queryFn: () => {
+      if (!productId) {
+        throw new Error('Product ID is required');
+      }
+      return getProduct(productId);
+    },
+    enabled: !!productId,
+    retry: 1
+  });
+
+  // Fetch product reviews
+  const { data: reviews = [] } = useQuery({
+    queryKey: ['reviews', productId],
+    queryFn: () => productId ? getProductReviews(productId) : [],
+    enabled: !!productId
+  });
+
+  // Fetch related products
+  const { data: relatedProducts } = useQuery({
+    queryKey: ['related-products', product?.category],
+    queryFn: () => getProducts(),
+    enabled: !!product?.category,
+    select: (data) => data
+      .filter(p => p.category === product?.category && p.id !== product?.id)
+      .slice(0, 4)
+  });
+
+  // Check if product is in wishlist on component mount (prevent infinite update)
+  useEffect(() => {
+    if (productId) {
+      // Only set state if needed, don't depend on isInWishlist function reference
+      setIsFavorite(isInWishlist(productId));
+    }
+    // Only depend on productId (not isInWishlist, which is unstable)
+  }, [productId]);
+
+  // Handle quantity changes
+  const incrementQuantity = () => {
+    if (product && quantity < product.stock) {
+      setQuantity(prev => prev + 1);
+    } else {
+      toast("Limited stock", {
+        description: `Only ${product?.stock} units available`,
+        position: "bottom-center"
+      });
+    }
+  };
+  
+  const decrementQuantity = () => {
+    if (quantity > 1) {
+      setQuantity(prev => prev - 1);
+    }
+  };
+  
+  // Add to cart function
+  const handleAddToCart = (qty: number = quantity) => {
+    if (product) {
+      addToCart({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        salePrice: product.sale_price,
+        images: product.images,
+        quantity: qty,
+        stock: product.stock
+      }, qty);
+      toast('Added to cart', {
+        description: `${qty} × ${product.name}`
+      });
+    }
+  };
+  
+  // Buy now function
+  const handleBuyNow = (qty: number = quantity) => {
+    if (product) {
+      const total = (product.sale_price ?? product.price) * qty;
+      if (total < 2000) {
+        toast('Minimum order value is ₹2000 to proceed ', { position: 'bottom-center' });
+        return;
+      }
+      addToCart({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        salePrice: product.sale_price,
+        images: product.images,
+        quantity: qty,
+        stock: product.stock
+      }, qty);
+      navigate('/address');
+    }
+  };
+  
+  // Toggle wishlist function
+  const toggleWishlist = () => {
+    if (!product) return;
+    
+    if (isFavorite) {
+      removeFromWishlist(product.id);
+      setIsFavorite(false);
+    } else {
+      addToWishlist({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        sale_price: product.sale_price,
+        images: product.images,
+      });
+      setIsFavorite(true);
+    }
+  };
 
   if (error) {
     return (
       <div className="pb-20">
         <Header />
-        <div className="container px-4 py-8 mx-auto">
-          <div className="text-center">
-            <h2 className="text-2xl font-bold mb-4">Product Not Found</h2>
-            <p className="text-gray-600 mb-4">The product you're looking for doesn't exist.</p>
-            <Link to="/" className="text-blue-600 hover:underline">
-              Go back to home
-            </Link>
-          </div>
+        <div className="container px-4 py-4 mx-auto text-center">
+          <h1 className="text-2xl font-bold">Error loading product</h1>
+          <p className="text-gray-600 mb-4">There was an error loading the product details.</p>
+          <Button onClick={() => navigate('/')} className="mt-4">
+            Go Home
+          </Button>
         </div>
         <BottomNavigation />
       </div>
     );
   }
 
-  if (!product) {
-    return null;
+  if (isLoading) {
+    return (
+      <div className="pb-20">
+        <Header />
+        <main className="container px-4 py-8 mx-auto">
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin h-8 w-8 border-4 border-blue-500 rounded-full border-t-transparent"></div>
+          </div>
+        </main>
+        <BottomNavigation />
+      </div>
+    );
   }
-
-  const currentQuantity = getItemQuantity(product.id);
-  const isOutOfStock = product.stock === 0;
-  const discount = product.sale_price ? 
-    Math.round(((product.price - product.sale_price) / product.price) * 100) : 0;
-
-  const handleAddToCart = () => {
-    if (isOutOfStock) {
-      toast('Product is out of stock');
-      return;
-    }
-
-    const cartItem = {
-      ...product,
-      quantity: quantity
-    } as CartItem;
-
-    addToCart(cartItem, quantity);
-    toast('Added to cart!', {
-      description: `${quantity} x ${product.name} added to your cart.`
-    });
-  };
-
-  const handleQuantityChange = (newQuantity: number) => {
-    if (newQuantity >= 1 && newQuantity <= product.stock) {
-      setQuantity(newQuantity);
-    }
-  };
-
+  
+  // Error state
+  if (isError || !product) {
+    return (
+      <div className="pb-20">
+        <Header />
+        <div className="container px-4 py-4 mx-auto text-center">
+          <h1 className="text-2xl font-bold">Product not found</h1>
+          <p className="text-gray-600 mb-4">The product you're looking for doesn't exist or has been removed.</p>
+          <Button onClick={() => navigate('/')} className="mt-4">
+            Go Home
+          </Button>
+        </div>
+        <BottomNavigation />
+      </div>
+    );
+  }
+  
   return (
     <div className="pb-20">
       <Header />
-      
-      <main className="container px-4 py-4 mx-auto max-w-4xl">
-        <div className="flex items-center mb-4">
-          <Link to="/" className="flex items-center text-gray-600 hover:text-gray-800">
-            <ArrowLeft className="w-5 h-5 mr-1" />
-            Back to Products
-          </Link>
-        </div>
-
-        <div className="grid md:grid-cols-2 gap-8">
-          <div>
-            <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden mb-4">
-              <img 
-                src={product.images[0]} 
-                alt={product.name}
-                className="w-full h-full object-cover"
-              />
-            </div>
-          </div>
-
-          <div>
-            <div className="mb-4">
-              <Badge variant="secondary" className="mb-2">
-                {product.category}
-              </Badge>
-              <h1 className="text-3xl font-bold mb-2">{product.name}</h1>
-              <div className="flex items-center mb-4">
-                <div className="flex items-center">
-                  {[...Array(5)].map((_, i) => (
-                    <Star
-                      key={i}
-                      className={`w-4 h-4 ${
-                        i < Math.floor(product.rating)
-                          ? 'text-yellow-400 fill-current'
-                          : 'text-gray-300'
-                      }`}
-                    />
-                  ))}
-                  <span className="ml-2 text-sm text-gray-600">
-                    {product.rating} ({product.review_count} reviews)
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="mb-6">
-              <div className="flex items-center space-x-2 mb-2">
-                {product.sale_price ? (
-                  <>
-                    <span className="text-3xl font-bold text-green-600">
-                      ₹{product.sale_price.toFixed(2)}
-                    </span>
-                    <span className="text-lg text-gray-500 line-through">
-                      ₹{product.price.toFixed(2)}
-                    </span>
-                    <Badge variant="destructive" className="text-xs">
-                      {discount}% OFF
-                    </Badge>
-                  </>
-                ) : (
-                  <span className="text-3xl font-bold">
-                    ₹{product.price.toFixed(2)}
-                  </span>
-                )}
-              </div>
-              <p className="text-sm text-gray-600">
-                Stock: {product.stock} available
-              </p>
-            </div>
-
-            <Card className="mb-6">
-              <CardContent className="p-4">
-                <h3 className="font-semibold mb-2">Description</h3>
-                <p className="text-gray-600">{product.description}</p>
-                {product.features && Array.isArray(product.features) && product.features.length > 0 && (
-                  <div className="mt-4">
-                    <h4 className="font-medium mb-2">Features:</h4>
-                    <ul className="text-sm text-gray-600 space-y-1">
-                      {product.features.map((feature: string, index: number) => (
-                        <li key={index}>• {feature}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
+      <main className="container px-4 py-2 mx-auto">
+        {/* Product Image Component */}
+        <ProductDetailImage 
+          product={product}
+          isFavorite={isFavorite}
+          onToggleWishlist={toggleWishlist}
+        />
+        
+        {/* Product Info Component */}
+        <ProductDetailInfo 
+          product={product}
+          quantity={quantity}
+          onIncrementQuantity={incrementQuantity}
+          onDecrementQuantity={decrementQuantity}
+        />
+        
+        <Separator className="my-4" />
+        
+        {/* Action Buttons Component */}
+        <ProductDetailActions 
+          product={product}
+          quantity={quantity}
+          onAddToCart={handleAddToCart}
+          onBuyNow={handleBuyNow}
+        />
+        
+        {/* Reviews section */}
+        <div className="mb-6">
+          <h2 className="font-semibold mb-3">Reviews</h2>
+          
+          {reviews.length > 0 ? (
             <div className="space-y-4">
-              <div className="flex items-center space-x-4">
-                <span className="font-medium">Quantity:</span>
-                <div className="flex items-center border rounded">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleQuantityChange(quantity - 1)}
-                    disabled={quantity <= 1}
-                  >
-                    <Minus className="w-4 h-4" />
-                  </Button>
-                  <span className="px-4 py-2">{quantity}</span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleQuantityChange(quantity + 1)}
-                    disabled={quantity >= product.stock}
-                  >
-                    <Plus className="w-4 h-4" />
-                  </Button>
+              {reviews.map((review) => (
+                <div key={review.id} className="bg-white p-3 rounded-lg shadow-sm">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="font-medium">{review.user_name}</p>
+                      <StarRating rating={review.rating} size="sm" />
+                    </div>
+                    <span className="text-xs text-gray-500">
+                      {new Date(review.created_at || review.date).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <p className="text-sm mt-2 text-gray-700">{review.comment}</p>
                 </div>
-              </div>
-
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-6 bg-gray-50 rounded-lg">
+              <p className="text-gray-500">No reviews yet</p>
               <Button 
-                onClick={handleAddToCart}
-                disabled={isOutOfStock}
-                className="w-full"
-                size="lg"
+                variant="link" 
+                onClick={() => navigate(`/write-review/${productId}`)}
+                className="mt-2 text-blue-500"
               >
-                <ShoppingCart className="w-5 h-5 mr-2" />
-                {isOutOfStock ? 'Out of Stock' : `Add to Cart - ₹${((product.sale_price || product.price) * quantity).toFixed(2)}`}
+                Be the first to review
               </Button>
-
-              {currentQuantity > 0 && (
-                <p className="text-sm text-green-600 text-center">
-                  {currentQuantity} item(s) in cart
-                </p>
-              )}
+            </div>
+          )}
+        </div>
+        
+        {/* Related products */}
+        {relatedProducts && relatedProducts.length > 0 && (
+          <div className="mb-6">
+            <h2 className="font-semibold mb-3">Related Products</h2>
+            <div className="grid grid-cols-2 gap-3">
+              {relatedProducts.map((relatedProduct) => (
+                <div key={relatedProduct.id}>
+                  <ProductCard
+                    product={relatedProduct}
+                    className="flex-shrink-0"
+                  />
+                </div>
+              ))}
             </div>
           </div>
-        </div>
+        )}
       </main>
-      
       <BottomNavigation />
     </div>
   );
 };
 
-export default ProductDetail;
+export default ProductDetailPage;

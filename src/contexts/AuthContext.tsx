@@ -1,7 +1,9 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 import { toast } from '@/components/ui/sonner';
 
 interface AuthContextType {
@@ -12,12 +14,12 @@ interface AuthContextType {
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   deleteAccount: () => Promise<void>;
-  resetPassword: (email: string) => Promise<void>;
   loading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Export the useAuth hook at the top level instead of at the bottom
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
@@ -47,7 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         // Set up auth state change listener
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: string, currentSession: Session | null) => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
           console.log('Auth state changed:', event, currentSession);
           if (mounted) {
             setSession(currentSession);
@@ -55,7 +57,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         });
 
-        return () => subscription.unsubscribe();
       } catch (error) {
         console.error('Error initializing auth:', error);
       } finally {
@@ -80,7 +81,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/`,
           data: {
             name: userData.name,
             phone: userData.phone,
@@ -94,11 +94,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         description: 'Please check your email to confirm your account'
       });
     } catch (error: any) {
+      // Log the detailed error for debugging but don't expose to user
       console.error('Signup error:', error);
+      
+      // Display a generic message to the user
       toast('Error creating account', {
-        description: error.message || 'Unable to create your account. Please try again later.'
+        description: 'Unable to create your account. Please try again later.'
       });
-      throw error;
+      
+      // Throw a sanitized error
+      throw new Error('Account creation failed');
     } finally {
       setLoading(false);
     }
@@ -116,11 +121,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       toast('Welcome back!');
     } catch (error: any) {
+      // Log the detailed error for debugging
       console.error('Login error:', error);
+      
+      // Display a generic message to the user
       toast('Login failed', {
-        description: error.message || 'Invalid email or password'
+        description: 'Invalid email or password'
       });
-      throw error;
+      
+      // Throw a sanitized error
+      throw new Error('Authentication failed');
     } finally {
       setLoading(false);
     }
@@ -135,34 +145,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (error) throw error;
     } catch (error: any) {
+      // Log the detailed error for debugging
       console.error('Google sign-in error:', error);
+      
+      // Display a generic message to the user
       toast('Google sign-in failed', {
         description: 'Unable to sign in with Google. Please try again.'
       });
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const resetPassword = async (email: string) => {
-    try {
-      setLoading(true);
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
-
-      if (error) throw error;
       
-      toast('Password reset email sent', {
-        description: 'Check your email for the password reset link'
-      });
-    } catch (error: any) {
-      console.error('Password reset error:', error);
-      toast('Error sending reset email', {
-        description: error.message || 'Unable to send reset email. Please try again.'
-      });
-      throw error;
+      // Throw a sanitized error
+      throw new Error('Google authentication failed');
     } finally {
       setLoading(false);
     }
@@ -174,10 +166,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await supabase.auth.signOut();
       toast('Signed out successfully');
     } catch (error: any) {
+      // Log the detailed error for debugging
       console.error('Sign out error:', error);
+      
+      // Display a generic message to the user
       toast('Sign out failed', {
         description: 'Unable to sign out. Please try again.'
       });
+      
+      // No need to throw here as this is typically a terminal operation
     } finally {
       setLoading(false);
     }
@@ -248,7 +245,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signInWithGoogle,
         signOut,
         deleteAccount,
-        resetPassword,
         loading,
       }}>
       {children}

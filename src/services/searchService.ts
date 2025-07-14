@@ -1,111 +1,72 @@
+
 import { supabase } from '@/integrations/supabase/client';
-import { Product } from '@/types';
+import { Product } from '@/types/product';
 
-export interface SearchFiltersType {
-  query: string;
-  category: string;
-  minPrice: number;
-  maxPrice: number;
-  sortBy: 'name' | 'price' | 'rating';
-  sortOrder: 'asc' | 'desc';
-  brands: string[];
-  inStock: boolean;
+export interface SearchFilters {
+  query?: string;
+  category?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  sortBy?: string;
 }
 
-export interface SearchFiltersProps {
-  onFilterChange: (filters: SearchFiltersType) => void;
-  initialQuery?: string;
-  initialCategory?: string;
-  categories?: string[];
-  brands?: string[];
-}
-
-export type SearchFilters = SearchFiltersType;
-
-export const searchProducts = async (filters: SearchFiltersType): Promise<Product[]> => {
+export const searchProducts = async (filters: SearchFilters): Promise<Product[]> => {
   let query = supabase
     .from('products')
     .select('*');
 
+  // Apply search query filter
   if (filters.query) {
-    query = query.or(`name.ilike.%${filters.query}%,description.ilike.%${filters.query}%,brand.ilike.%${filters.query}%`);
+    query = query.or(`name.ilike.%${filters.query}%,description.ilike.%${filters.query}%`);
   }
 
-  if (filters.category && filters.category !== 'all') {
+  // Apply category filter
+  if (filters.category) {
     query = query.eq('category', filters.category);
   }
 
-  if (filters.brands && filters.brands.length > 0) {
-    query = query.in('brand', filters.brands);
+  // Apply price range filter - check both price and sale_price
+  if (filters.minPrice !== undefined) {
+    // For minimum price, we need to check if sale_price exists and is >= minPrice
+    // OR if there's no sale_price, then price should be >= minPrice
+    query = query.or(`sale_price.gte.${filters.minPrice},and(sale_price.is.null,price.gte.${filters.minPrice})`);
   }
-
-  if (filters.minPrice > 0) {
-    query = query.gte('price', filters.minPrice);
-  }
-
-  if (filters.maxPrice > 0 && filters.maxPrice !== 10000) {
-    query = query.lte('price', filters.maxPrice);
-  }
-
-  if (filters.inStock) {
-    query = query.gt('stock', 0);
-  }
-
-  const features = filters.query ? filters.query.toLowerCase().split(' ').filter((f: string) => f.length > 2) : [];
-  if (features.length > 0) {
-    const featureConditions = features.map(() => `features ? $1`).join(' OR ');
-    query = query.or(featureConditions, { 
-      referencedTable: undefined, 
-      foreignTable: undefined 
-    });
+  
+  if (filters.maxPrice !== undefined) {
+    // For maximum price, we need to check if sale_price exists and is <= maxPrice
+    // OR if there's no sale_price, then price should be <= maxPrice
+    query = query.or(`sale_price.lte.${filters.maxPrice},and(sale_price.is.null,price.lte.${filters.maxPrice})`);
   }
 
   // Apply sorting
-  if (filters.sortBy === 'price') {
-    query = query.order('price', { ascending: filters.sortOrder === 'asc' });
-  } else if (filters.sortBy === 'rating') {
-    query = query.order('rating', { ascending: filters.sortOrder === 'asc' });
+  if (filters.sortBy) {
+    switch (filters.sortBy) {
+      case 'price-low':
+        // Sort by sale_price if available, otherwise by price
+        query = query.order('sale_price', { ascending: true, nullsLast: true })
+                     .order('price', { ascending: true });
+        break;
+      case 'price-high':
+        // Sort by sale_price if available, otherwise by price
+        query = query.order('sale_price', { ascending: false, nullsFirst: true })
+                     .order('price', { ascending: false });
+        break;
+      case 'name':
+        query = query.order('name', { ascending: true });
+        break;
+      default:
+        query = query.order('created_at', { ascending: false });
+    }
   } else {
-    query = query.order('name', { ascending: filters.sortOrder === 'asc' });
+    query = query.order('created_at', { ascending: false });
   }
 
   const { data, error } = await query;
 
   if (error) {
     console.error('Error searching products:', error);
-    throw error;
-  }
-
-  return (data || []).map(product => ({
-    ...product,
-    features: Array.isArray(product.features) ? product.features : (product.features ? [product.features] : [])
-  }));
-};
-
-export const getCategories = async (): Promise<string[]> => {
-  const { data, error } = await supabase
-    .from('products')
-    .select('category');
-
-  if (error) {
-    console.error('Error fetching categories:', error);
     return [];
   }
 
-  const categories = [...new Set(data?.map(item => item.category) || [])];
-  return categories.filter(Boolean);
-};
-
-export const getBrands = async (): Promise<string[]> => {
-  const { data, error } = await supabase
-    .from('products')
-    .select('brand');
-
-  if (error) {
-    console.error('Error fetching brands:', error);
-    return [];
-  }
-
-  const brands = [...new Set(data?.map(item => item.brand) || [])];
-  return brands.filter(Boolean);
+  return data || [];
 };

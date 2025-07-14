@@ -1,382 +1,278 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { ChevronLeft, Plus, MapPin, Home, Briefcase, Edit, Trash2, Truck, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/components/ui/sonner';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import Header from '@/components/Header';
+import BottomNavigation from '@/components/BottomNavigation';
+import { getAddresses, Address, deleteAddress, setDefaultAddress, archiveAddress } from '@/services/addressService';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { AddressDialog } from '@/components/AddressDialog';
+import { useAuth } from '@/contexts/AuthContext';
+import { useAuthCheck } from '@/hooks/useAuthCheck';
 
-interface Address {
-  id: string;
-  user_id: string;
-  street: string;
-  city: string;
-  state: string;
-  postal_code: string;
-  country: string;
-  is_default: boolean;
-  archived: boolean;
-}
-
-const Address: React.FC = () => {
+const AddressPage = () => {
+  const [selectedAddress, setSelectedAddress] = useState<string>('');
+  const [showAddressDialog, setShowAddressDialog] = useState(false);
+  const [editingAddress, setEditingAddress] = useState<Address | null>(null);
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { user } = useAuth();
-  const [addresses, setAddresses] = useState<Address[]>([]);
-  const [newAddress, setNewAddress] = useState<Omit<Address, 'id' | 'user_id' | 'is_default' | 'archived'>>({
-    street: '',
-    city: '',
-    state: '',
-    postal_code: '',
-    country: '',
-  });
-  const [loading, setLoading] = useState(true);
-  const [adding, setAdding] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editedAddress, setEditedAddress] = useState<Omit<Address, 'user_id' | 'id' | 'is_default' | 'archived'>>({
-    street: '',
-    city: '',
-    state: '',
-    postal_code: '',
-    country: '',
+  const { checkAuthForCheckout } = useAuthCheck();
+
+  const isCheckout = searchParams.get('checkout') !== 'false' && searchParams.get('checkout') !== null;
+
+  const { data: addresses = [], isLoading: isLoadingAddresses } = useQuery({
+    queryKey: ['addresses'],
+    queryFn: getAddresses,
+    enabled: !!user,
+    staleTime: 0, // Add this to ensure fresh data
+    refetchOnMount: true,
+    refetchOnWindowFocus: true
   });
 
   useEffect(() => {
-    fetchAddresses();
-  }, [user]);
+    if (addresses.length > 0) {
+      const defaultAddress = addresses.find(addr => addr.is_default);
+      if (defaultAddress) {
+        setSelectedAddress(defaultAddress.id);
+      } else {
+        setSelectedAddress(addresses[0].id);
+      }
+    }
+  }, [addresses]);
 
-  const fetchAddresses = async () => {
-    if (!user) return;
-    
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('addresses')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('archived', false)
-        .order('is_default', { ascending: false });
-
-      if (error) throw error;
-      setAddresses(data || []);
-    } catch (error) {
-      console.error('Error fetching addresses:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to load addresses';
-      toast('Error loading addresses', {
-        description: errorMessage
+  const deleteAddressMutation = useMutation({
+    mutationFn: async (addressId: string) => {
+      try {
+        return await deleteAddress(addressId);
+      } catch (error) {
+        if (error.message?.includes('linked to orders')) {
+          return await archiveAddress(addressId);
+        }
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['addresses'] });
+      toast('Address removed successfully');
+    },
+    onError: (error) => {
+      toast('Failed to remove address', {
+        description: error.message
       });
-    } finally {
-      setLoading(false);
     }
-  };
+  });
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>, field: keyof Omit<Address, 'id' | 'user_id' | 'is_default' | 'archived'>) => {
-    setNewAddress({ ...newAddress, [field]: e.target.value });
-  };
-
-  const handleAddAddress = async () => {
-    if (!user) return;
-
-    setAdding(true);
-    try {
-      const { error } = await supabase
-        .from('addresses')
-        .insert([
-          {
-            user_id: user.id,
-            ...newAddress,
-            is_default: false,
-            archived: false,
-          },
-        ]);
-
-      if (error) throw error;
-      setNewAddress({
-        street: '',
-        city: '',
-        state: '',
-        postal_code: '',
-        country: '',
-      });
-      fetchAddresses();
-      toast('Address added successfully');
-    } catch (error) {
-      console.error('Error adding address:', error);
-      toast('Error adding address');
-    } finally {
-      setAdding(false);
+  const setDefaultMutation = useMutation({
+    mutationFn: setDefaultAddress,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['addresses'] });
     }
-  };
+  });
 
-  const handleEditClick = (address: Address) => {
-    setEditingId(address.id);
-    setEditedAddress({
-      street: address.street,
-      city: address.city,
-      state: address.state,
-      postal_code: address.postal_code,
-      country: address.country,
-    });
-  };
+  useEffect(() => {
+    checkAuthForCheckout();
+  }, []);
 
-  const handleEditInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>, field: keyof Omit<Address, 'id' | 'user_id' | 'is_default' | 'archived'>) => {
-    setEditedAddress({ ...editedAddress, [field]: e.target.value });
-  };
-
-  const handleUpdateAddress = async () => {
-    if (!user || !editingId) return;
-
-    setAdding(true);
-    try {
-      const { error } = await supabase
-        .from('addresses')
-        .update(editedAddress)
-        .eq('id', editingId);
-
-      if (error) throw error;
-      setEditingId(null);
-      fetchAddresses();
-      toast('Address updated successfully');
-    } catch (error) {
-      console.error('Error updating address:', error);
-      toast('Error updating address');
-    } finally {
-      setAdding(false);
+  const handleContinue = () => {
+    if (!selectedAddress) {
+      toast('Please select an address to continue.');
+      return;
     }
+    navigate(`/payment?address=${selectedAddress}`);
   };
 
-  const handleCancelEdit = () => {
-    setEditingId(null);
+  const handleAddAddress = () => {
+    setEditingAddress(null);
+    setShowAddressDialog(true);
   };
 
-  const handleSetDefault = async (addressId: string) => {
-    if (!user) return;
-  
-    try {
-      setLoading(true);
-  
-      // First, set all addresses to false
-      const { error: resetError } = await supabase
-        .from('addresses')
-        .update({ is_default: false })
-        .eq('user_id', user.id);
-  
-      if (resetError) {
-        console.error('Error resetting default addresses:', resetError);
-        throw resetError;
+  const handleEditAddress = (address: Address) => {
+    setEditingAddress(address);
+    setShowAddressDialog(true);
+  };
+
+  const handleDeleteAddress = (addressId: string) => {
+    deleteAddressMutation.mutate(addressId);
+
+    if (selectedAddress === addressId) {
+      if (addresses.length > 1) {
+        const newSelectedAddress = addresses.find(addr => addr.id !== addressId);
+        if (newSelectedAddress) setSelectedAddress(newSelectedAddress.id);
+      } else {
+        setSelectedAddress('');
       }
-  
-      // Then, set the selected address to true
-      const { error: updateError } = await supabase
-        .from('addresses')
-        .update({ is_default: true })
-        .eq('id', addressId);
-  
-      if (updateError) {
-        console.error('Error setting default address:', updateError);
-        throw updateError;
-      }
-  
-      fetchAddresses();
-      toast('Default address updated');
-    } catch (error) {
-      console.error('Error setting default address:', error);
-      toast('Error setting default address');
-    } finally {
-      setLoading(false);
     }
   };
 
-  const handleDeleteAddress = async (addressId: string) => {
-    if (!user) return;
-  
-    try {
-      setLoading(true);
-  
-      // Archive the address instead of deleting
-      const { error: archiveError } = await supabase
-        .from('addresses')
-        .update({ archived: true })
-        .eq('id', addressId);
-  
-      if (archiveError) {
-        console.error('Error archiving address:', archiveError);
-        throw archiveError;
-      }
-  
-      fetchAddresses();
-      toast('Address deleted successfully');
-    } catch (error) {
-      console.error('Error deleting address:', error);
-      toast('Error deleting address');
-    } finally {
-      setLoading(false);
-    }
+  const handleAddressSelect = (addressId: string) => {
+    setSelectedAddress(addressId);
+    setDefaultMutation.mutate(addressId);
   };
 
-  if (loading) {
-    return <div>Loading addresses...</div>;
-  }
+  const getAddressIcon = (type: string) => {
+    if (type === 'home') return <Home className="w-4 h-4" />;
+    if (type === 'work') return <Briefcase className="w-4 h-4" />;
+    return <MapPin className="w-4 h-4" />;
+  };
 
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">My Addresses</h1>
+    <div className="pb-20 bg-gray-50 min-h-screen">
+      <Header />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {addresses.map((address) => (
-          <Card key={address.id}>
-            <CardHeader>
-              <CardTitle>{address.street}, {address.city}</CardTitle>
-              <CardDescription>
-                {address.state}, {address.postal_code}, {address.country}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {address.is_default && <div className="text-green-500">Default Address</div>}
-            </CardContent>
-            <CardFooter className="flex justify-between">
-              <div>
-                {!address.is_default && (
-                  <Button size="sm" onClick={() => handleSetDefault(address.id)}>
-                    Set as Default
-                  </Button>
-                )}
-              </div>
-              <div>
-                <Button size="sm" variant="secondary" onClick={() => handleEditClick(address)}>
-                  Edit
-                </Button>
-                <Button size="sm" variant="destructive" onClick={() => handleDeleteAddress(address.id)}>
-                  Delete
-                </Button>
-              </div>
-            </CardFooter>
-          </Card>
-        ))}
-      </div>
-
-      <div className="mt-8">
-        <h2 className="text-xl font-semibold mb-4">Add New Address</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="street">Street</Label>
-            <Input
-              type="text"
-              id="street"
-              value={newAddress.street}
-              onChange={(e) => handleInputChange(e, 'street')}
-            />
-          </div>
-          <div>
-            <Label htmlFor="city">City</Label>
-            <Input
-              type="text"
-              id="city"
-              value={newAddress.city}
-              onChange={(e) => handleInputChange(e, 'city')}
-            />
-          </div>
-          <div>
-            <Label htmlFor="state">State</Label>
-            <Input
-              type="text"
-              id="state"
-              value={newAddress.state}
-              onChange={(e) => handleInputChange(e, 'state')}
-            />
-          </div>
-          <div>
-            <Label htmlFor="postal_code">Postal Code</Label>
-            <Input
-              type="text"
-              id="postal_code"
-              value={newAddress.postal_code}
-              onChange={(e) => handleInputChange(e, 'postal_code')}
-            />
-          </div>
-          <div>
-            <Label htmlFor="country">Country</Label>
-            <Input
-              type="text"
-              id="country"
-              value={newAddress.country}
-              onChange={(e) => handleInputChange(e, 'country')}
-            />
-          </div>
+      <main className="container px-4 py-4 mx-auto max-w-3xl">
+        <div className="py-3 flex items-center">
+          <Link to="/cart" className="flex items-center text-gray-500">
+            <ChevronLeft className="w-5 h-5 mr-1" />
+            <span>Back to Cart</span>
+          </Link>
         </div>
-        <Button className="mt-4" disabled={adding} onClick={handleAddAddress}>
-          {adding ? 'Adding...' : 'Add Address'}
-        </Button>
-      </div>
 
-      {editingId && (
-        <div className="mt-8">
-          <h2 className="text-xl font-semibold mb-4">Edit Address</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="edit_street">Street</Label>
-              <Input
-                type="text"
-                id="edit_street"
-                value={editedAddress.street}
-                onChange={(e) => handleEditInputChange(e, 'street')}
-              />
-            </div>
-            <div>
-              <Label htmlFor="edit_city">City</Label>
-              <Input
-                type="text"
-                id="edit_city"
-                value={editedAddress.city}
-                onChange={(e) => handleEditInputChange(e, 'city')}
-              />
-            </div>
-            <div>
-              <Label htmlFor="edit_state">State</Label>
-              <Input
-                type="text"
-                id="edit_state"
-                value={editedAddress.state}
-                onChange={(e) => handleEditInputChange(e, 'state')}
-              />
-            </div>
-            <div>
-              <Label htmlFor="edit_postal_code">Postal Code</Label>
-              <Input
-                type="text"
-                id="edit_postal_code"
-                value={editedAddress.postal_code}
-                onChange={(e) => handleEditInputChange(e, 'postal_code')}
-              />
-            </div>
-            <div>
-              <Label htmlFor="edit_country">Country</Label>
-              <Input
-                type="text"
-                id="edit_country"
-                value={editedAddress.country}
-                onChange={(e) => handleEditInputChange(e, 'country')}
-              />
-            </div>
-          </div>
-          <div className="flex gap-2 mt-4">
-            <Button disabled={adding} onClick={handleUpdateAddress}>
-              {adding ? 'Updating...' : 'Update Address'}
-            </Button>
-            <Button variant="secondary" onClick={handleCancelEdit}>
-              Cancel
+        <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
+          <div className="flex items-center justify-between mb-4">
+            <h1 className="text-xl font-bold">Select Delivery Address</h1>
+
+            <Button
+              variant="outline"
+              onClick={handleAddAddress}
+              className="border-dashed border-gray-300 flex items-center text-[#3B82F6]"
+              size="sm"
+            >
+              <Plus className="w-4 h-4 mr-1" />
+              Add New
             </Button>
           </div>
+
+          {addresses.length === 0 && !isLoadingAddresses && (
+            <div className="text-center py-8 border border-dashed border-gray-300 rounded-lg">
+              <MapPin className="mx-auto w-12 h-12 text-gray-400 mb-2" />
+              <p className="text-gray-600 mb-4">No saved addresses found</p>
+              <Button onClick={handleAddAddress} className="bg-[#3B82F6] hover:bg-[#2563EB] text-white">
+                Add New Address
+              </Button>
+            </div>
+          )}
+
+          {isLoadingAddresses ? (
+            <div className="py-8 flex justify-center">
+              <div className="animate-spin h-8 w-8 border-4 border-blue-500 rounded-full border-t-transparent"></div>
+            </div>
+          ) : addresses.length > 0 ? (
+            <div>
+              <RadioGroup value={selectedAddress} onValueChange={handleAddressSelect} className="space-y-3">
+                {addresses
+                  .filter(address => !address.archived)
+                  .map(address => (
+                    <div
+                      key={address.id}
+                      className={`p-3 sm:p-4 border rounded-lg flex flex-col sm:flex-row ${
+                        selectedAddress === address.id
+                          ? 'border-blue-500 bg-blue-50'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <div className="flex items-start flex-1">
+                        <RadioGroupItem value={address.id} id={`address-${address.id}`} className="mt-1" />
+                        <div className="ml-3 flex-grow">
+                          <div className="flex items-center flex-wrap gap-2">
+                            <Label htmlFor={`address-${address.id}`} className="font-medium cursor-pointer">
+                              {address.name}
+                            </Label>
+
+                            <div className="flex items-center gap-1 text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded-full">
+                              {getAddressIcon(address.address_type)}
+                              <span className="uppercase">{address.address_type}</span>
+                            </div>
+
+                            {address.is_default && (
+                              <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
+                                Default
+                              </span>
+                            )}
+                          </div>
+
+                          <p className="text-sm text-gray-600 mt-1">{address.phone}</p>
+                          <p className="text-sm text-gray-700 mt-1">
+                            {address.address}, {address.city}, {address.state} {address.pincode}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-row sm:flex-col justify-end space-x-2 sm:space-x-0 sm:space-y-2 mt-3 sm:mt-0">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 px-2"
+                          onClick={() => handleEditAddress(address)}
+                        >
+                          <Edit className="h-4 w-4 text-blue-500" />
+                        </Button>
+
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 px-2"
+                          onClick={() => handleDeleteAddress(address.id)}
+                          disabled={deleteAddressMutation.isPending}
+                        >
+                          <Trash2 className="h-4 w-4 text-red-500" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+              </RadioGroup>
+
+              <div className="bg-white rounded-lg shadow-sm p-4">
+                <Button
+                  className="w-full bg-[#3B82F6] hover:bg-[#2563EB] text-white py-3 rounded-lg font-medium text-lg flex items-center justify-center gap-2"
+                  onClick={handleContinue}
+                  disabled={!selectedAddress}
+                >
+                  <Truck className="w-5 h-5" />
+                  Deliver to this Address
+                </Button>
+              </div>
+            </div>
+          ) : null}
         </div>
-      )}
+
+        {isCheckout && (
+          <>
+            <div className="bg-white p-4 rounded-lg shadow-sm mb-4">
+              <h2 className="font-medium mb-3">Delivery Options</h2>
+              <div className="flex items-center justify-between border-t border-gray-100 py-3">
+                <div className="flex items-center">
+                  <Truck className="text-green-600 w-5 h-5 mr-3" />
+                  <div>
+                    <p className="font-medium text-sm">Standard Delivery</p>
+                    <p className="text-xs text-gray-500">Get it within 7 day at almost all Pincodes </p>
+                  </div>
+                </div>
+                <span className="text-green-600 font-medium text-sm">FREE</span>
+              </div>
+            </div>
+
+            <Alert variant="default" className="bg-blue-50 border-blue-200">
+              <Shield className="h-4 w-4 text-blue-500" />
+              <AlertTitle className="text-blue-700">Secure Checkout</AlertTitle>
+              <AlertDescription className="text-blue-600 text-sm">
+                Your personal and payment information is protected with industry-standard encryption.
+              </AlertDescription>
+            </Alert>
+          </>
+        )}
+      </main>
+
+      <BottomNavigation />
+
+      <AddressDialog open={showAddressDialog} onOpenChange={setShowAddressDialog} addressToEdit={editingAddress} />
     </div>
   );
 };
 
-export default Address;
+export default AddressPage;

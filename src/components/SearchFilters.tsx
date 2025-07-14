@@ -1,116 +1,162 @@
+import React, { useState, useEffect, useCallback } from "react";
 
-import React, { useState, useEffect } from 'react';
+import { Search as SearchIcon, X, Filter } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
-import { SearchFiltersType } from '@/services/searchService';
+import { Badge } from '@/components/ui/badge';
+import { Slider } from '@/components/ui/slider';
+import { useQuery } from '@tanstack/react-query';
+import { getCategories } from '@/services/categoryService';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 
-export interface SearchFiltersProps {
-  onFilterChange: (filters: SearchFiltersType) => void;
-  initialFilters?: SearchFiltersType;
+export interface SearchFilters {
+  query?: string;
+  category?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  sortBy?: string;
 }
 
-const SearchFilters: React.FC<SearchFiltersProps> = ({ onFilterChange, initialFilters }) => {
-  const [filters, setFilters] = useState<SearchFiltersType>(initialFilters || {
-    query: '',
-    category: '',
-    minPrice: 0,
-    maxPrice: 10000,
-    sortBy: 'name',
-    sortOrder: 'asc',
-    brands: [],
-    inStock: false
+interface SearchFiltersComponentProps {
+  onFilterChange: (filters: SearchFilters) => void;
+  initialQuery?: string;
+  initialCategory?: string;
+}
+
+const SearchFiltersComponent: React.FC<SearchFiltersComponentProps> = ({
+  onFilterChange,
+  initialQuery = '',
+  initialCategory = ''
+}) => {
+  const [searchTerm, setSearchTerm] = useState(initialQuery);
+  const [selectedCategory, setSelectedCategory] = useState(initialCategory || 'all');
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000]);
+  const [sortBy, setSortBy] = useState('name');
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+
+  // Fetch categories from database
+  const { data: categories = [] } = useQuery({
+    queryKey: ['categories'],
+    queryFn: getCategories
   });
 
-  useEffect(() => {
-    if (initialFilters) {
-      setFilters(initialFilters);
-    }
-  }, [initialFilters]);
+  // Memoized filter change handler to prevent infinite loops
+  const handleFilterChange = useCallback((filters: SearchFilters) => {
+    onFilterChange(filters);
+  }, [onFilterChange]);
 
-  const handleFilterChange = (newFilters: Partial<SearchFiltersType>) => {
-    const updatedFilters = { ...filters, ...newFilters };
-    setFilters(updatedFilters);
-    onFilterChange(updatedFilters);
+  useEffect(() => {
+    setSearchTerm(initialQuery);
+  }, [initialQuery]);
+
+  useEffect(() => {
+    setSelectedCategory(initialCategory || 'all');
+  }, [initialCategory]);
+
+  // Debounced effect to prevent rapid filter changes
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      const filters = {
+        query: searchTerm,
+        category: selectedCategory === 'all' ? '' : selectedCategory,
+        minPrice: priceRange[0] > 0 ? priceRange[0] : undefined,
+        maxPrice: priceRange[1] < 10000 ? priceRange[1] : undefined,
+        sortBy: sortBy === 'name' ? '' : sortBy
+      };
+      
+      handleFilterChange(filters);
+    }, 300); // 300ms debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm, selectedCategory, priceRange, sortBy, handleFilterChange]);
+
+  const handleSearch = (value: string) => {
+    setSearchTerm(value);
   };
 
-  const handleClearFilters = () => {
-    const defaultFilters: SearchFiltersType = {
-      query: '',
-      category: '',
-      minPrice: 0,
-      maxPrice: 10000,
-      sortBy: 'name',
-      sortOrder: 'asc',
-      brands: [],
-      inStock: false
-    };
-    setFilters(defaultFilters);
-    onFilterChange(defaultFilters);
+  const clearFilters = () => {
+    setSearchTerm('');
+    setSelectedCategory('all');
+    setPriceRange([0, 10000]);
+    setSortBy('name');
+    setIsFilterOpen(false);
+  };
+
+  const applyFilters = () => {
+    setIsFilterOpen(false);
   };
 
   return (
-    <div className="bg-white p-4 rounded-lg shadow-sm border mb-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div>
-          <Label htmlFor="search">Search</Label>
+    <div className="space-y-4">
+      <div className="relative flex items-center">
+        <div className="relative flex-grow">
+          <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
           <Input
-            id="search"
+            type="text"
             placeholder="Search products..."
-            value={filters.query}
-            onChange={(e) => handleFilterChange({ query: e.target.value })}
+            value={searchTerm}
+            onChange={(e) => handleSearch(e.target.value)}
+            className="pl-10 pr-4 w-full"
           />
         </div>
         
-        <div>
-          <Label htmlFor="category">Category</Label>
-          <Select value={filters.category} onValueChange={(value) => handleFilterChange({ category: value })}>
-            <SelectTrigger>
-              <SelectValue placeholder="All Categories" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="">All Categories</SelectItem>
-              <SelectItem value="Fruits">Fruits</SelectItem>
-              <SelectItem value="Vegetables">Vegetables</SelectItem>
-              <SelectItem value="Dairy">Dairy</SelectItem>
-              <SelectItem value="Snacks">Snacks</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div>
-          <Label htmlFor="sortBy">Sort By</Label>
-          <Select value={filters.sortBy} onValueChange={(value) => handleFilterChange({ sortBy: value as 'name' | 'price' | 'rating' })}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="name">Name</SelectItem>
-              <SelectItem value="price">Price</SelectItem>
-              <SelectItem value="rating">Rating</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="flex items-center space-x-2">
-          <Checkbox
-            id="inStock"
-            checked={filters.inStock}
-            onCheckedChange={(checked) => handleFilterChange({ inStock: checked as boolean })}
-          />
-          <Label htmlFor="inStock">In Stock Only</Label>
-        </div>
-      </div>
-      
-      <div className="mt-4">
-        <Button onClick={handleClearFilters} variant="outline">
-          Clear Filters
-        </Button>
+        <Sheet open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+          <SheetTrigger asChild>
+            <Button variant="outline" size="icon" className="ml-2">
+              <Filter className="h-5 w-5" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="right" className="w-[300px] sm:w-[400px] animate-slide-in-right">
+            <SheetHeader>
+              <SheetTitle>Filters</SheetTitle>
+            </SheetHeader>
+            
+            <div className="py-4 space-y-6">
+              <div className="space-y-2">
+                <h3 className="text-sm font-medium">Category</h3>
+                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Categories" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Categories</SelectItem>
+                    {categories.map((category) => (
+                      <SelectItem key={category.id} value={category.name}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-sm font-medium">Price Range</h3>
+                  <span className="text-sm text-gray-500">₹{priceRange[0]} - ₹{priceRange[1]}</span>
+                </div>
+                <Slider
+                  value={priceRange}
+                  min={0}
+                  max={10000}
+                  step={100}
+                  onValueChange={setPriceRange}
+                  className="py-4"
+                />
+              </div>
+              
+              {/* Remove the Sort By section */}
+              
+              <div className="flex space-x-2 pt-4">
+                <Button onClick={applyFilters} className="flex-1">Apply Filters</Button>
+                <Button onClick={clearFilters} variant="outline" className="flex-1">Clear</Button>
+              </div>
+            </div>
+          </SheetContent>
+        </Sheet>
       </div>
     </div>
   );
 };
 
-export default SearchFilters;
+export default SearchFiltersComponent;

@@ -1,24 +1,34 @@
-
-import Header from '@/components/Header';
-import BottomNavigation from '@/components/BottomNavigation';
+// ... existing code ...
+import React from "react";
+import PullToRefreshWrapper from '@/components/PullToRefresh';
+import { useQueryClient } from '@tanstack/react-query';
 
 const Home = () => {
+  const queryClient = useQueryClient();
+  
+  // ... existing code ...
+  
+  const handleRefresh = async () => {
+    // Refetch all relevant queries
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['featured-products'] }),
+      queryClient.invalidateQueries({ queryKey: ['popular-products'] }),
+      // Add any other queries that need refreshing
+    ]);
+    return true;
+  };
+  
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="pb-20">
       <Header />
-      <main className="pb-20">
-        <div className="container mx-auto px-4 py-8">
-          <h1 className="text-2xl font-bold text-gray-900 mb-6">
-            Welcome to GroceryHub
-          </h1>
-          <p className="text-gray-600">
-            Your one-stop shop for fresh groceries and household essentials.
-          </p>
-        </div>
-      </main>
+      
+      <PullToRefreshWrapper onRefresh={handleRefresh}>
+        <main className="container px-4 py-4 mx-auto">
+          {/* Existing content */}
+        </main>
+      </PullToRefreshWrapper>
+      
       <BottomNavigation />
     </div>
   );
 };
-
-export default Home;

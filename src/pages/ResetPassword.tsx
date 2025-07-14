@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { ChevronLeft, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,25 +9,15 @@ import { toast } from '@/components/ui/sonner';
 import { supabase } from '@/integrations/supabase/client';
 
 const ResetPassword = () => {
+  const [otp, setOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    // Check if we have a valid session from the reset link
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        toast('Invalid or expired reset link');
-        navigate('/forgot-password');
-      }
-    };
-    
-    checkSession();
-  }, [navigate]);
+  const location = useLocation();
+  const email = location.state?.email;
 
   const validatePassword = (password: string) => {
     const minLength = 8;
@@ -57,6 +47,17 @@ const ResetPassword = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!email) {
+      toast('Email not provided');
+      navigate('/forgot-password');
+      return;
+    }
+
+    if (!otp || otp.length !== 6) {
+      toast('Please enter a valid 6-digit OTP');
+      return;
+    }
+
     if (newPassword !== confirmPassword) {
       toast('Passwords do not match');
       return;
@@ -71,21 +72,62 @@ const ResetPassword = () => {
     setIsLoading(true);
 
     try {
-      const { error } = await supabase.auth.updateUser({
-        password: newPassword
+      const { data, error } = await supabase.functions.invoke('verify-reset-otp', {
+        body: {
+          email,
+          otp,
+          newPassword
+        }
       });
 
       if (error) throw error;
 
-      toast('Password updated successfully!');
+      toast('Password reset successful!');
       navigate('/login');
     } catch (error: any) {
       console.error('Password reset error:', error);
-      toast('Failed to update password. Please try again.');
+      toast('Invalid or expired OTP. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
+
+  const handleResendOTP = async () => {
+    if (!email) return;
+
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.functions.invoke('send-reset-otp', {
+        body: { email }
+      });
+
+      if (error) throw error;
+      toast('OTP resent successfully!');
+    } catch (error) {
+      toast('Failed to resend OTP. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (!email) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-gray-50">
+        <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-lg shadow-md">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-gray-900">Email Required</h2>
+            <p className="mt-2 text-gray-600">Please go back to forgot password page.</p>
+            <Link
+              to="/forgot-password"
+              className="mt-4 inline-block text-blue-600 hover:text-blue-500 font-medium"
+            >
+              Back to Forgot Password
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-gray-50">
@@ -99,11 +141,27 @@ const ResetPassword = () => {
             Reset Password
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Enter your new password below
+            Enter the OTP sent to {email} and your new password
           </p>
         </div>
 
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          <div>
+            <Label htmlFor="otp">Enter OTP</Label>
+            <Input
+              id="otp"
+              name="otp"
+              type="text"
+              maxLength={6}
+              required
+              className="mt-1 text-center text-2xl tracking-widest"
+              placeholder="000000"
+              value={otp}
+              onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+              disabled={isLoading}
+            />
+          </div>
+
           <div>
             <Label htmlFor="newPassword">New Password</Label>
             <div className="relative">
@@ -165,8 +223,19 @@ const ResetPassword = () => {
             className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
             disabled={isLoading}
           >
-            {isLoading ? 'Updating...' : 'Update Password'}
+            {isLoading ? 'Resetting...' : 'Reset Password'}
           </Button>
+
+          <div className="text-center">
+            <button
+              type="button"
+              onClick={handleResendOTP}
+              disabled={isLoading}
+              className="text-blue-600 hover:text-blue-500 font-medium"
+            >
+              Didn't receive OTP? Resend
+            </button>
+          </div>
         </form>
       </div>
     </div>

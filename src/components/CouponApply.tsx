@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+
 import { Link, useNavigate } from 'react-router-dom';
 import { ChevronLeft, Tag, Copy } from 'lucide-react';
 import Header from '@/components/Header';
@@ -8,27 +9,16 @@ import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/sonner';
-import { calculateDiscount, validateCoupon, type Coupon, type AppliedCoupon } from '@/services/couponService';
+import { calculateDiscount, validateCoupon, type Coupon } from '@/services/couponService';
 import { useCouponState } from '@/components/CouponStateManager';
 import { useCart } from '@/hooks/useCart';
-
-interface DatabaseCoupon {
-  id: string;
-  code: string;
-  type: string;
-  value: number;
-  description?: string;
-  min_purchase_amount: number;
-  max_discount_amount?: number;
-  is_active: boolean;
-  expiry_date: string;
-}
 
 const CouponApply = () => {
   const navigate = useNavigate();
   const { addCoupon, appliedCoupons } = useCouponState();
   const { cartItems } = useCart();
 
+  // Fetch all active coupons
   const { data: coupons = [], isLoading } = useQuery({
     queryKey: ['all-coupons'],
     queryFn: async () => {
@@ -52,13 +42,14 @@ const CouponApply = () => {
       return;
     }
 
-    const couponData = coupons.find((c: DatabaseCoupon) => c.code === couponCode);
+    const couponData = coupons.find(c => c.code === couponCode);
     if (!couponData) {
       toast('Coupon not found');
       return;
     }
 
-    const isAlreadyApplied = appliedCoupons.some((c: AppliedCoupon) => c.coupon.code === couponCode);
+    // Check if coupon is already applied
+    const isAlreadyApplied = appliedCoupons.some(c => c.coupon.code === couponCode);
     if (isAlreadyApplied) {
       toast('Coupon already applied', {
         description: 'This coupon is already in your cart.'
@@ -68,21 +59,20 @@ const CouponApply = () => {
 
     try {
       const cartTotal = cartItems.reduce((total, item) => {
-        const itemPrice = item.sale_price || item.price;
+        const itemPrice = item.salePrice || item.price;
         return total + (itemPrice * item.quantity);
       }, 0);
       
-      // Pass the current appliedCoupons array directly to validateCoupon
-      await validateCoupon(couponCode, cartTotal, appliedCoupons);
-      const discountAmount = calculateDiscount(couponData as Coupon, cartTotal);
+      // Validate the coupon before applying
+      await validateCoupon(couponCode, cartTotal, appliedCoupons.map(c => ({
+        coupon: c.coupon,
+        discountAmount: c.discountAmount,
+        appliedToTotal: c.appliedToTotal || 0
+      })));
+      const discountAmount = calculateDiscount(couponData, cartTotal);
       
-      const appliedCoupon: AppliedCoupon = {
-        coupon: couponData as Coupon,
-        discountAmount: discountAmount,
-        appliedToTotal: cartTotal
-      };
-      
-      addCoupon(appliedCoupon);
+      // Add coupon to global state
+      addCoupon(couponData, discountAmount);
       
       toast('Coupon applied successfully!', {
         description: `₹${discountAmount.toFixed(2)} discount will be applied at checkout.`
@@ -104,7 +94,7 @@ const CouponApply = () => {
   };
 
   const isApplied = (couponId: string) => {
-    return appliedCoupons.some((c: AppliedCoupon) => c.coupon.id === couponId);
+    return appliedCoupons.some(c => c.coupon.id === couponId);
   };
 
   return (
@@ -139,7 +129,7 @@ const CouponApply = () => {
               </div>
             ) : (
               <div className="space-y-3">
-                {coupons.map((coupon: DatabaseCoupon) => {
+                {coupons.map((coupon) => {
                   const applied = isApplied(coupon.id);
                   
                   return (
