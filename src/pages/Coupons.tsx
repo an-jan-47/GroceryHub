@@ -1,5 +1,5 @@
-import React, { useState } from "react";
 
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ChevronLeft, Tag, Copy } from 'lucide-react';
 import Header from '@/components/Header';
@@ -9,16 +9,27 @@ import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/sonner';
-import { calculateDiscount, type Coupon } from '@/services/couponService';
+import { calculateDiscount, validateCoupon } from '@/services/couponService';
 import { useCouponState } from '@/components/CouponStateManager';
 import { useCart } from '@/hooks/useCart';
 
+interface DatabaseCoupon {
+  id: string;
+  code: string;
+  type: string;
+  value: number;
+  description?: string;
+  min_purchase_amount: number;
+  max_discount_amount?: number;
+  is_active: boolean;
+  expiry_date: string;
+}
+
 const Coupons = () => {
   const navigate = useNavigate();
-  const { addCoupon } = useCouponState();
+  const { addCoupon, appliedCoupons } = useCouponState();
   const { cartItems } = useCart();
 
-  // Fetch all active coupons
   const { data: coupons = [], isLoading } = useQuery({
     queryKey: ['all-coupons'],
     queryFn: async () => {
@@ -34,7 +45,7 @@ const Coupons = () => {
     },
   });
 
-  const handleApplyCoupon = (couponCode: string) => {
+  const handleApplyCoupon = async (couponCode: string) => {
     if (!cartItems || cartItems.length === 0) {
       toast('Your cart is empty!', {
         description: 'Add items to your cart before applying a coupon.'
@@ -42,36 +53,58 @@ const Coupons = () => {
       return;
     }
 
-    const couponData = coupons.find(c => c.code === couponCode);
-    if (couponData) {
-      // Type assertion to ensure compatibility
-      const typedCoupon: Coupon = {
-        ...couponData,
-        type: couponData.type as 'percentage' | 'fixed'
-      };
-      
+    const couponData = coupons.find((c: DatabaseCoupon) => c.code === couponCode);
+    if (!couponData) {
+      toast('Coupon not found');
+      return;
+    }
+
+    const isAlreadyApplied = appliedCoupons.some((c: any) => c.code === couponCode);
+    if (isAlreadyApplied) {
+      toast('Coupon already applied', {
+        description: 'This coupon is already in your cart.'
+      });
+      return;
+    }
+
+    try {
       const cartTotal = cartItems.reduce((total, item) => {
-        const itemPrice = item.salePrice || item.price;
+        const itemPrice = item.sale_price || item.price;
         return total + (itemPrice * item.quantity);
       }, 0);
       
-      const discountAmount = calculateDiscount(typedCoupon, cartTotal);
+      await validateCoupon(couponCode, cartTotal, appliedCoupons);
+      const discountAmount = calculateDiscount(couponData, cartTotal);
       
-      addCoupon(typedCoupon, discountAmount);
+      addCoupon({
+        id: couponData.id,
+        code: couponData.code,
+        discount_amount: discountAmount,
+        type: couponData.type,
+        value: couponData.value
+      });
       
-      toast('Coupon applied! Redirecting to cart...', {
+      toast('Coupon applied successfully!', {
         description: `₹${discountAmount.toFixed(2)} discount will be applied at checkout.`
       });
       
       navigate('/cart');
+    } catch (error: any) {
+      toast('Error applying coupon', {
+        description: error.message
+      });
     }
   };
 
   const copyCouponCode = (code: string) => {
     navigator.clipboard.writeText(code);
     toast('Coupon code copied!', {
-      description: 'You can paste it at checkout.'
+      description: 'You can paste it in the cart.'
     });
+  };
+
+  const isApplied = (couponId: string) => {
+    return appliedCoupons.some((c: any) => c.id === couponId);
   };
 
   return (
@@ -106,43 +139,55 @@ const Coupons = () => {
               </div>
             ) : (
               <div className="space-y-3">
-                {coupons.map((coupon) => (
-                  <div key={coupon.id} className="bg-white rounded-lg shadow-sm border p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                        {coupon.code}
-                      </Badge>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => copyCouponCode(coupon.code)}
-                        className="text-gray-500 hover:text-gray-700"
+                {coupons.map((coupon: DatabaseCoupon) => {
+                  const applied = isApplied(coupon.id);
+                  
+                  return (
+                    <div key={coupon.id} className={`bg-white rounded-lg shadow-sm border p-4 ${applied ? 'bg-green-50 border-green-200' : ''}`}>
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center space-x-2">
+                          <Badge variant="outline" className={`${applied ? 'bg-green-100 text-green-700 border-green-300' : 'bg-blue-50 text-blue-700 border-blue-200'}`}>
+                            {coupon.code}
+                          </Badge>
+                          {applied && (
+                            <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300">
+                              Applied
+                            </Badge>
+                          )}
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => copyCouponCode(coupon.code)}
+                          className="text-gray-500 hover:text-gray-700"
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      
+                      <div className="mb-3">
+                        <h3 className="font-medium mb-1">
+                          {coupon.type === 'percentage' ? `${coupon.value}% OFF` : `₹${coupon.value} OFF`}
+                        </h3>
+                        <p className="text-sm text-gray-600">
+                          {coupon.description || `Get ${coupon.type === 'percentage' ? coupon.value + '%' : '₹' + coupon.value} off`}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Min. purchase: ₹{coupon.min_purchase_amount}
+                          {coupon.max_discount_amount && ` • Max discount: ₹${coupon.max_discount_amount}`}
+                        </p>
+                      </div>
+                      
+                      <Button 
+                        onClick={() => handleApplyCoupon(coupon.code)}
+                        disabled={applied}
+                        className={`w-full ${applied ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'}`}
                       >
-                        <Copy className="h-4 w-4" />
+                        {applied ? 'Applied to Cart' : 'Apply Coupon'}
                       </Button>
                     </div>
-                    
-                    <div className="mb-3">
-                      <h3 className="font-medium mb-1">
-                        {coupon.type === 'percentage' ? `${coupon.value}% OFF` : `₹${coupon.value} OFF`}
-                      </h3>
-                      <p className="text-sm text-gray-600">
-                        {coupon.description || `Get ${coupon.type === 'percentage' ? coupon.value + '%' : '₹' + coupon.value} off`}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Min. purchase: ₹{coupon.min_purchase_amount}
-                        {coupon.max_discount_amount && ` • Max discount: ₹${coupon.max_discount_amount}`}
-                      </p>
-                    </div>
-                    
-                    <Button 
-                      onClick={() => handleApplyCoupon(coupon.code)}
-                      className="w-full bg-blue-600 hover:bg-blue-700"
-                    >
-                      Apply Coupon
-                    </Button>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

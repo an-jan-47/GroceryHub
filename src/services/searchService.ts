@@ -1,84 +1,111 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { Product } from '@/types';
 
-export interface SearchFilters {
-  query?: string;
-  category?: string;
-  minPrice?: number;
-  maxPrice?: number;
-  brand?: string;
-  minRating?: number;
-  sortBy?: 'price' | 'rating' | 'name' | 'popularity';
-  sortOrder?: 'asc' | 'desc';
+export interface SearchFiltersType {
+  query: string;
+  category: string;
+  minPrice: number;
+  maxPrice: number;
+  sortBy: 'name' | 'price' | 'rating';
+  sortOrder: 'asc' | 'desc';
+  brands: string[];
+  inStock: boolean;
 }
 
-export const searchProducts = async (filters: SearchFilters): Promise<Product[]> => {
-  try {
-    let query = supabase
-      .from('products')
-      .select(`
-        *,
-        features
-      `);
+export interface SearchFiltersProps {
+  onFilterChange: (filters: SearchFiltersType) => void;
+  initialQuery?: string;
+  initialCategory?: string;
+  categories?: string[];
+  brands?: string[];
+}
 
-    // Apply text search
-    if (filters.query && filters.query.trim()) {
-      query = query.or(`name.ilike.%${filters.query}%,description.ilike.%${filters.query}%,brand.ilike.%${filters.query}%`);
-    }
+export type SearchFilters = SearchFiltersType;
 
-    // Apply category filter
-    if (filters.category && filters.category.trim()) {
-      query = query.eq('category', filters.category);
-    }
+export const searchProducts = async (filters: SearchFiltersType): Promise<Product[]> => {
+  let query = supabase
+    .from('products')
+    .select('*');
 
-    // Apply price range filter
-    if (filters.minPrice !== undefined) {
-      query = query.gte('price', filters.minPrice);
-    }
-    if (filters.maxPrice !== undefined) {
-      query = query.lte('price', filters.maxPrice);
-    }
+  if (filters.query) {
+    query = query.or(`name.ilike.%${filters.query}%,description.ilike.%${filters.query}%,brand.ilike.%${filters.query}%`);
+  }
 
-    // Apply brand filter
-    if (filters.brand && filters.brand.trim()) {
-      query = query.eq('brand', filters.brand);
-    }
+  if (filters.category && filters.category !== 'all') {
+    query = query.eq('category', filters.category);
+  }
 
-    // Apply rating filter
-    if (filters.minRating !== undefined) {
-      query = query.gte('rating', filters.minRating);
-    }
+  if (filters.brands && filters.brands.length > 0) {
+    query = query.in('brand', filters.brands);
+  }
 
-    // Apply sorting
-    if (filters.sortBy) {
-      const ascending = filters.sortOrder === 'asc';
-      if (filters.sortBy === 'popularity') {
-        // Sort by review count as proxy for popularity
-        query = query.order('review_count', { ascending: !ascending });
-      } else {
-        query = query.order(filters.sortBy, { ascending });
-      }
-    } else {
-      // Default sorting
-      query = query.order('rating', { ascending: false });
-    }
+  if (filters.minPrice > 0) {
+    query = query.gte('price', filters.minPrice);
+  }
 
-    const { data, error } = await query;
+  if (filters.maxPrice > 0 && filters.maxPrice !== 10000) {
+    query = query.lte('price', filters.maxPrice);
+  }
 
-    if (error) {
-      console.error('Search error:', error);
-      throw error;
-    }
+  if (filters.inStock) {
+    query = query.gt('stock', 0);
+  }
 
-    return (data || []).map(product => ({
-      ...product,
-      features: Array.isArray(product.features) 
-        ? product.features.filter((f: string) => f && f.trim() !== '')
-        : []
-    }));
-  } catch (error) {
+  const features = filters.query ? filters.query.toLowerCase().split(' ').filter((f: string) => f.length > 2) : [];
+  if (features.length > 0) {
+    const featureConditions = features.map(() => `features ? $1`).join(' OR ');
+    query = query.or(featureConditions, { 
+      referencedTable: undefined, 
+      foreignTable: undefined 
+    });
+  }
+
+  // Apply sorting
+  if (filters.sortBy === 'price') {
+    query = query.order('price', { ascending: filters.sortOrder === 'asc' });
+  } else if (filters.sortBy === 'rating') {
+    query = query.order('rating', { ascending: filters.sortOrder === 'asc' });
+  } else {
+    query = query.order('name', { ascending: filters.sortOrder === 'asc' });
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
     console.error('Error searching products:', error);
     throw error;
   }
+
+  return (data || []).map(product => ({
+    ...product,
+    features: Array.isArray(product.features) ? product.features : (product.features ? [product.features] : [])
+  }));
+};
+
+export const getCategories = async (): Promise<string[]> => {
+  const { data, error } = await supabase
+    .from('products')
+    .select('category');
+
+  if (error) {
+    console.error('Error fetching categories:', error);
+    return [];
+  }
+
+  const categories = [...new Set(data?.map(item => item.category) || [])];
+  return categories.filter(Boolean);
+};
+
+export const getBrands = async (): Promise<string[]> => {
+  const { data, error } = await supabase
+    .from('products')
+    .select('brand');
+
+  if (error) {
+    console.error('Error fetching brands:', error);
+    return [];
+  }
+
+  const brands = [...new Set(data?.map(item => item.brand) || [])];
+  return brands.filter(Boolean);
 };

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useCart } from '@/hooks/useCart';
@@ -11,12 +12,11 @@ import { useCoupon } from '@/components/CouponStateManager';
 const Cart: React.FC = () => {
   const { cartItems, cartTotal, removeFromCart, updateQuantity } = useCart();
   const [quantities, setQuantities] = useState<{ [productId: string]: number }>({});
-  const { appliedCoupon, applyCoupon, removeCoupon } = useCoupon();
+  const { appliedCoupons, removeCoupon } = useCoupon();
   const [couponCode, setCouponCode] = useState('');
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
 
   useEffect(() => {
-    // Initialize quantities state from cartItems
     const initialQuantities: { [productId: string]: number } = {};
     cartItems.forEach(item => {
       initialQuantities[item.id] = item.quantity;
@@ -41,14 +41,14 @@ const Cart: React.FC = () => {
   };
 
   const calculateItemTotal = (item: any) => {
-    const price = item.salePrice || item.price;
+    const price = item.sale_price || item.price;
     return price * item.quantity;
   };
 
   const calculateDiscountedTotal = () => {
-    if (appliedCoupon) {
-      const discountAmount = (appliedCoupon.discount / 100) * cartTotal;
-      return cartTotal - discountAmount;
+    if (appliedCoupons.length > 0) {
+      const totalDiscount = appliedCoupons.reduce((sum, coupon) => sum + coupon.discount_amount, 0);
+      return cartTotal - totalDiscount;
     }
     return cartTotal;
   };
@@ -56,7 +56,7 @@ const Cart: React.FC = () => {
   const handleApplyCoupon = async () => {
     setIsApplyingCoupon(true);
     try {
-      await applyCoupon(couponCode);
+      // This would typically call a service to apply the coupon
       toast('Coupon applied successfully');
     } catch (error) {
       console.error('Error applying coupon:', error);
@@ -70,7 +70,7 @@ const Cart: React.FC = () => {
 
   const handleCouponRemove = async (couponId: string) => {
     try {
-      // Remove coupon logic here
+      removeCoupon(couponId);
       toast('Coupon removed');
     } catch (error) {
       console.error('Error removing coupon:', error);
@@ -96,10 +96,10 @@ const Cart: React.FC = () => {
                   <div>
                     <Link to={`/product/${item.id}`} className="font-semibold">{item.name}</Link>
                     <p className="text-gray-500 text-sm">
-                      {item.salePrice ? (
+                      {item.sale_price ? (
                         <>
                           <span className="line-through mr-2">₹{item.price.toFixed(2)}</span>
-                          ₹{item.salePrice.toFixed(2)}
+                          ₹{item.sale_price.toFixed(2)}
                         </>
                       ) : (
                         `₹${item.price.toFixed(2)}`
@@ -158,12 +158,12 @@ const Cart: React.FC = () => {
                 <span>Subtotal:</span>
                 <span>₹{cartTotal.toFixed(2)}</span>
               </div>
-              {appliedCoupon && (
-                <div className="flex justify-between mb-2 text-green-500">
-                  <span>Coupon Discount ({appliedCoupon.code}):</span>
-                  <span>-₹{((appliedCoupon.discount / 100) * cartTotal).toFixed(2)}</span>
+              {appliedCoupons.length > 0 && appliedCoupons.map((coupon) => (
+                <div key={coupon.id} className="flex justify-between mb-2 text-green-500">
+                  <span>Coupon Discount ({coupon.code}):</span>
+                  <span>-₹{coupon.discount_amount.toFixed(2)}</span>
                 </div>
-              )}
+              ))}
               <Separator className="my-2" />
               <div className="flex justify-between font-semibold">
                 <span>Total:</span>
@@ -190,14 +190,14 @@ const Cart: React.FC = () => {
                   {isApplyingCoupon ? 'Applying...' : 'Apply'}
                 </Button>
               </div>
-              {appliedCoupon && (
-                <div className="mt-2 text-sm text-gray-500">
-                  Applied Coupon: {appliedCoupon.code} ({appliedCoupon.discount}% off)
-                  <Button variant="link" onClick={() => removeCoupon()} className="ml-2">
+              {appliedCoupons.length > 0 && appliedCoupons.map((coupon) => (
+                <div key={coupon.id} className="mt-2 text-sm text-gray-500">
+                  Applied Coupon: {coupon.code} ({coupon.discount_amount}% off)
+                  <Button variant="link" onClick={() => handleCouponRemove(coupon.id)} className="ml-2">
                     Remove
                   </Button>
                 </div>
-              )}
+              ))}
             </div>
           </div>
         </div>

@@ -1,288 +1,223 @@
 
 import React, { useState, useEffect } from 'react';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Slider } from '@/components/ui/slider';
-import { Separator } from '@/components/ui/separator';
-import { X, Search, SlidersHorizontal } from 'lucide-react';
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from '@/components/ui/sheet';
-import { SearchFiltersType } from '@/services/searchService';
-
-export interface SearchFiltersProps {
-  onFilterChange: (filters: SearchFiltersType) => void;
-  initialQuery?: string;
-  initialCategory?: string;
-  categories?: string[];
-  brands?: string[];
-}
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { X, Filter } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { ChevronDown } from 'lucide-react';
+import { SearchFiltersType, SearchFiltersProps } from '@/services/searchService';
 
 const SearchFilters: React.FC<SearchFiltersProps> = ({ 
   onFilterChange, 
-  initialQuery = '',
-  initialCategory = '',
+  initialQuery = '', 
+  initialCategory = 'all',
   categories = [],
   brands = []
 }) => {
-  const [searchQuery, setSearchQuery] = useState(initialQuery);
-  const [selectedCategory, setSelectedCategory] = useState(initialCategory);
+  const [filters, setFilters] = useState<SearchFiltersType>({
+    query: initialQuery,
+    category: initialCategory,
+    minPrice: 0,
+    maxPrice: 10000,
+    sortBy: 'name',
+    sortOrder: 'asc',
+    brands: [],
+    inStock: false,
+  });
+
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000]);
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 5000]);
-  const [rating, setRating] = useState(0);
-  const [sortBy, setSortBy] = useState<'price_asc' | 'price_desc' | 'rating' | 'name'>('name');
+  const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
-    setSearchQuery(initialQuery);
-  }, [initialQuery]);
-
-  useEffect(() => {
-    setSelectedCategory(initialCategory);
-  }, [initialCategory]);
-
-  const handleFilterChange = () => {
-    const filters: SearchFiltersType = {
-      query: searchQuery,
-      category: selectedCategory,
+    const newFilters = {
+      ...filters,
+      minPrice: priceRange[0],
+      maxPrice: priceRange[1],
       brands: selectedBrands,
-      priceRange,
-      rating,
-      sortBy,
     };
-    onFilterChange(filters);
+    setFilters(newFilters);
+    onFilterChange(newFilters);
+  }, [priceRange, selectedBrands]);
+
+  const handleFilterChange = (key: keyof SearchFiltersType, value: any) => {
+    const newFilters = { ...filters, [key]: value };
+    setFilters(newFilters);
+    onFilterChange(newFilters);
   };
 
-  useEffect(() => {
-    handleFilterChange();
-  }, [searchQuery, selectedCategory, selectedBrands, priceRange, rating, sortBy]);
+  const handleBrandToggle = (brand: string) => {
+    const newBrands = selectedBrands.includes(brand)
+      ? selectedBrands.filter(b => b !== brand)
+      : [...selectedBrands, brand];
+    setSelectedBrands(newBrands);
+  };
 
   const clearFilters = () => {
-    setSearchQuery('');
-    setSelectedCategory('');
+    const clearedFilters: SearchFiltersType = {
+      query: '',
+      category: 'all',
+      minPrice: 0,
+      maxPrice: 10000,
+      sortBy: 'name',
+      sortOrder: 'asc',
+      brands: [],
+      inStock: false,
+    };
+    setFilters(clearedFilters);
+    setPriceRange([0, 10000]);
     setSelectedBrands([]);
-    setPriceRange([0, 5000]);
-    setRating(0);
-    setSortBy('name');
+    onFilterChange(clearedFilters);
   };
 
-  const toggleBrand = (brand: string) => {
-    setSelectedBrands(prev =>
-      prev.includes(brand)
-        ? prev.filter(b => b !== brand)
-        : [...prev, brand]
-    );
-  };
+  const activeFilterCount = [
+    filters.query,
+    filters.category !== 'all' ? filters.category : null,
+    priceRange[0] > 0 || priceRange[1] < 10000 ? 'price' : null,
+    selectedBrands.length > 0 ? 'brands' : null,
+    filters.inStock ? 'inStock' : null,
+  ].filter(Boolean).length;
 
   return (
-    <div className="space-y-4">
-      {/* Search Input */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-        <Input
-          type="text"
-          placeholder="Search products..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-10"
-        />
-      </div>
+    <Card className="w-full">
+      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+        <CollapsibleTrigger asChild>
+          <CardHeader className="cursor-pointer hover:bg-gray-50 transition-colors">
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <Filter className="h-5 w-5" />
+                Filters
+                {activeFilterCount > 0 && (
+                  <Badge variant="secondary" className="ml-2">
+                    {activeFilterCount}
+                  </Badge>
+                )}
+              </CardTitle>
+              <ChevronDown className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+            </div>
+          </CardHeader>
+        </CollapsibleTrigger>
 
-      {/* Mobile Filter Sheet */}
-      <div className="md:hidden">
-        <Sheet>
-          <SheetTrigger asChild>
-            <Button variant="outline" className="w-full">
-              <SlidersHorizontal className="h-4 w-4 mr-2" />
-              Filters
-            </Button>
-          </SheetTrigger>
-          <SheetContent>
-            <SheetHeader>
-              <SheetTitle>Filters</SheetTitle>
-              <SheetDescription>
-                Refine your search with these filters
-              </SheetDescription>
-            </SheetHeader>
-            <div className="space-y-6 mt-6">
-              {/* Categories */}
-              {categories.length > 0 && (
-                <div>
-                  <h3 className="font-medium mb-3">Categories</h3>
-                  <div className="space-y-2">
-                    <Button
-                      variant={selectedCategory === '' ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setSelectedCategory('')}
-                      className="w-full justify-start"
-                    >
-                      All Categories
-                    </Button>
-                    {categories.map((category) => (
-                      <Button
-                        key={category}
-                        variant={selectedCategory === category ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => setSelectedCategory(category)}
-                        className="w-full justify-start"
-                      >
-                        {category}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-              )}
+        <CollapsibleContent>
+          <CardContent className="space-y-6">
+            {/* Search Query */}
+            <div className="space-y-2">
+              <Label htmlFor="search-query">Search</Label>
+              <Input
+                id="search-query"
+                type="text"
+                placeholder="Search products..."
+                value={filters.query}
+                onChange={(e) => handleFilterChange('query', e.target.value)}
+              />
+            </div>
 
-              {/* Brands */}
-              {brands.length > 0 && (
-                <div>
-                  <h3 className="font-medium mb-3">Brands</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {brands.map((brand) => (
-                      <Badge
-                        key={brand}
-                        variant={selectedBrands.includes(brand) ? 'default' : 'outline'}
-                        className="cursor-pointer"
-                        onClick={() => toggleBrand(brand)}
-                      >
+            {/* Category Filter */}
+            <div className="space-y-2">
+              <Label>Category</Label>
+              <Select value={filters.category} onValueChange={(value) => handleFilterChange('category', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  {categories.map((category) => (
+                    <SelectItem key={category} value={category}>
+                      {category}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Price Range */}
+            <div className="space-y-2">
+              <Label>Price Range: ₹{priceRange[0]} - ₹{priceRange[1]}</Label>
+              <Slider
+                value={priceRange}
+                onValueChange={(value) => setPriceRange(value as [number, number])}
+                max={10000}
+                min={0}
+                step={100}
+                className="w-full"
+              />
+            </div>
+
+            {/* Brands Filter */}
+            {brands.length > 0 && (
+              <div className="space-y-2">
+                <Label>Brands</Label>
+                <div className="max-h-48 overflow-y-auto space-y-2">
+                  {brands.map((brand) => (
+                    <div key={brand} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`brand-${brand}`}
+                        checked={selectedBrands.includes(brand)}
+                        onCheckedChange={() => handleBrandToggle(brand)}
+                      />
+                      <Label htmlFor={`brand-${brand}`} className="text-sm">
                         {brand}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Price Range */}
-              <div>
-                <h3 className="font-medium mb-3">Price Range</h3>
-                <div className="px-3">
-                  <Slider
-                    value={priceRange}
-                    onValueChange={(value: number[]) => setPriceRange(value as [number, number])}
-                    max={5000}
-                    min={0}
-                    step={50}
-                    className="mb-4"
-                  />
-                  <div className="flex justify-between text-sm text-gray-600">
-                    <span>₹{priceRange[0]}</span>
-                    <span>₹{priceRange[1]}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Rating */}
-              <div>
-                <h3 className="font-medium mb-3">Minimum Rating</h3>
-                <div className="flex gap-2">
-                  {[0, 1, 2, 3, 4].map((star) => (
-                    <Button
-                      key={star}
-                      variant={rating === star ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setRating(star)}
-                    >
-                      {star === 0 ? 'Any' : `${star}+ ⭐`}
-                    </Button>
+                      </Label>
+                    </div>
                   ))}
                 </div>
               </div>
+            )}
 
-              {/* Sort By */}
-              <div>
-                <h3 className="font-medium mb-3">Sort By</h3>
-                <div className="space-y-2">
-                  {[
-                    { value: 'name', label: 'Name' },
-                    { value: 'price_asc', label: 'Price: Low to High' },
-                    { value: 'price_desc', label: 'Price: High to Low' },
-                    { value: 'rating', label: 'Rating' },
-                  ].map((option) => (
-                    <Button
-                      key={option.value}
-                      variant={sortBy === option.value ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setSortBy(option.value as any)}
-                      className="w-full justify-start"
-                    >
-                      {option.label}
-                    </Button>
-                  ))}
-                </div>
+            {/* Sort Options */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Sort By</Label>
+                <Select value={filters.sortBy} onValueChange={(value: 'name' | 'price' | 'rating') => handleFilterChange('sortBy', value)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="name">Name</SelectItem>
+                    <SelectItem value="price">Price</SelectItem>
+                    <SelectItem value="rating">Rating</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
-              <Button onClick={clearFilters} variant="outline" className="w-full">
-                Clear All Filters
-              </Button>
+              <div className="space-y-2">
+                <Label>Order</Label>
+                <Select value={filters.sortOrder} onValueChange={(value: 'asc' | 'desc') => handleFilterChange('sortOrder', value)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="asc">Ascending</SelectItem>
+                    <SelectItem value="desc">Descending</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-          </SheetContent>
-        </Sheet>
-      </div>
 
-      {/* Desktop Filters */}
-      <div className="hidden md:block space-y-6">
-        {/* Similar content as mobile but in different layout */}
-        {/* Categories */}
-        {categories.length > 0 && (
-          <div>
-            <h3 className="font-medium mb-3">Categories</h3>
-            <div className="flex flex-wrap gap-2">
-              <Badge
-                variant={selectedCategory === '' ? 'default' : 'outline'}
-                className="cursor-pointer"
-                onClick={() => setSelectedCategory('')}
-              >
-                All
-              </Badge>
-              {categories.map((category) => (
-                <Badge
-                  key={category}
-                  variant={selectedCategory === category ? 'default' : 'outline'}
-                  className="cursor-pointer"
-                  onClick={() => setSelectedCategory(category)}
-                >
-                  {category}
-                </Badge>
-              ))}
+            {/* In Stock Filter */}
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="in-stock"
+                checked={filters.inStock}
+                onCheckedChange={(checked) => handleFilterChange('inStock', !!checked)}
+              />
+              <Label htmlFor="in-stock">In Stock Only</Label>
             </div>
-          </div>
-        )}
 
-        {/* Show active filters */}
-        {(selectedCategory || selectedBrands.length > 0 || rating > 0) && (
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="font-medium">Active Filters</h3>
-              <Button onClick={clearFilters} variant="ghost" size="sm">
-                Clear All
-              </Button>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {selectedCategory && (
-                <Badge variant="secondary" className="cursor-pointer" onClick={() => setSelectedCategory('')}>
-                  {selectedCategory} <X className="h-3 w-3 ml-1" />
-                </Badge>
-              )}
-              {selectedBrands.map((brand) => (
-                <Badge key={brand} variant="secondary" className="cursor-pointer" onClick={() => toggleBrand(brand)}>
-                  {brand} <X className="h-3 w-3 ml-1" />
-                </Badge>
-              ))}
-              {rating > 0 && (
-                <Badge variant="secondary" className="cursor-pointer" onClick={() => setRating(0)}>
-                  {rating}+ Rating <X className="h-3 w-3 ml-1" />
-                </Badge>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
+            {/* Clear Filters */}
+            <Button onClick={clearFilters} variant="outline" size="sm" className="w-full">
+              Clear All Filters
+            </Button>
+          </CardContent>
+        </CollapsibleContent>
+      </Collapsible>
+    </Card>
   );
 };
 

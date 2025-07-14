@@ -14,7 +14,6 @@ interface ProductCardProps {
   showBuyNow?: boolean;
 }
 
-// Update the discount percentage calculation in the ProductCard component
 const ProductCard = ({ product, className, showBuyNow = false }: ProductCardProps) => {
   const { addToCart, cartItems, updateQuantity } = useCart();
   const navigate = useNavigate();
@@ -30,12 +29,8 @@ const ProductCard = ({ product, className, showBuyNow = false }: ProductCardProp
       return;
     }
     
-    // Get current quantity in cart or default to 0
     const currentQty = getQuantityInCart();
-    // If already in cart, increment by 1, otherwise add with quantity 1
     const newQty = currentQty > 0 ? currentQty + 1 : 1;
-    
-    // Make sure we don't exceed stock
     const finalQty = Math.min(newQty, product.stock);
     
     addToCart(product, finalQty);
@@ -57,22 +52,23 @@ const ProductCard = ({ product, className, showBuyNow = false }: ProductCardProp
       return;
     }
     
-    // Add to cart first
     addToCart({
       id: product.id,
       name: product.name,
       price: product.price,
-      salePrice: product.sale_price,
+      sale_price: product.sale_price,
       images: product.images,
-      quantity: 1,
-      stock: product.stock
+      stock: product.stock,
+      brand: product.brand,
+      category: product.category,
+      description: product.description,
+      rating: product.rating,
+      review_count: product.review_count
     });
     
-    // Navigate to address selection for buy now
     navigate('/address');
   };
   
-  // Get quantity in cart
   const getQuantityInCart = () => {
     const item = cartItems.find(item => item.id === product.id);
     return item ? item.quantity : 0;
@@ -80,7 +76,6 @@ const ProductCard = ({ product, className, showBuyNow = false }: ProductCardProp
   
   const quantityInCart = getQuantityInCart();
   
-  // Calculate discount percentage if there's a sale price - FIX THE CALCULATION
   const discountPercentage = product.sale_price 
     ? Math.round(((product.price - product.sale_price) / product.price) * 100) 
     : null;

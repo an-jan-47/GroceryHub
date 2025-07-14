@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from '@/components/ui/sonner';
@@ -7,33 +8,50 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getAddresses, createOrder } from '@/services/orderService';
+import { createOrder } from '@/services/orderService';
 import { useCart } from '@/hooks/useCart';
-import { Header } from '@/components/Header';
-import { BottomNavigation } from '@/components/BottomNavigation';
+import Header from '@/components/Header';
+import BottomNavigation from '@/components/BottomNavigation';
 import { useCouponState } from '@/components/CouponStateManager';
+import { supabase } from '@/integrations/supabase/client';
 
 const Payment = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { cartItems, cartTotal, clearCart } = useCart();
-  const [selectedAddress, setSelectedAddress] = useState(null);
+  const [selectedAddress, setSelectedAddress] = useState<any>(null);
   const [paymentMethod, setPaymentMethod] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const { appliedCoupons, getTotalDiscount } = useCouponState();
 
-  const { data: addresses, isLoading: isLoadingAddresses } = useQuery({
+  const { data: addresses = [], isLoading: isLoadingAddresses } = useQuery({
     queryKey: ['addresses'],
-    queryFn: getAddresses
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('addresses')
+        .select('*')
+        .eq('user_id', (await supabase.auth.getUser()).data.user?.id);
+      
+      if (error) throw error;
+      return data || [];
+    }
   });
 
-  const { mutate: createOrderMutation } = useMutation(createOrder, {
-    onSuccess: () => {
-      queryClient.invalidateQueries(['orders']);
-      clearCart();
-      navigate('/order-confirmation');
+  const createOrderMutation = useMutation({
+    mutationFn: async (orderData: any) => {
+      return await createOrder(orderData);
     },
-    onError: (error) => {
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      clearCart();
+      navigate('/order-confirmation', { 
+        state: { 
+          orderId: data?.id,
+          orderNumber: data?.id?.slice(0, 8).toUpperCase()
+        }
+      });
+    },
+    onError: (error: any) => {
       console.error('Create order failed:', error);
       toast('Failed to create order', {
         description: 'Please try again or contact support'
@@ -75,18 +93,7 @@ const Payment = () => {
 
       console.log('Creating order with data:', orderData);
       
-      const order = await createOrder(orderData);
-      
-      if (order?.id) {
-        navigate('/order-confirmation', { 
-          state: { 
-            orderId: order.id,
-            orderNumber: order.id.slice(0, 8).toUpperCase()
-          }
-        });
-      } else {
-        throw new Error('Failed to create order');
-      }
+      createOrderMutation.mutate(orderData);
     } catch (error) {
       console.error('Payment error:', error);
       toast('Payment failed', {
@@ -125,8 +132,8 @@ const Payment = () => {
                   onClick={() => handleAddressSelect(address)}
                 >
                   <CardContent className="p-3">
-                    <p className="font-medium">{address.full_name}</p>
-                    <p className="text-sm text-gray-500">{address.street}, {address.city}, {address.state} - {address.zip_code}</p>
+                    <p className="font-medium">{address.name}</p>
+                    <p className="text-sm text-gray-500">{address.address}, {address.city}, {address.state} - {address.pincode}</p>
                     <p className="text-sm text-gray-500">Phone: {address.phone}</p>
                   </CardContent>
                 </Card>

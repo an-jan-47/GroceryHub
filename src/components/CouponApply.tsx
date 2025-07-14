@@ -1,6 +1,5 @@
 
 import React, { useState } from "react";
-
 import { Link, useNavigate } from 'react-router-dom';
 import { ChevronLeft, Tag, Copy } from 'lucide-react';
 import Header from '@/components/Header';
@@ -31,7 +30,6 @@ const CouponApply = () => {
   const { addCoupon, appliedCoupons } = useCouponState();
   const { cartItems } = useCart();
 
-  // Fetch all active coupons
   const { data: coupons = [], isLoading } = useQuery({
     queryKey: ['all-coupons'],
     queryFn: async () => {
@@ -61,8 +59,7 @@ const CouponApply = () => {
       return;
     }
 
-    // Check if coupon is already applied
-    const isAlreadyApplied = appliedCoupons.some((c) => c.code === couponCode);
+    const isAlreadyApplied = appliedCoupons.some((c: any) => c.code === couponCode);
     if (isAlreadyApplied) {
       toast('Coupon already applied', {
         description: 'This coupon is already in your cart.'
@@ -76,15 +73,9 @@ const CouponApply = () => {
         return total + (itemPrice * item.quantity);
       }, 0);
       
-      // Validate the coupon before applying
-      await validateCoupon(couponCode, cartTotal, appliedCoupons.map((c) => ({
-        coupon: c,
-        discountAmount: c.discount_amount,
-        appliedToTotal: c.discount_amount || 0
-      })));
+      await validateCoupon(couponCode, cartTotal, appliedCoupons);
       const discountAmount = calculateDiscount(couponData, cartTotal);
       
-      // Add coupon to global state
       addCoupon({
         id: couponData.id,
         code: couponData.code,
@@ -113,7 +104,7 @@ const CouponApply = () => {
   };
 
   const isApplied = (couponId: string) => {
-    return appliedCoupons.some((c) => c.id === couponId);
+    return appliedCoupons.some((c: any) => c.id === couponId);
   };
 
   return (
