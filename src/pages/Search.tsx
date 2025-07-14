@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -6,6 +7,7 @@ import ProductsGrid from '@/components/ProductsGrid';
 import { Product } from '@/types';
 import { searchProducts } from '@/services/productService';
 import SearchFilters from '@/components/SearchFilters';
+import { SearchFiltersType } from '@/services/searchService';
 
 const Search = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -13,8 +15,6 @@ const Search = () => {
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [categories, setCategories] = useState<string[]>([]);
-  const [brands, setBrands] = useState<string[]>([]);
 
   useEffect(() => {
     const fetchInitialProducts = async () => {
@@ -33,14 +33,6 @@ const Search = () => {
     fetchInitialProducts();
   }, [searchTerm]);
 
-  useEffect(() => {
-    // Extract categories and brands from products
-    const uniqueCategories = [...new Set(products.map(product => product.category))];
-    const uniqueBrands = [...new Set(products.map(product => product.brand))];
-    setCategories(uniqueCategories);
-    setBrands(uniqueBrands);
-  }, [products]);
-
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
   };
@@ -49,23 +41,24 @@ const Search = () => {
     setIsFilterOpen(!isFilterOpen);
   };
 
-  const handleFilterChange = (filters: any) => {
-    const filtered = products.filter(product => {
-      if (filters.priceRange) {
-        const [minPrice, maxPrice] = filters.priceRange;
-        if (product.price < minPrice || product.price > maxPrice) {
-          return false;
-        }
+  const handleFilterChange = (filters: SearchFiltersType) => {
+    const filtered = products.filter((product: Product) => {
+      if (filters.minPrice && product.price < filters.minPrice) {
+        return false;
       }
-      if (filters.categories && filters.categories.length > 0) {
-        if (!filters.categories.includes(product.category)) {
-          return false;
-        }
+      if (filters.maxPrice && product.price > filters.maxPrice) {
+        return false;
+      }
+      if (filters.category && product.category !== filters.category) {
+        return false;
       }
       if (filters.brands && filters.brands.length > 0) {
         if (!filters.brands.includes(product.brand)) {
           return false;
         }
+      }
+      if (filters.inStock && product.stock === 0) {
+        return false;
       }
       return true;
     });
@@ -95,8 +88,16 @@ const Search = () => {
         <div className="mb-4">
           <SearchFilters
             onFilterChange={handleFilterChange}
-            categories={categories}
-            brands={brands}
+            initialFilters={{
+              query: searchTerm,
+              category: '',
+              minPrice: 0,
+              maxPrice: 10000,
+              sortBy: 'name',
+              sortOrder: 'asc',
+              brands: [],
+              inStock: false
+            }}
           />
         </div>
       )}

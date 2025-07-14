@@ -72,9 +72,8 @@ const CouponApply = () => {
         return total + (itemPrice * item.quantity);
       }, 0);
       
-      // Convert appliedCoupons to just the coupon data for validation
-      const appliedCouponData = appliedCoupons.map(ac => ac.coupon);
-      await validateCoupon(couponCode, cartTotal, appliedCouponData);
+      // Pass the current appliedCoupons array directly to validateCoupon
+      await validateCoupon(couponCode, cartTotal, appliedCoupons);
       const discountAmount = calculateDiscount(couponData as Coupon, cartTotal);
       
       const appliedCoupon: AppliedCoupon = {
