@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Header from '@/components/Header';
@@ -6,6 +7,7 @@ import SearchFilters from '@/components/SearchFilters';
 import ProductCard from '@/components/ProductCard';
 import { useSearchProducts } from '@/hooks/useSearchProducts';
 import { SearchFiltersType } from '@/services/searchService';
+import { Product } from '@/types';
 
 const Explore = () => {
   const [searchParams] = useSearchParams();
@@ -57,7 +59,7 @@ const Explore = () => {
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-6">
-            {products.map((product) => (
+            {products.map((product: Product) => (
               <ProductCard key={product.id} product={product} />
             ))}
           </div>

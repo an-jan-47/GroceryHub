@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Star, ShoppingCart, Plus, Minus } from 'lucide-react';
@@ -159,11 +160,11 @@ const ProductDetail = () => {
               <CardContent className="p-4">
                 <h3 className="font-semibold mb-2">Description</h3>
                 <p className="text-gray-600">{product.description}</p>
-                {product.features && product.features.length > 0 && (
+                {product.features && Array.isArray(product.features) && product.features.length > 0 && (
                   <div className="mt-4">
                     <h4 className="font-medium mb-2">Features:</h4>
                     <ul className="text-sm text-gray-600 space-y-1">
-                      {product.features.map((feature, index) => (
+                      {product.features.map((feature: string, index: number) => (
                         <li key={index}>• {feature}</li>
                       ))}
                     </ul>

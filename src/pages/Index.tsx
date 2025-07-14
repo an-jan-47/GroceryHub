@@ -6,6 +6,7 @@ import ProductCard from '@/components/ProductCard';
 import SearchFilters from '@/components/SearchFilters';
 import { useSearchProducts } from '@/hooks/useSearchProducts';
 import { SearchFiltersType } from '@/services/searchService';
+import { Product } from '@/types';
 
 const Index = () => {
   const [filters, setFilters] = useState<SearchFiltersType>({
@@ -58,7 +59,7 @@ const Index = () => {
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-6">
-            {products.map((product) => (
+            {products.map((product: Product) => (
               <ProductCard key={product.id} product={product} />
             ))}
           </div>
