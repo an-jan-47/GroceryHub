@@ -12,14 +12,18 @@ Deno.serve(async (req) => {
   }
 
   try {
+    console.log('Starting verify-reset-otp function');
+    
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     )
 
     const { email, otp, newPassword } = await req.json();
+    console.log('Password reset verification:', { email, otp, hasNewPassword: !!newPassword });
 
     if (!email || !otp || !newPassword) {
+      console.log('Missing required fields');
       return new Response(
         JSON.stringify({ error: 'Email, OTP, and new password are required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -27,6 +31,7 @@ Deno.serve(async (req) => {
     }
 
     // Verify OTP
+    console.log('Verifying OTP...');
     const { data: otpRecord, error: otpError } = await supabaseClient
       .from('otp_codes')
       .select('*')
@@ -38,6 +43,7 @@ Deno.serve(async (req) => {
       .single();
 
     if (otpError || !otpRecord) {
+      console.log('Invalid or expired OTP:', otpError);
       return new Response(
         JSON.stringify({ error: 'Invalid or expired OTP' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -45,9 +51,11 @@ Deno.serve(async (req) => {
     }
 
     // Get user by email
+    console.log('Getting user by email...');
     const { data: userData, error: userError } = await supabaseClient.auth.admin.getUserByEmail(email);
     
     if (userError || !userData.user) {
+      console.log('User not found:', userError);
       return new Response(
         JSON.stringify({ error: 'User not found' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -55,6 +63,7 @@ Deno.serve(async (req) => {
     }
 
     // Update user password
+    console.log('Updating user password...');
     const { error: passwordError } = await supabaseClient.auth.admin.updateUserById(
       userData.user.id,
       { password: newPassword }
@@ -69,10 +78,13 @@ Deno.serve(async (req) => {
     }
 
     // Mark OTP as used
+    console.log('Marking OTP as used...');
     await supabaseClient
       .from('otp_codes')
       .update({ is_used: true })
       .eq('id', otpRecord.id);
+
+    console.log('Password reset successfully for user:', userData.user.id);
 
     return new Response(
       JSON.stringify({ 
@@ -82,7 +94,7 @@ Deno.serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Unexpected error:', error);
+    console.error('Unexpected error in verify-reset-otp:', error);
     return new Response(
       JSON.stringify({ error: 'Internal server error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

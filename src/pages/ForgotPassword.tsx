@@ -22,9 +22,13 @@ const ForgotPassword = () => {
 
     setIsLoading(true);
     try {
+      console.log('Starting password reset process...');
+      
       const { data, error } = await supabase.functions.invoke('send-reset-otp', {
         body: { email }
       });
+
+      console.log('Reset password response:', { data, error });
 
       if (error) {
         console.error('Reset password error:', error);
@@ -32,13 +36,15 @@ const ForgotPassword = () => {
       }
 
       // Show the OTP for testing (remove in production)
-      if (data.otp) {
+      if (data?.otp) {
         toast(`Password reset OTP sent! Your OTP is: ${data.otp}`, {
-          description: 'Check your email for the OTP to reset your password.',
+          description: 'Use this OTP to reset your password.',
+          duration: 10000,
         });
       } else {
         toast('Password reset OTP sent!', {
           description: 'Check your email for the OTP to reset your password.',
+          duration: 5000,
         });
       }
 

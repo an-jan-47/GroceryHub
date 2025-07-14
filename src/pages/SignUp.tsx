@@ -1,96 +1,43 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff } from 'lucide-react';
+import { ChevronLeft, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/components/ui/sonner';
-import { ArrowLeft } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 const SignUp = () => {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    password: '',
-  });
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const { user } = useAuth();
-  
-  useEffect(() => {
-    // Redirect if user is already logged in
-    if (user) {
-      navigate('/');
-    }
-  }, [user, navigate]);
-  
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-    // Clear error when user types
-    if (formError) setFormError(null);
-  };
-  
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Basic validation
-    if (!formData.name || !formData.email || !formData.password) {
-      setFormError("Please fill in all required fields");
+    if (!email || !password || !name) {
+      toast('Please fill in all required fields');
       return;
     }
-    
-    // Enhanced password validation
-    const validatePasswordStrength = (password: string): { isValid: boolean; feedback: string } => {
-      const minLength = 8;
-      const hasUpperCase = /[A-Z]/.test(password);
-      const hasLowerCase = /[a-z]/.test(password);
-      const hasNumbers = /\d/.test(password);
-      const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
 
-      if (password.length < minLength) {
-        return { isValid: false, feedback: "Password must be at least 8 characters long" };
-      }
-      if (!hasUpperCase) {
-        return { isValid: false, feedback: "Password must contain at least one uppercase letter" };
-      }
-      if (!hasLowerCase) {
-        return { isValid: false, feedback: "Password must contain at least one lowercase letter" };
-      }
-      if (!hasNumbers) {
-        return { isValid: false, feedback: "Password must contain at least one number" };
-      }
-      if (!hasSpecialChar) {
-        return { isValid: false, feedback: "Password must contain at least one special character" };
-      }
-
-      return { isValid: true, feedback: "" };
-    };
-
-    const { isValid, feedback } = validatePasswordStrength(formData.password);
-    if (!isValid) {
-      setFormError(feedback);
+    if (password.length < 6) {
+      toast('Password must be at least 6 characters long');
       return;
     }
-    
-    setIsSubmitting(true);
-    setFormError(null);
-    
+
+    setIsLoading(true);
     try {
+      console.log('Starting signup process...');
+      
       const { data, error } = await supabase.functions.invoke('send-signup-otp', {
-        body: {
-          email: formData.email,
-          password: formData.password,
-          name: formData.name,
-          phone: formData.phone
-        }
+        body: { email, password, name, phone }
       });
+
+      console.log('Signup response:', { data, error });
 
       if (error) {
         console.error('Signup error:', error);
@@ -98,133 +45,141 @@ const SignUp = () => {
       }
 
       // Show the OTP for testing (remove in production)
-      if (data.otp) {
-        toast(`OTP sent to your email! Your OTP is: ${data.otp}`, {
-          description: 'Please check your email and enter the OTP to verify your account.',
+      if (data?.otp) {
+        toast(`OTP sent! Your OTP is: ${data.otp}`, {
+          description: 'Please verify your email with this OTP.',
+          duration: 10000,
         });
       } else {
-        toast('OTP sent to your email!', {
-          description: 'Please check your email and enter the OTP to verify your account.',
+        toast('OTP sent!', {
+          description: 'Please check your email for the OTP to verify your account.',
+          duration: 5000,
         });
       }
 
-      // Navigate to OTP verification page with email
+      // Navigate to verification page
       navigate('/verify-signup', { 
-        state: { email: formData.email } 
+        state: { email } 
       });
     } catch (error: any) {
       console.error('Signup error:', error);
-      setFormError(error.message || "An unexpected error occurred");
+      toast('Signup failed', {
+        description: error.message || 'Failed to create account. Please try again.',
+      });
     } finally {
-      setIsSubmitting(false);
+      setIsLoading(false);
     }
   };
-  
-  return (
-    <div className="min-h-screen flex flex-col justify-start px-4 py-6 bg-gray-50 overflow-y-auto md:py-12 md:justify-center">
-      <div className="w-full max-w-md mx-auto space-y-6 bg-white p-6 rounded-lg shadow-md md:p-8 md:space-y-8">
-        <button 
-          onClick={() => navigate('/')} 
-          className="flex items-center text-blue-600 hover:text-blue-800 mb-2 md:mb-4"
-        >
-          <ArrowLeft className="w-5 h-5 mr-1" /> Back to Home
-        </button>
 
-        <div className="space-y-2 md:space-y-4">
-          <h2 className="text-2xl md:text-3xl font-bold text-center text-gray-900">
-            Create Account
+  return (
+    <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-gray-50">
+      <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-lg shadow-md">
+        <div>
+          <Link to="/login" className="flex items-center text-blue-600 hover:text-blue-800">
+            <ChevronLeft className="h-5 w-5 mr-1" />
+            Back to Login
+          </Link>
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+            Create your account
           </h2>
-          <p className="text-center text-sm text-gray-600">
-            Already have an account? {' '}
-            <Link to="/login" className="font-medium text-blue-600 hover:text-blue-500">
-              Sign in
-            </Link>
+          <p className="mt-2 text-center text-sm text-gray-600">
+            Join us today and start shopping
           </p>
         </div>
 
-        <form className="space-y-4 md:space-y-6" onSubmit={handleSubmit}>
-          {formError && (
-            <div className="text-red-600 text-sm text-center">{formError}</div>
-          )}
+        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          <div>
+            <Label htmlFor="name">Full Name *</Label>
+            <Input
+              id="name"
+              name="name"
+              type="text"
+              autoComplete="name"
+              required
+              className="mt-1"
+              placeholder="Enter your full name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              disabled={isLoading}
+            />
+          </div>
 
-          <div className="space-y-3 md:space-y-4">
-            <div>
-              <Label htmlFor="name" className="block mb-1.5">Full Name</Label>
+          <div>
+            <Label htmlFor="email-address">Email address *</Label>
+            <Input
+              id="email-address"
+              name="email"
+              type="email"
+              autoComplete="email"
+              required
+              className="mt-1"
+              placeholder="Enter your email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={isLoading}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="phone">Phone Number</Label>
+            <Input
+              id="phone"
+              name="phone"
+              type="tel"
+              autoComplete="tel"
+              className="mt-1"
+              placeholder="Enter your phone number"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              disabled={isLoading}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="password">Password *</Label>
+            <div className="relative mt-1">
               <Input
-                id="name"
-                name="name"
-                type="text"
+                id="password"
+                name="password"
+                type={showPassword ? 'text' : 'password'}
+                autoComplete="new-password"
                 required
-                value={formData.name}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Enter your full name"
+                placeholder="Create a password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={isLoading}
               />
-            </div>
-
-            <div>
-              <Label htmlFor="email" className="block mb-1.5">Email address</Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                required
-                value={formData.email}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Enter your email"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="phone" className="block mb-1.5">Phone (optional)</Label>
-              <Input
-                id="phone"
-                name="phone"
-                type="tel"
-                value={formData.phone}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Enter your phone number"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="password" className="block mb-1.5">Password</Label>
-              <div className="relative">
-                <Input
-                  id="password"
-                  name="password"
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  value={formData.password}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Create a password"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-5 w-5 text-gray-400" />
-                  ) : (
-                    <Eye className="h-5 w-5 text-gray-400" />
-                  )}
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center"
+              >
+                {showPassword ? (
+                  <EyeOff className="h-5 w-5 text-gray-400" />
+                ) : (
+                  <Eye className="h-5 w-5 text-gray-400" />
+                )}
+              </button>
             </div>
           </div>
 
           <Button
             type="submit"
-            className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            disabled={isSubmitting}
+            className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            disabled={isLoading}
           >
-            {isSubmitting ? 'Sending OTP...' : 'Create account'}
+            {isLoading ? 'Sending OTP...' : 'Sign Up'}
           </Button>
         </form>
+
+        <div className="text-center">
+          <span className="text-sm text-gray-600">
+            Already have an account?{' '}
+            <Link to="/login" className="font-medium text-blue-600 hover:text-blue-500">
+              Sign in
+            </Link>
+          </span>
+        </div>
       </div>
     </div>
   );

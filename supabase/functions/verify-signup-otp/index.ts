@@ -12,14 +12,18 @@ Deno.serve(async (req) => {
   }
 
   try {
+    console.log('Starting verify-signup-otp function');
+    
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     )
 
     const { email, otp } = await req.json();
+    console.log('Verification request:', { email, otp });
 
     if (!email || !otp) {
+      console.log('Missing email or OTP');
       return new Response(
         JSON.stringify({ error: 'Email and OTP are required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -27,6 +31,7 @@ Deno.serve(async (req) => {
     }
 
     // Verify OTP
+    console.log('Verifying OTP...');
     const { data: otpRecord, error: otpError } = await supabaseClient
       .from('otp_codes')
       .select('*')
@@ -38,6 +43,7 @@ Deno.serve(async (req) => {
       .single();
 
     if (otpError || !otpRecord) {
+      console.log('Invalid or expired OTP:', otpError);
       return new Response(
         JSON.stringify({ error: 'Invalid or expired OTP' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -45,22 +51,25 @@ Deno.serve(async (req) => {
     }
 
     // Get pending user data
-    const { data: pendingUser, error: pendingError } = await supabaseClient
+    console.log('Getting pending user data...');
+    const { data: pendingUser, error: pendingUserError } = await supabaseClient
       .from('pending_users')
       .select('*')
       .eq('email', email)
       .single();
 
-    if (pendingError || !pendingUser) {
+    if (pendingUserError || !pendingUser) {
+      console.log('Pending user not found:', pendingUserError);
       return new Response(
         JSON.stringify({ error: 'Pending user data not found' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Create user account using the admin API
-    const { data: userData, error: userError } = await supabaseClient.auth.admin.createUser({
-      email: email,
+    // Create user account
+    console.log('Creating user account...');
+    const { data: authData, error: authError } = await supabaseClient.auth.admin.createUser({
+      email: pendingUser.email,
       password: pendingUser.password_hash,
       email_confirm: true,
       user_metadata: {
@@ -69,8 +78,8 @@ Deno.serve(async (req) => {
       }
     });
 
-    if (userError) {
-      console.error('Error creating user:', userError);
+    if (authError || !authData.user) {
+      console.error('Error creating user:', authError);
       return new Response(
         JSON.stringify({ error: 'Failed to create user account' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -78,27 +87,31 @@ Deno.serve(async (req) => {
     }
 
     // Mark OTP as used
+    console.log('Marking OTP as used...');
     await supabaseClient
       .from('otp_codes')
       .update({ is_used: true })
       .eq('id', otpRecord.id);
 
     // Clean up pending user data
+    console.log('Cleaning up pending user data...');
     await supabaseClient
       .from('pending_users')
       .delete()
       .eq('email', email);
 
+    console.log('User account created successfully:', authData.user.id);
+
     return new Response(
       JSON.stringify({ 
-        message: 'Account verified successfully',
-        user: userData.user
+        message: 'Account created successfully',
+        user: authData.user
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
-    console.error('Unexpected error:', error);
+    console.error('Unexpected error in verify-signup-otp:', error);
     return new Response(
       JSON.stringify({ error: 'Internal server error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

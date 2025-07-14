@@ -12,14 +12,20 @@ Deno.serve(async (req) => {
   }
 
   try {
+    console.log('Starting send-signup-otp function');
+    
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     )
 
+    console.log('Supabase client created');
+
     const { email, password, name, phone } = await req.json();
+    console.log('Request data:', { email, name, phone, hasPassword: !!password });
 
     if (!email || !password || !name) {
+      console.log('Missing required fields');
       return new Response(
         JSON.stringify({ error: 'Email, password, and name are required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -27,15 +33,18 @@ Deno.serve(async (req) => {
     }
 
     // Check if user already exists
+    console.log('Checking if user exists...');
     const { data: existingUser } = await supabaseClient.auth.admin.getUserByEmail(email);
     if (existingUser.user) {
+      console.log('User already exists');
       return new Response(
         JSON.stringify({ error: 'User already exists' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     // Generate OTP
+    console.log('Generating OTP...');
     const { data: otpData, error: otpGenError } = await supabaseClient.rpc('generate_otp');
     
     if (otpGenError || !otpData) {
@@ -47,26 +56,10 @@ Deno.serve(async (req) => {
     }
 
     const otp = otpData;
-
-    // Store pending user data
-    const { error: pendingUserError } = await supabaseClient
-      .from('pending_users')
-      .upsert({
-        email,
-        password_hash: password,
-        name,
-        phone: phone || null
-      });
-
-    if (pendingUserError) {
-      console.error('Error storing pending user:', pendingUserError);
-      return new Response(
-        JSON.stringify({ error: 'Failed to store user data' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    console.log('OTP generated:', otp);
 
     // Store OTP with 10 minute expiry
+    console.log('Storing OTP...');
     const { error: otpError } = await supabaseClient
       .from('otp_codes')
       .insert({
@@ -79,7 +72,26 @@ Deno.serve(async (req) => {
     if (otpError) {
       console.error('Error storing OTP:', otpError);
       return new Response(
-        JSON.stringify({ error: 'Failed to generate OTP' }),
+        JSON.stringify({ error: 'Failed to store OTP' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Store pending user data
+    console.log('Storing pending user...');
+    const { error: pendingUserError } = await supabaseClient
+      .from('pending_users')
+      .upsert({
+        email,
+        password_hash: password, // In production, hash this password
+        name,
+        phone: phone || null
+      });
+
+    if (pendingUserError) {
+      console.error('Error storing pending user:', pendingUserError);
+      return new Response(
+        JSON.stringify({ error: 'Failed to store user data' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -90,13 +102,13 @@ Deno.serve(async (req) => {
       JSON.stringify({ 
         message: 'OTP sent successfully',
         email: email,
-        otp: otp // For testing purposes
+        otp: otp // For testing purposes - remove in production
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
-    console.error('Unexpected error:', error);
+    console.error('Unexpected error in send-signup-otp:', error);
     return new Response(
       JSON.stringify({ error: 'Internal server error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
