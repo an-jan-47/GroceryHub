@@ -44,8 +44,9 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get user
+    // Get user by email
     const { data: userData, error: userError } = await supabaseClient.auth.admin.getUserByEmail(email);
+    
     if (userError || !userData.user) {
       return new Response(
         JSON.stringify({ error: 'User not found' }),
@@ -53,7 +54,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Update password
+    // Update user password
     const { error: passwordError } = await supabaseClient.auth.admin.updateUserById(
       userData.user.id,
       { password: newPassword }
@@ -75,7 +76,7 @@ Deno.serve(async (req) => {
 
     return new Response(
       JSON.stringify({ 
-        message: 'Password reset successful'
+        message: 'Password reset successfully'
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

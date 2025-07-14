@@ -36,22 +36,24 @@ Deno.serve(async (req) => {
     }
 
     // Generate OTP
-    const { data: otpData } = await supabaseClient.rpc('generate_otp');
-    const otp = otpData;
-
-    if (!otp) {
+    const { data: otpData, error: otpGenError } = await supabaseClient.rpc('generate_otp');
+    
+    if (otpGenError || !otpData) {
+      console.error('Error generating OTP:', otpGenError);
       return new Response(
         JSON.stringify({ error: 'Failed to generate OTP' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Store pending user data (we'll create the user after OTP verification)
+    const otp = otpData;
+
+    // Store pending user data
     const { error: pendingUserError } = await supabaseClient
       .from('pending_users')
       .upsert({
         email,
-        password_hash: password, // Store the plain password temporarily - it will be hashed when creating the actual user
+        password_hash: password,
         name,
         phone: phone || null
       });
@@ -82,15 +84,13 @@ Deno.serve(async (req) => {
       );
     }
 
-    // For now, we'll just return success - in a real app you'd send an email
-    // But we'll log the OTP so you can see it for testing
-    console.log(`OTP for ${email}: ${otp}`);
+    console.log(`Signup OTP for ${email}: ${otp}`);
 
     return new Response(
       JSON.stringify({ 
         message: 'OTP sent successfully',
         email: email,
-        otp: otp // Remove this in production - only for testing
+        otp: otp // For testing purposes
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

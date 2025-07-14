@@ -36,15 +36,17 @@ Deno.serve(async (req) => {
     }
 
     // Generate OTP
-    const { data: otpData } = await supabaseClient.rpc('generate_otp');
-    const otp = otpData;
-
-    if (!otp) {
+    const { data: otpData, error: otpGenError } = await supabaseClient.rpc('generate_otp');
+    
+    if (otpGenError || !otpData) {
+      console.error('Error generating OTP:', otpGenError);
       return new Response(
         JSON.stringify({ error: 'Failed to generate OTP' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    const otp = otpData;
 
     // Store OTP with 10 minute expiry
     const { error: otpError } = await supabaseClient
@@ -64,14 +66,13 @@ Deno.serve(async (req) => {
       );
     }
 
-    // For testing purposes, we'll log the OTP - remove this in production
     console.log(`Password reset OTP for ${email}: ${otp}`);
 
     return new Response(
       JSON.stringify({ 
         message: 'Password reset OTP sent successfully',
         email: email,
-        otp: otp // Remove this in production - only for testing
+        otp: otp // For testing purposes
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
