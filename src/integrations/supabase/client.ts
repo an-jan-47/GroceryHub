@@ -1,7 +1,7 @@
-// Import at the top of the file instead of using require
-import { createClient } from '@supabase/supabase-js';
 
-// Create a more robust safe storage object that handles all edge cases
+import { createClient } from '@supabase/supabase-js';
+import type { Database } from './types';
+
 const safeStorage = {
   getItem: (key: string) => {
     try {
@@ -33,16 +33,14 @@ const safeStorage = {
   }
 };
 
-// Create a lazy-loaded Supabase client
-let supabaseInstance = null;
+let supabaseInstance: ReturnType<typeof createClient<Database>> | null = null;
 
 const createSupabaseClient = () => {
   if (!supabaseInstance) {
     try {
-      // Use the imported createClient directly instead of requiring it
-      supabaseInstance = createClient(
-        import.meta.env.VITE_SUPABASE_URL,
-        import.meta.env.VITE_SUPABASE_ANON_KEY,
+      supabaseInstance = createClient<Database>(
+        'https://wvhtcmtmxazcetbwgyyz.supabase.co',
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind2aHRjbXRteGF6Y2V0YndneXl6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU5MTA1MTgsImV4cCI6MjA2MTQ4NjUxOH0.0J2pLUZjOvdH3T4R_zUB7gqOazoMviMQ2nSBiYERQvI',
         {
           auth: {
             persistSession: true,
@@ -54,13 +52,7 @@ const createSupabaseClient = () => {
       );
     } catch (error) {
       console.error('Error creating Supabase client:', error);
-      // Return a dummy client that won't crash the app
-      return {
-        auth: {
-          getSession: () => Promise.resolve({ data: { session: null } }),
-          onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } })
-        }
-      };
+      return null;
     }
   }
   return supabaseInstance;

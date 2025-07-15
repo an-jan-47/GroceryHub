@@ -17,6 +17,12 @@ Deno.serve(async (req) => {
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
     )
 
     console.log('Supabase client created');
@@ -32,10 +38,20 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Check if user already exists
+    // Check if user already exists using listUsers
     console.log('Checking if user exists...');
-    const { data: existingUser } = await supabaseClient.auth.admin.getUserByEmail(email);
-    if (existingUser.user) {
+    const { data: users, error: listError } = await supabaseClient.auth.admin.listUsers();
+    
+    if (listError) {
+      console.error('Error listing users:', listError);
+      return new Response(
+        JSON.stringify({ error: 'Failed to check existing users' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const existingUser = users.users.find(user => user.email === email);
+    if (existingUser) {
       console.log('User already exists');
       return new Response(
         JSON.stringify({ error: 'User already exists' }),

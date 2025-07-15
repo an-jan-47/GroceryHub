@@ -17,24 +17,42 @@ Deno.serve(async (req) => {
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
     )
 
+    console.log('Supabase client created');
+
     const { email } = await req.json();
-    console.log('Reset OTP request for:', email);
+    console.log('Request data:', { email });
 
     if (!email) {
-      console.log('Email is required');
+      console.log('Missing email');
       return new Response(
         JSON.stringify({ error: 'Email is required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Check if user exists
+    // Check if user exists using listUsers
     console.log('Checking if user exists...');
-    const { data: existingUser } = await supabaseClient.auth.admin.getUserByEmail(email);
-    if (!existingUser.user) {
-      console.log('User not found');
+    const { data: users, error: listError } = await supabaseClient.auth.admin.listUsers();
+    
+    if (listError) {
+      console.error('Error listing users:', listError);
+      return new Response(
+        JSON.stringify({ error: 'Failed to check existing users' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const existingUser = users.users.find(user => user.email === email);
+    if (!existingUser) {
+      console.log('User does not exist');
       return new Response(
         JSON.stringify({ error: 'User not found' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -63,23 +81,23 @@ Deno.serve(async (req) => {
       .insert({
         email,
         otp_code: otp,
-        otp_type: 'password_reset',
+        otp_type: 'reset',
         expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString()
       });
 
     if (otpError) {
       console.error('Error storing OTP:', otpError);
       return new Response(
-        JSON.stringify({ error: 'Failed to generate OTP' }),
+        JSON.stringify({ error: 'Failed to store OTP' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log(`Password reset OTP for ${email}: ${otp}`);
+    console.log(`Reset OTP for ${email}: ${otp}`);
 
     return new Response(
       JSON.stringify({ 
-        message: 'Password reset OTP sent successfully',
+        message: 'Reset OTP sent successfully',
         email: email,
         otp: otp // For testing purposes - remove in production
       }),
