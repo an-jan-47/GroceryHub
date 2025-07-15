@@ -17,6 +17,12 @@ Deno.serve(async (req) => {
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
     )
 
     const { email, otp, newPassword } = await req.json();
@@ -50,12 +56,21 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get user by email
+    // Get user by email using listUsers
     console.log('Getting user by email...');
-    const { data: userData, error: userError } = await supabaseClient.auth.admin.getUserByEmail(email);
+    const { data: users, error: listError } = await supabaseClient.auth.admin.listUsers();
     
-    if (userError || !userData.user) {
-      console.log('User not found:', userError);
+    if (listError) {
+      console.error('Error listing users:', listError);
+      return new Response(
+        JSON.stringify({ error: 'Failed to check existing users' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const user = users.users.find(user => user.email === email);
+    if (!user) {
+      console.log('User not found');
       return new Response(
         JSON.stringify({ error: 'User not found' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -65,7 +80,7 @@ Deno.serve(async (req) => {
     // Update user password
     console.log('Updating user password...');
     const { error: passwordError } = await supabaseClient.auth.admin.updateUserById(
-      userData.user.id,
+      user.id,
       { password: newPassword }
     );
 
@@ -84,7 +99,7 @@ Deno.serve(async (req) => {
       .update({ is_used: true })
       .eq('id', otpRecord.id);
 
-    console.log('Password reset successfully for user:', userData.user.id);
+    console.log('Password reset successfully for user:', user.id);
 
     return new Response(
       JSON.stringify({ 

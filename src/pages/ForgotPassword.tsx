@@ -39,7 +39,7 @@ const ForgotPassword = () => {
       if (data?.otp) {
         toast(`Password reset OTP sent! Your OTP is: ${data.otp}`, {
           description: 'Use this OTP to reset your password.',
-          duration: 10000,
+          duration: 15000,
         });
       } else {
         toast('Password reset OTP sent!', {

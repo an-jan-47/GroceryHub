@@ -3,23 +3,16 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/components/ui/sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import type { Profile } from '@/types/profile';
+import { Profile } from '@/types/profile';
 
 const ProfileEditor = () => {
   const { user } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-
-  const sanitizeInput = (input: string) => {
-    return input.trim().replace(/[<>]/g, '');
-  };
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
 
   useEffect(() => {
     if (user) {
@@ -28,127 +21,107 @@ const ProfileEditor = () => {
   }, [user]);
 
   const fetchProfile = async () => {
-    if (!user || !supabase) return;
-
-    setIsLoading(true);
+    if (!user) return;
+    
     try {
+      setIsLoadingProfile(true);
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
         .single();
 
-      if (error) {
-        if (error.code === 'PGRST116') {
-          console.log('No profile found, will create on save');
-          setName(user.user_metadata?.name || '');
-          setPhone('');
-        } else {
-          throw error;
-        }
-      } else {
-        setProfile(data);
-        setName(data.name);
-        setPhone(data.phone || '');
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error fetching profile:', error);
+        toast('Error loading profile');
+        return;
+      }
+
+      if (data) {
+        setProfile({
+          id: data.id,
+          name: data.name,
+          phone: data.phone || undefined,
+          created_at: data.created_at,
+          updated_at: data.updated_at
+        });
       }
     } catch (error) {
       console.error('Error fetching profile:', error);
-      toast('Error', {
-        description: 'Failed to load profile data',
-      });
+      toast('Error loading profile');
     } finally {
-      setIsLoading(false);
+      setIsLoadingProfile(false);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !supabase) return;
+    if (!user || !profile) return;
 
-    setIsSaving(true);
+    setIsLoading(true);
     try {
-      const sanitizedName = sanitizeInput(name);
-      const sanitizedPhone = sanitizeInput(phone);
+      const sanitizedProfile = {
+        name: profile.name.trim(),
+        phone: profile.phone?.trim() || null
+      };
 
       const { error } = await supabase
         .from('profiles')
-        .upsert({
-          id: user.id,
-          name: sanitizedName,
-          phone: sanitizedPhone || null,
-          updated_at: new Date().toISOString(),
-        });
+        .update(sanitizedProfile)
+        .eq('id', user.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error updating profile:', error);
+        toast('Error updating profile');
+        return;
+      }
 
       toast('Profile updated successfully!');
-      fetchProfile();
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error updating profile:', error);
-      toast('Error', {
-        description: error.message || 'Failed to update profile',
-      });
+      toast('Error updating profile');
     } finally {
-      setIsSaving(false);
+      setIsLoading(false);
     }
   };
 
-  if (isLoading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Profile Information</CardTitle>
-          <CardDescription>Loading...</CardDescription>
-        </CardHeader>
-      </Card>
-    );
+  if (isLoadingProfile) {
+    return <div className="text-center py-4">Loading profile...</div>;
+  }
+
+  if (!profile) {
+    return <div className="text-center py-4">No profile found</div>;
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Profile Information</CardTitle>
-        <CardDescription>
-          Update your personal information and contact details
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Full Name</Label>
-            <Input
-              id="name"
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              disabled={isSaving}
-              placeholder="Enter your full name"
-            />
-          </div>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <Label htmlFor="name">Name</Label>
+        <Input
+          id="name"
+          type="text"
+          value={profile.name}
+          onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+          required
+          disabled={isLoading}
+        />
+      </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="phone">Phone Number</Label>
-            <Input
-              id="phone"
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              disabled={isSaving}
-              placeholder="Enter your phone number (optional)"
-            />
-          </div>
+      <div>
+        <Label htmlFor="phone">Phone (Optional)</Label>
+        <Input
+          id="phone"
+          type="tel"
+          value={profile.phone || ''}
+          onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+          disabled={isLoading}
+        />
+      </div>
 
-          <Button 
-            type="submit" 
-            disabled={isSaving || !name.trim()}
-            className="w-full"
-          >
-            {isSaving ? 'Updating...' : 'Update Profile'}
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+      <Button type="submit" disabled={isLoading} className="w-full">
+        {isLoading ? 'Updating...' : 'Update Profile'}
+      </Button>
+    </form>
   );
 };
 

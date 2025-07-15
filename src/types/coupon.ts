@@ -2,16 +2,16 @@
 export interface Coupon {
   id: string;
   code: string;
-  description?: string;
   type: 'fixed' | 'percentage';
   value: number;
+  description?: string;
   min_purchase_amount: number;
   max_discount_amount?: number;
   usage_limit: number;
   usage_count: number;
+  is_active: boolean;
   start_date: string;
   expiry_date: string;
-  is_active: boolean;
   applicable_categories?: string[];
   applicable_products?: string[];
   created_at: string;

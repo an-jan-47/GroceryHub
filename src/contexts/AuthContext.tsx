@@ -8,7 +8,7 @@ interface AuthContextType {
   session: Session | null;
   signOut: () => Promise<void>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signUp: (email: string, password: string, name: string) => Promise<{ error: any }>;
+  signUp: (email: string, password: string, name: string, phone?: string) => Promise<{ error: any }>;
   loading: boolean;
 }
 
@@ -32,11 +32,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!supabase) {
-      setLoading(false);
-      return;
-    }
-
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event: AuthChangeEvent, currentSession: Session | null) => {
@@ -58,16 +53,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   const signOut = async () => {
-    if (supabase) {
-      await supabase.auth.signOut();
-    }
+    await supabase.auth.signOut();
   };
 
   const signIn = async (email: string, password: string) => {
-    if (!supabase) {
-      return { error: 'Supabase client not available' };
-    }
-    
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -76,19 +65,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return { error };
   };
 
-  const signUp = async (email: string, password: string, name: string) => {
-    if (!supabase) {
-      return { error: 'Supabase client not available' };
-    }
-    
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          name: name
-        }
-      }
+  const signUp = async (email: string, password: string, name: string, phone?: string) => {
+    // Use our custom signup with OTP
+    const { data, error } = await supabase.functions.invoke('send-signup-otp', {
+      body: { email, password, name, phone }
     });
     
     return { error };

@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ChevronLeft, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,22 +9,40 @@ import { toast } from '@/components/ui/sonner';
 import { supabase } from '@/integrations/supabase/client';
 
 const SignUp = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    password: '',
+    confirmPassword: ''
+  });
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password || !name) {
+    
+    if (!formData.name || !formData.email || !formData.password) {
       toast('Please fill in all required fields');
       return;
     }
 
-    if (password.length < 6) {
+    if (formData.password !== formData.confirmPassword) {
+      toast('Passwords do not match');
+      return;
+    }
+
+    if (formData.password.length < 6) {
       toast('Password must be at least 6 characters long');
       return;
     }
@@ -34,32 +52,37 @@ const SignUp = () => {
       console.log('Starting signup process...');
       
       const { data, error } = await supabase.functions.invoke('send-signup-otp', {
-        body: { email, password, name, phone }
+        body: { 
+          email: formData.email, 
+          password: formData.password, 
+          name: formData.name,
+          phone: formData.phone || undefined
+        }
       });
 
       console.log('Signup response:', { data, error });
 
       if (error) {
         console.error('Signup error:', error);
-        throw new Error(error.message || 'Failed to send OTP');
+        throw new Error(error.message || 'Failed to send signup OTP');
       }
 
       // Show the OTP for testing (remove in production)
       if (data?.otp) {
-        toast(`OTP sent! Your OTP is: ${data.otp}`, {
-          description: 'Please verify your email with this OTP.',
-          duration: 10000,
+        toast(`Signup OTP sent! Your OTP is: ${data.otp}`, {
+          description: 'Use this OTP to verify your account.',
+          duration: 15000,
         });
       } else {
-        toast('OTP sent!', {
-          description: 'Please check your email for the OTP to verify your account.',
+        toast('Signup OTP sent!', {
+          description: 'Check your email for the OTP to verify your account.',
           duration: 5000,
         });
       }
 
       // Navigate to verification page
       navigate('/verify-signup', { 
-        state: { email } 
+        state: { email: formData.email } 
       });
     } catch (error: any) {
       console.error('Signup error:', error);
@@ -83,7 +106,10 @@ const SignUp = () => {
             Create your account
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Join us today and start shopping
+            Already have an account?{' '}
+            <Link to="/login" className="font-medium text-blue-600 hover:text-blue-500">
+              Sign in
+            </Link>
           </p>
         </div>
 
@@ -98,24 +124,24 @@ const SignUp = () => {
               required
               className="mt-1"
               placeholder="Enter your full name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+              value={formData.name}
+              onChange={handleInputChange}
               disabled={isLoading}
             />
           </div>
 
           <div>
-            <Label htmlFor="email-address">Email address *</Label>
+            <Label htmlFor="email">Email address *</Label>
             <Input
-              id="email-address"
+              id="email"
               name="email"
               type="email"
               autoComplete="email"
               required
               className="mt-1"
               placeholder="Enter your email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              value={formData.email}
+              onChange={handleInputChange}
               disabled={isLoading}
             />
           </div>
@@ -129,8 +155,8 @@ const SignUp = () => {
               autoComplete="tel"
               className="mt-1"
               placeholder="Enter your phone number"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
+              value={formData.phone}
+              onChange={handleInputChange}
               disabled={isLoading}
             />
           </div>
@@ -144,9 +170,9 @@ const SignUp = () => {
                 type={showPassword ? 'text' : 'password'}
                 autoComplete="new-password"
                 required
-                placeholder="Create a password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter your password"
+                value={formData.password}
+                onChange={handleInputChange}
                 disabled={isLoading}
               />
               <button
@@ -163,23 +189,42 @@ const SignUp = () => {
             </div>
           </div>
 
+          <div>
+            <Label htmlFor="confirmPassword">Confirm Password *</Label>
+            <div className="relative mt-1">
+              <Input
+                id="confirmPassword"
+                name="confirmPassword"
+                type={showConfirmPassword ? 'text' : 'password'}
+                autoComplete="new-password"
+                required
+                placeholder="Confirm your password"
+                value={formData.confirmPassword}
+                onChange={handleInputChange}
+                disabled={isLoading}
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center"
+              >
+                {showConfirmPassword ? (
+                  <EyeOff className="h-5 w-5 text-gray-400" />
+                ) : (
+                  <Eye className="h-5 w-5 text-gray-400" />
+                )}
+              </button>
+            </div>
+          </div>
+
           <Button
             type="submit"
             className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             disabled={isLoading}
           >
-            {isLoading ? 'Sending OTP...' : 'Sign Up'}
+            {isLoading ? 'Creating Account...' : 'Create Account'}
           </Button>
         </form>
-
-        <div className="text-center">
-          <span className="text-sm text-gray-600">
-            Already have an account?{' '}
-            <Link to="/login" className="font-medium text-blue-600 hover:text-blue-500">
-              Sign in
-            </Link>
-          </span>
-        </div>
       </div>
     </div>
   );
