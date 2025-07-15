@@ -1,12 +1,13 @@
+import React, { useState, useEffect } from "react";
 
-import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ChevronLeft, Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/components/ui/sonner';
-import { supabase } from '@/integrations/supabase/client';
+import { ArrowLeft } from 'lucide-react';
 
 const SignUp = () => {
   const [formData, setFormData] = useState({
@@ -14,215 +15,201 @@ const SignUp = () => {
     email: '',
     phone: '',
     password: '',
-    confirmPassword: ''
   });
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
   const navigate = useNavigate();
-
+  const { signUp, user } = useAuth();
+  
+  useEffect(() => {
+    // Redirect if user is already logged in
+    if (user) {
+      navigate('/');
+    }
+  }, [user, navigate]);
+  
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setFormData(prev => ({ ...prev, [name]: value }));
+    // Clear error when user types
+    if (formError) setFormError(null);
   };
-
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Basic validation
     if (!formData.name || !formData.email || !formData.password) {
-      toast('Please fill in all required fields');
+      setFormError("Please fill in all required fields");
       return;
     }
+    
+    // Enhanced password validation
+    const validatePasswordStrength = (password: string): { isValid: boolean; feedback: string } => {
+      const minLength = 8;
+      const hasUpperCase = /[A-Z]/.test(password);
+      const hasLowerCase = /[a-z]/.test(password);
+      const hasNumbers = /\d/.test(password);
+      const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
 
-    if (formData.password !== formData.confirmPassword) {
-      toast('Passwords do not match');
+      if (password.length < minLength) {
+        return { isValid: false, feedback: "Password must be at least 8 characters long" };
+      }
+      if (!hasUpperCase) {
+        return { isValid: false, feedback: "Password must contain at least one uppercase letter" };
+      }
+      if (!hasLowerCase) {
+        return { isValid: false, feedback: "Password must contain at least one lowercase letter" };
+      }
+      if (!hasNumbers) {
+        return { isValid: false, feedback: "Password must contain at least one number" };
+      }
+      if (!hasSpecialChar) {
+        return { isValid: false, feedback: "Password must contain at least one special character" };
+      }
+
+      return { isValid: true, feedback: "" };
+    };
+
+    const { isValid, feedback } = validatePasswordStrength(formData.password);
+    if (!isValid) {
+      setFormError(feedback);
       return;
     }
-
-    if (formData.password.length < 6) {
-      toast('Password must be at least 6 characters long');
-      return;
-    }
-
-    setIsLoading(true);
+    
+    setIsSubmitting(true);
+    setFormError(null);
+    
     try {
-      console.log('Starting signup process...');
-      
-      const { data, error } = await supabase.functions.invoke('send-signup-otp', {
-        body: { 
-          email: formData.email, 
-          password: formData.password, 
+      await signUp(
+        formData.email,
+        formData.password,
+        { 
           name: formData.name,
-          phone: formData.phone || undefined
+          phone: formData.phone 
         }
-      });
-
-      console.log('Signup response:', { data, error });
-
-      if (error) {
-        console.error('Signup error:', error);
-        throw new Error(error.message || 'Failed to send signup OTP');
-      }
-
-      // Show the OTP for testing (remove in production)
-      if (data?.otp) {
-        toast(`Signup OTP sent! Your OTP is: ${data.otp}`, {
-          description: 'Use this OTP to verify your account.',
-          duration: 15000,
-        });
-      } else {
-        toast('Signup OTP sent!', {
-          description: 'Check your email for the OTP to verify your account.',
-          duration: 5000,
-        });
-      }
-
-      // Navigate to verification page
-      navigate('/verify-signup', { 
-        state: { email: formData.email } 
-      });
+      );
+      // Don't navigate - user needs to confirm their email first
     } catch (error: any) {
       console.error('Signup error:', error);
-      toast('Signup failed', {
-        description: error.message || 'Failed to create account. Please try again.',
-      });
+      
+      // Handle specific Supabase email validation error
+      if (error.message?.includes('invalid') && error.message?.includes('Email')) {
+        setFormError(`Please use a valid email address.`);
+      } else {
+        setFormError(error.message || "An unexpected error occurred");
+      }
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
-
+  
+  // Remove handleGoogleSignUp function
+  
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-gray-50">
-      <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-lg shadow-md">
-        <div>
-          <Link to="/login" className="flex items-center text-blue-600 hover:text-blue-800">
-            <ChevronLeft className="h-5 w-5 mr-1" />
-            Back to Login
-          </Link>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Create your account
+    <div className="min-h-screen flex flex-col justify-start px-4 py-6 bg-gray-50 overflow-y-auto md:py-12 md:justify-center">
+      <div className="w-full max-w-md mx-auto space-y-6 bg-white p-6 rounded-lg shadow-md md:p-8 md:space-y-8">
+        <button 
+          onClick={() => navigate('/')} 
+          className="flex items-center text-blue-600 hover:text-blue-800 mb-2 md:mb-4"
+        >
+          <ArrowLeft className="w-5 h-5 mr-1" /> Back to Home
+        </button>
+
+        <div className="space-y-2 md:space-y-4">
+          <h2 className="text-2xl md:text-3xl font-bold text-center text-gray-900">
+            Create Account
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Already have an account?{' '}
+          <p className="text-center text-sm text-gray-600">
+            Already have an account? {' '}
             <Link to="/login" className="font-medium text-blue-600 hover:text-blue-500">
               Sign in
             </Link>
           </p>
         </div>
 
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div>
-            <Label htmlFor="name">Full Name *</Label>
-            <Input
-              id="name"
-              name="name"
-              type="text"
-              autoComplete="name"
-              required
-              className="mt-1"
-              placeholder="Enter your full name"
-              value={formData.name}
-              onChange={handleInputChange}
-              disabled={isLoading}
-            />
-          </div>
+        <form className="space-y-4 md:space-y-6" onSubmit={handleSubmit}>
+          {formError && (
+            <div className="text-red-600 text-sm text-center">{formError}</div>
+          )}
 
-          <div>
-            <Label htmlFor="email">Email address *</Label>
-            <Input
-              id="email"
-              name="email"
-              type="email"
-              autoComplete="email"
-              required
-              className="mt-1"
-              placeholder="Enter your email"
-              value={formData.email}
-              onChange={handleInputChange}
-              disabled={isLoading}
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="phone">Phone Number</Label>
-            <Input
-              id="phone"
-              name="phone"
-              type="tel"
-              autoComplete="tel"
-              className="mt-1"
-              placeholder="Enter your phone number"
-              value={formData.phone}
-              onChange={handleInputChange}
-              disabled={isLoading}
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="password">Password *</Label>
-            <div className="relative mt-1">
+          <div className="space-y-3 md:space-y-4">
+            <div>
+              <Label htmlFor="name" className="block mb-1.5">Full Name</Label>
               <Input
-                id="password"
-                name="password"
-                type={showPassword ? 'text' : 'password'}
-                autoComplete="new-password"
+                id="name"
+                name="name"
+                type="text"
                 required
-                placeholder="Enter your password"
-                value={formData.password}
+                value={formData.name}
                 onChange={handleInputChange}
-                disabled={isLoading}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Enter your full name"
               />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center"
-              >
-                {showPassword ? (
-                  <EyeOff className="h-5 w-5 text-gray-400" />
-                ) : (
-                  <Eye className="h-5 w-5 text-gray-400" />
-                )}
-              </button>
             </div>
-          </div>
 
-          <div>
-            <Label htmlFor="confirmPassword">Confirm Password *</Label>
-            <div className="relative mt-1">
+            <div>
+              <Label htmlFor="email" className="block mb-1.5">Email address</Label>
               <Input
-                id="confirmPassword"
-                name="confirmPassword"
-                type={showConfirmPassword ? 'text' : 'password'}
-                autoComplete="new-password"
+                id="email"
+                name="email"
+                type="email"
                 required
-                placeholder="Confirm your password"
-                value={formData.confirmPassword}
+                value={formData.email}
                 onChange={handleInputChange}
-                disabled={isLoading}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Enter your email"
               />
-              <button
-                type="button"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center"
-              >
-                {showConfirmPassword ? (
-                  <EyeOff className="h-5 w-5 text-gray-400" />
-                ) : (
-                  <Eye className="h-5 w-5 text-gray-400" />
-                )}
-              </button>
+            </div>
+
+            <div>
+              <Label htmlFor="phone" className="block mb-1.5">Phone (optional)</Label>
+              <Input
+                id="phone"
+                name="phone"
+                type="tel"
+                value={formData.phone}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Enter your phone number"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="password" className="block mb-1.5">Password</Label>
+              <div className="relative">
+                <Input
+                  id="password"
+                  name="password"
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  value={formData.password}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Create a password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5 text-gray-400" />
+                  ) : (
+                    <Eye className="h-5 w-5 text-gray-400" />
+                  )}
+                </button>
+              </div>
             </div>
           </div>
 
           <Button
             type="submit"
-            className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            disabled={isLoading}
+            className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            disabled={isSubmitting}
           >
-            {isLoading ? 'Creating Account...' : 'Create Account'}
+            {isSubmitting ? 'Creating account...' : 'Create account'}
           </Button>
         </form>
       </div>
