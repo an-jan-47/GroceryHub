@@ -74,14 +74,14 @@ Deno.serve(async (req) => {
     const otp = otpData;
     console.log('OTP generated:', otp);
 
-    // Store OTP with 10 minute expiry
+    // Store OTP with 10 minute expiry - FIXED: using 'password_reset' instead of 'reset'
     console.log('Storing OTP...');
     const { error: otpError } = await supabaseClient
       .from('otp_codes')
       .insert({
         email,
         otp_code: otp,
-        otp_type: 'reset',
+        otp_type: 'password_reset',
         expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString()
       });
 
