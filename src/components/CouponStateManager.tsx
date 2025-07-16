@@ -1,23 +1,20 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+
 import type { Coupon } from '@/services/couponService';
-import type { ProductSpecificDiscount } from '@/services/enhancedCouponService';
 
 export interface AppliedCouponState {
   coupon: Coupon;
   discountAmount: number;
   appliedToTotal?: number;
-  productDiscounts: ProductSpecificDiscount[];
 }
 
 interface CouponStateContextType {
   appliedCoupons: AppliedCouponState[];
-  addCoupon: (coupon: Coupon, discountAmount: number, productDiscounts: ProductSpecificDiscount[]) => void;
+  addCoupon: (coupon: Coupon, discountAmount: number) => void;
   removeCoupon: (couponId: string) => void;
   clearCoupons: () => void;
   setCoupons: (coupons: AppliedCouponState[]) => void;
   checkCartAndClearCoupons: (cartLength: number) => void;
-  getProductDiscount: (productId: string) => ProductSpecificDiscount | null;
 }
 
 const CouponStateContext = createContext<CouponStateContextType | undefined>(undefined);
@@ -34,15 +31,9 @@ export const CouponStateProvider: React.FC<{ children: ReactNode }> = ({ childre
         const parsedData = JSON.parse(storedCouponData);
         let couponsToLoad: AppliedCouponState[] = [];
         if (Array.isArray(parsedData)) {
-          couponsToLoad = parsedData.map(item => ({
-            ...item,
-            productDiscounts: item.productDiscounts || []
-          }));
+          couponsToLoad = parsedData;
         } else if (parsedData.coupon) {
-          couponsToLoad = [{
-            ...parsedData,
-            productDiscounts: parsedData.productDiscounts || []
-          }];
+          couponsToLoad = [parsedData];
         }
         setAppliedCoupons(couponsToLoad);
       } catch (error) {
@@ -67,12 +58,12 @@ export const CouponStateProvider: React.FC<{ children: ReactNode }> = ({ childre
     return () => clearTimeout(timeoutId);
   }, [appliedCoupons, isInitialized]);
 
-  const addCoupon = (coupon: Coupon, discountAmount: number, productDiscounts: ProductSpecificDiscount[] = []) => {
+  const addCoupon = (coupon: Coupon, discountAmount: number) => {
     setAppliedCoupons(prevCoupons => {
       // Check for existing coupon to prevent duplicates
       const existingCoupon = prevCoupons.find(c => c.coupon.id === coupon.id);
       if (existingCoupon) return prevCoupons;
-      return [...prevCoupons, { coupon, discountAmount, productDiscounts }];
+      return [...prevCoupons, { coupon, discountAmount }];
     });
   };
 
@@ -105,18 +96,6 @@ export const CouponStateProvider: React.FC<{ children: ReactNode }> = ({ childre
     }
   };
 
-  const getProductDiscount = (productId: string): ProductSpecificDiscount | null => {
-    for (const appliedCoupon of appliedCoupons) {
-      const productDiscount = appliedCoupon.productDiscounts.find(
-        discount => discount.productId === productId
-      );
-      if (productDiscount) {
-        return productDiscount;
-      }
-    }
-    return null;
-  };
-
   return (
     <CouponStateContext.Provider 
       value={{ 
@@ -125,8 +104,7 @@ export const CouponStateProvider: React.FC<{ children: ReactNode }> = ({ childre
         removeCoupon,
         clearCoupons,
         setCoupons,
-        checkCartAndClearCoupons,
-        getProductDiscount
+        checkCartAndClearCoupons
       }}>
       {children}
     </CouponStateContext.Provider>

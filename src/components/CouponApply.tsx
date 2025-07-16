@@ -1,5 +1,5 @@
-
 import React, { useState } from "react";
+
 import { Link, useNavigate } from 'react-router-dom';
 import { ChevronLeft, Tag, Copy } from 'lucide-react';
 import Header from '@/components/Header';
@@ -9,9 +9,9 @@ import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/sonner';
+import { calculateDiscount, validateCoupon, type Coupon } from '@/services/couponService';
 import { useCouponState } from '@/components/CouponStateManager';
 import { useCart } from '@/hooks/useCart';
-import { validateAndApplyProductSpecificCoupon } from '@/services/enhancedCouponService';
 
 const CouponApply = () => {
   const navigate = useNavigate();
@@ -42,8 +42,14 @@ const CouponApply = () => {
       return;
     }
 
+    const couponData = coupons.find(c => c.code === couponCode);
+    if (!couponData) {
+      toast('Coupon not found');
+      return;
+    }
+
     // Check if coupon is already applied
-    const isAlreadyApplied = appliedCoupons.some((c: any) => c.coupon.code === couponCode);
+    const isAlreadyApplied = appliedCoupons.some(c => c.coupon.code === couponCode);
     if (isAlreadyApplied) {
       toast('Coupon already applied', {
         description: 'This coupon is already in your cart.'
@@ -52,25 +58,27 @@ const CouponApply = () => {
     }
 
     try {
-      const result = await validateAndApplyProductSpecificCoupon(couponCode, cartItems);
+      const cartTotal = cartItems.reduce((total, item) => {
+        const itemPrice = item.salePrice || item.price;
+        return total + (itemPrice * item.quantity);
+      }, 0);
       
-      if (result.success) {
-        const couponData = coupons.find(c => c.code === couponCode);
-        if (couponData) {
-          // Add coupon with product-specific discounts
-          addCoupon(couponData, result.totalDiscount, result.productDiscounts);
-          
-          toast('Coupon applied successfully!', {
-            description: result.message
-          });
-          
-          navigate('/cart');
-        }
-      } else {
-        toast('Cannot apply coupon', {
-          description: result.message
-        });
-      }
+      // Validate the coupon before applying
+      await validateCoupon(couponCode, cartTotal, appliedCoupons.map(c => ({
+        coupon: c.coupon,
+        discountAmount: c.discountAmount,
+        appliedToTotal: c.appliedToTotal || 0
+      })));
+      const discountAmount = calculateDiscount(couponData, cartTotal);
+      
+      // Add coupon to global state
+      addCoupon(couponData, discountAmount);
+      
+      toast('Coupon applied successfully!', {
+        description: `₹${discountAmount.toFixed(2)} discount will be applied at checkout.`
+      });
+      
+      navigate('/cart');
     } catch (error: any) {
       toast('Error applying coupon', {
         description: error.message
@@ -86,7 +94,7 @@ const CouponApply = () => {
   };
 
   const isApplied = (couponId: string) => {
-    return appliedCoupons.some((c: any) => c.coupon.id === couponId);
+    return appliedCoupons.some(c => c.coupon.id === couponId);
   };
 
   return (
@@ -121,7 +129,7 @@ const CouponApply = () => {
               </div>
             ) : (
               <div className="space-y-3">
-                {coupons.map((coupon: any) => {
+                {coupons.map((coupon) => {
                   const applied = isApplied(coupon.id);
                   
                   return (
@@ -152,22 +160,12 @@ const CouponApply = () => {
                           {coupon.type === 'percentage' ? `${coupon.value}% OFF` : `₹${coupon.value} OFF`}
                         </h3>
                         <p className="text-sm text-gray-600">
-                          {coupon.description || `Get ${coupon.type === 'percentage' ? coupon.value + '%' : '₹' + coupon.value} off on eligible products`}
+                          {coupon.description || `Get ${coupon.type === 'percentage' ? coupon.value + '%' : '₹' + coupon.value} off`}
                         </p>
                         <p className="text-xs text-gray-500 mt-1">
-                          Min. purchase: ₹{coupon.min_purchase_amount} on eligible products
+                          Min. purchase: ₹{coupon.min_purchase_amount}
                           {coupon.max_discount_amount && ` • Max discount: ₹${coupon.max_discount_amount}`}
                         </p>
-                        {coupon.applicable_products && coupon.applicable_products.length > 0 && (
-                          <p className="text-xs text-blue-600 mt-1">
-                            Applicable to specific products only
-                          </p>
-                        )}
-                        {coupon.applicable_categories && coupon.applicable_categories.length > 0 && (
-                          <p className="text-xs text-blue-600 mt-1">
-                            Applicable to: {coupon.applicable_categories.join(', ')}
-                          </p>
-                        )}
                       </div>
                       
                       <Button 
