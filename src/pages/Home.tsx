@@ -1,34 +1,29 @@
-// ... existing code ...
-import React from "react";
-import PullToRefreshWrapper from '@/components/PullToRefresh';
-import { useQueryClient } from '@tanstack/react-query';
 
-const Home = () => {
-  const queryClient = useQueryClient();
-  
-  // ... existing code ...
-  
-  const handleRefresh = async () => {
-    // Refetch all relevant queries
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['featured-products'] }),
-      queryClient.invalidateQueries({ queryKey: ['popular-products'] }),
-      // Add any other queries that need refreshing
-    ]);
-    return true;
-  };
-  
+import React from 'react';
+import Header from '@/components/Header';
+import BottomNavigation from '@/components/BottomNavigation';
+import HeroSection from '@/components/HeroSection';
+import CategoriesSection from '@/components/CategoriesSection';
+import FeaturedProducts from '@/components/FeaturedProducts';
+import PopularProducts from '@/components/PopularProducts';
+import BannersSection from '@/components/BannersSection';
+
+const HomePage = () => {
   return (
     <div className="pb-20">
       <Header />
       
-      <PullToRefreshWrapper onRefresh={handleRefresh}>
-        <main className="container px-4 py-4 mx-auto">
-          {/* Existing content */}
-        </main>
-      </PullToRefreshWrapper>
+      <main>
+        <HeroSection />
+        <BannersSection />
+        <CategoriesSection />
+        <FeaturedProducts />
+        <PopularProducts />
+      </main>
       
       <BottomNavigation />
     </div>
   );
 };
+
+export default HomePage;
