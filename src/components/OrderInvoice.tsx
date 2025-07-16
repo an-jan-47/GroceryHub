@@ -163,8 +163,26 @@ const styles = StyleSheet.create({
   },
 });
 
-const OrderInvoice = ({ order, items, appliedCoupons, subtotal, platformFees, razorpayFees, discountAmount }) => {
-  const formatDate = (dateString) => {
+interface OrderInvoiceProps {
+  order: any;
+  items: any[];
+  appliedCoupons: any[];
+  subtotal: number;
+  platformFees: number;
+  razorpayFees: number;
+  discountAmount: number;
+}
+
+const OrderInvoice: React.FC<OrderInvoiceProps> = ({ 
+  order, 
+  items, 
+  appliedCoupons, 
+  subtotal, 
+  platformFees, 
+  razorpayFees, 
+  discountAmount 
+}) => {
+  const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-GB', {
       day: '2-digit',
@@ -179,13 +197,13 @@ const OrderInvoice = ({ order, items, appliedCoupons, subtotal, platformFees, ra
 
   // GST calculation (18%) - for breakdown only, not added to totals
   const gstRate = 0.18;
-  const calculateGSTBreakdown = (amount) => {
+  const calculateGSTBreakdown = (amount: number) => {
     // GST is already included in the price, so we calculate what portion is GST
     return (amount * gstRate) / (1 + gstRate);
   };
   
   // Calculate GST breakdown for display purposes only
-  const itemsWithGSTBreakdown = items.map(item => {
+  const itemsWithGSTBreakdown = items.map((item: any) => {
     const itemTotal = item.price * item.quantity;
     const gstAmount = calculateGSTBreakdown(itemTotal);
     return {
@@ -251,7 +269,7 @@ const OrderInvoice = ({ order, items, appliedCoupons, subtotal, platformFees, ra
           </View>
 
           {/* Table Rows */}
-          {itemsWithGSTBreakdown.map((item, index) => (
+          {itemsWithGSTBreakdown.map((item: any, index: number) => (
             <View key={item.id || index} style={styles.tableRow}>
               <Text style={[styles.tableCell, styles.col1]}>
                 {item.product ? item.product.name : `Product ${item.product_id ? item.product_id.substring(0, 8) : 'Unknown'}`}

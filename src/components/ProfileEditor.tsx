@@ -25,14 +25,19 @@ const ProfileEditor = () => {
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', user?.id)
+        .eq('id', user?.id || '')
         .single();
 
       if (error && error.code !== 'PGRST116') {
         throw error;
       }
 
-      setProfile(data || { id: user?.id || '', name: '', phone: '' });
+      const profileData: Profile = data || { 
+        id: user?.id || '', 
+        name: '', 
+        phone: null 
+      };
+      setProfile(profileData);
     } catch (error) {
       console.error('Error fetching profile:', error);
       toast('Error loading profile');
@@ -49,7 +54,7 @@ const ProfileEditor = () => {
       const sanitizedProfile = {
         id: user.id,
         name: profile.name.trim(),
-        phone: profile.phone?.trim() || '',
+        phone: profile.phone?.trim() || null,
         updated_at: new Date().toISOString()
       };
 
