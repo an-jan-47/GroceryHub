@@ -2,19 +2,13 @@
 export interface Product {
   id: string;
   name: string;
-  description: string;
   price: number;
-  sale_price?: number | null;
-  images: string[];
+  sale_price?: number;
+  salePrice?: number;
+  description?: string;
+  images?: string[];
   category: string;
-  brand: string;
-  stock: number;
+  brand?: string;
   rating: number;
-  review_count: number;
-  features?: any;
-  gst_rate?: number | null;
-  hsn_number?: string | null;
-  applicable_coupons?: string[] | null;
-  created_at?: string | null;
-  updated_at?: string | null;
+  stock: number;
 }

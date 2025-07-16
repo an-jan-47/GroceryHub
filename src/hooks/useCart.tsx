@@ -10,9 +10,6 @@ export interface CartItem {
   images: string[];
   category: string;
   brand: string;
-  appliedDiscountPercentage?: number;
-  appliedDiscountAmount?: number;
-  applicableCoupons?: string[];
 }
 
 interface CartContextType {
@@ -24,8 +21,6 @@ interface CartContextType {
   updateQuantity: (productId: string, quantity: number) => void;
   clearCart: () => void;
   setCartItems: (items: CartItem[]) => void;
-  updateItemDiscount: (productId: string, discountPercentage: number, discountAmount: number) => void;
-  clearItemDiscounts: () => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -39,14 +34,12 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (savedCart) {
       try {
         const parsedCart = JSON.parse(savedCart);
-        const refreshedCart = parsedCart.map((item: any) => ({
+        // Force refresh of cart items with current prices
+        const refreshedCart = parsedCart.map(item => ({
           ...item,
           price: Number(item.price),
           salePrice: item.salePrice ? Number(item.salePrice) : undefined,
-          quantity: Number(item.quantity),
-          appliedDiscountPercentage: item.appliedDiscountPercentage || 0,
-          appliedDiscountAmount: item.appliedDiscountAmount || 0,
-          applicableCoupons: item.applicableCoupons || []
+          quantity: Number(item.quantity)
         }));
         setCartItems(refreshedCart);
       } catch (error) {
@@ -57,6 +50,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   // Save cart to localStorage whenever it changes
+  // Update the useEffect that saves to localStorage
   useEffect(() => {
     try {
       console.log('Saving cart to localStorage:', cartItems);
@@ -72,13 +66,13 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const existingItem = prevItems.find(item => item.id === product.id);
       
       if (existingItem) {
+        // If item already exists, replace with the new quantity (don't add to existing)
         const updatedItems = prevItems.map(item =>
           item.id === product.id
             ? { 
                 ...item,
-                salePrice: product.salePrice || product.sale_price,
-                quantity: Number(quantity),
-                applicableCoupons: product.applicable_coupons || []
+                salePrice: product.salePrice || product.sale_price, // Handle both property names
+                quantity: Number(quantity) // Use the passed quantity directly
               }
             : item
         );
@@ -94,9 +88,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           images: product.images || [],
           category: product.category || '',
           brand: product.brand || '',
-          appliedDiscountPercentage: 0,
-          appliedDiscountAmount: 0,
-          applicableCoupons: product.applicable_coupons || []
+          stock: product.stock || 999
         };
         console.log('Added new item to cart:', newItem);
         return [...prevItems, newItem];
@@ -129,29 +121,10 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     });
   };
 
-  const updateItemDiscount = (productId: string, discountPercentage: number, discountAmount: number) => {
-    setCartItems(prevItems => 
-      prevItems.map(item =>
-        item.id === productId 
-          ? { ...item, appliedDiscountPercentage: discountPercentage, appliedDiscountAmount: discountAmount }
-          : item
-      )
-    );
-  };
-
-  const clearItemDiscounts = () => {
-    setCartItems(prevItems => 
-      prevItems.map(item => ({
-        ...item,
-        appliedDiscountPercentage: 0,
-        appliedDiscountAmount: 0
-      }))
-    );
-  };
-
   const clearCart = () => {
     setCartItems([]);
-    localStorage.removeItem('groceryHub_cart');
+    localStorage.removeItem('groceryHub_cart'); // Fix: use the correct key
+    // Clear coupons when cart is cleared
     if (typeof window !== 'undefined') {
       localStorage.removeItem('appliedCoupon');
     }
@@ -159,8 +132,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const cartTotal = cartItems.reduce((total, item) => {
     const itemPrice = item.salePrice || item.price;
-    const finalPrice = itemPrice - (item.appliedDiscountAmount || 0);
-    return total + (finalPrice * item.quantity);
+    return total + (itemPrice * item.quantity);
   }, 0);
 
   const totalItems = cartItems.reduce((total, item) => total + item.quantity, 0);
@@ -173,9 +145,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     removeFromCart,
     updateQuantity,
     clearCart,
-    setCartItems,
-    updateItemDiscount,
-    clearItemDiscounts
+    setCartItems
   };
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

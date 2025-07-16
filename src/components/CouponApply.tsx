@@ -1,5 +1,5 @@
-
 import React, { useState } from "react";
+
 import { Link, useNavigate } from 'react-router-dom';
 import { ChevronLeft, Tag, Copy } from 'lucide-react';
 import Header from '@/components/Header';
@@ -9,15 +9,14 @@ import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/sonner';
-import { validateProductSpecificCoupon } from '@/services/enhancedCouponService';
+import { calculateDiscount, validateCoupon, type Coupon } from '@/services/couponService';
 import { useCouponState } from '@/components/CouponStateManager';
 import { useCart } from '@/hooks/useCart';
-import type { Coupon } from '@/types/coupon';
 
 const CouponApply = () => {
   const navigate = useNavigate();
   const { addCoupon, appliedCoupons } = useCouponState();
-  const { cartItems, updateItemDiscount } = useCart();
+  const { cartItems } = useCart();
 
   // Fetch all active coupons
   const { data: coupons = [], isLoading } = useQuery({
@@ -43,14 +42,14 @@ const CouponApply = () => {
       return;
     }
 
-    const couponData = coupons.find((c: any) => c.code === couponCode);
+    const couponData = coupons.find(c => c.code === couponCode);
     if (!couponData) {
       toast('Coupon not found');
       return;
     }
 
     // Check if coupon is already applied
-    const isAlreadyApplied = appliedCoupons.some((c: any) => c.coupon.code === couponCode);
+    const isAlreadyApplied = appliedCoupons.some(c => c.coupon.code === couponCode);
     if (isAlreadyApplied) {
       toast('Coupon already applied', {
         description: 'This coupon is already in your cart.'
@@ -59,37 +58,24 @@ const CouponApply = () => {
     }
 
     try {
-      // Validate coupon with product-specific logic
-      const validationResult = await validateProductSpecificCoupon(couponData as Coupon, cartItems);
+      const cartTotal = cartItems.reduce((total, item) => {
+        const itemPrice = item.salePrice || item.price;
+        return total + (itemPrice * item.quantity);
+      }, 0);
       
-      if (!validationResult.isValid) {
-        toast('Cannot apply coupon', {
-          description: validationResult.reason
-        });
-        return;
-      }
-
-      // Apply discounts to individual products
-      validationResult.eligibleProducts.forEach(productValidation => {
-        if (productValidation.isEligible) {
-          const item = cartItems.find(item => item.id === productValidation.productId);
-          if (item) {
-            const itemPrice = item.salePrice || item.price;
-            const discountPercentage = (productValidation.discountAmount / (itemPrice * item.quantity)) * 100;
-            updateItemDiscount(
-              productValidation.productId, 
-              discountPercentage, 
-              productValidation.discountAmount / item.quantity
-            );
-          }
-        }
-      });
+      // Validate the coupon before applying
+      await validateCoupon(couponCode, cartTotal, appliedCoupons.map(c => ({
+        coupon: c.coupon,
+        discountAmount: c.discountAmount,
+        appliedToTotal: c.appliedToTotal || 0
+      })));
+      const discountAmount = calculateDiscount(couponData, cartTotal);
       
       // Add coupon to global state
-      addCoupon(couponData as Coupon, validationResult.totalDiscountAmount);
+      addCoupon(couponData, discountAmount);
       
       toast('Coupon applied successfully!', {
-        description: `₹${validationResult.totalDiscountAmount.toFixed(2)} discount applied to eligible products.`
+        description: `₹${discountAmount.toFixed(2)} discount will be applied at checkout.`
       });
       
       navigate('/cart');
@@ -108,7 +94,7 @@ const CouponApply = () => {
   };
 
   const isApplied = (couponId: string) => {
-    return appliedCoupons.some((c: any) => c.coupon.id === couponId);
+    return appliedCoupons.some(c => c.coupon.id === couponId);
   };
 
   return (
@@ -143,7 +129,7 @@ const CouponApply = () => {
               </div>
             ) : (
               <div className="space-y-3">
-                {coupons.map((coupon: any) => {
+                {coupons.map((coupon) => {
                   const applied = isApplied(coupon.id);
                   
                   return (
@@ -174,10 +160,10 @@ const CouponApply = () => {
                           {coupon.type === 'percentage' ? `${coupon.value}% OFF` : `₹${coupon.value} OFF`}
                         </h3>
                         <p className="text-sm text-gray-600">
-                          {coupon.description || `Get ${coupon.type === 'percentage' ? coupon.value + '%' : '₹' + coupon.value} off on eligible products`}
+                          {coupon.description || `Get ${coupon.type === 'percentage' ? coupon.value + '%' : '₹' + coupon.value} off`}
                         </p>
                         <p className="text-xs text-gray-500 mt-1">
-                          Min. purchase: ₹{coupon.min_purchase_amount} on eligible items
+                          Min. purchase: ₹{coupon.min_purchase_amount}
                           {coupon.max_discount_amount && ` • Max discount: ₹${coupon.max_discount_amount}`}
                         </p>
                       </div>
