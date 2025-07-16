@@ -497,6 +497,39 @@ export type Database = {
           },
         ]
       }
+      otp_codes: {
+        Row: {
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          is_used: boolean
+          otp_code: string
+          otp_type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          expires_at: string
+          id?: string
+          is_used?: boolean
+          otp_code: string
+          otp_type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          is_used?: boolean
+          otp_code?: string
+          otp_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       payments: {
         Row: {
           amount: number
@@ -557,6 +590,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      pending_users: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          name: string
+          password_hash: string
+          phone: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          name: string
+          password_hash: string
+          phone?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          password_hash?: string
+          phone?: string | null
+        }
+        Relationships: []
       }
       popular_products: {
         Row: {
@@ -918,6 +978,10 @@ export type Database = {
       }
     }
     Functions: {
+      clean_expired_otps: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       decrease_product_stock: {
         Args: { product_id: string; quantity: number }
         Returns: undefined
@@ -925,6 +989,10 @@ export type Database = {
       delete_user_data: {
         Args: { user_id_param: string }
         Returns: undefined
+      }
+      generate_otp: {
+        Args: Record<PropertyKey, never>
+        Returns: string
       }
       get_dashboard_stats: {
         Args: Record<PropertyKey, never>
