@@ -228,20 +228,18 @@ const CartPage = () => {
                       <div className="flex items-center space-x-4">
                         <div className="flex flex-col items-end">
                           {item.hasDiscount ? (
-                            <>
-                              <span className="text-gray-800 font-semibold">₹{item.finalPrice.toFixed(2)}</span>
-                              <div className="flex items-center space-x-2">
-                                <span className="text-gray-500 line-through text-sm">₹{item.itemPrice.toFixed(2)}</span>
-                                <span className="text-green-600 text-sm font-medium">
-                                  {item.discountPercentage.toFixed(0)}% off
-                                </span>
+                            <div className="text-right">
+                              <div className="text-lg font-semibold text-gray-800">₹{(item.finalPrice * item.quantity).toFixed(2)}</div>
+                              <div className="text-sm text-gray-500 line-through">₹{(item.itemPrice * item.quantity).toFixed(2)}</div>
+                              <div className="text-xs text-green-600 font-medium">
+                                Save ₹{item.discountAmount.toFixed(2)}
                               </div>
-                            </>
+                            </div>
                           ) : (
                             <>
-                              <span className="text-gray-800 font-semibold">₹{(item.salePrice || item.price).toFixed(2)}</span>
+                              <span className="text-gray-800 font-semibold">₹{((item.salePrice || item.price) * item.quantity).toFixed(2)}</span>
                               {item.salePrice && (
-                                <span className="text-gray-500 line-through text-sm">₹{item.price.toFixed(2)}</span>
+                                <span className="text-gray-500 line-through text-sm">₹{(item.price * item.quantity).toFixed(2)}</span>
                               )}
                             </>
                           )}

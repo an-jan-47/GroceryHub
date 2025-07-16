@@ -43,19 +43,51 @@ export const validateAndApplyProductSpecificCoupon = async (
       };
     }
 
-    // Find eligible products in cart
+    // Fetch product details to get applicable_coupons for each cart item
+    const cartProductIds = cartItems.map(item => item.id);
+    const { data: products, error: productsError } = await supabase
+      .from('products')
+      .select('id, applicable_coupons')
+      .in('id', cartProductIds);
+
+    if (productsError) {
+      return {
+        success: false,
+        message: 'Error validating products',
+        productDiscounts: [],
+        totalDiscount: 0,
+        eligibleProductsTotal: 0
+      };
+    }
+
+    // Create a map of product ID to applicable coupons
+    const productCouponsMap = new Map<string, string[]>(
+      products?.map((p: any) => [p.id, p.applicable_coupons || []]) || []
+    );
+
+    // Find eligible products in cart - must have the coupon in their applicable_coupons array
     const eligibleProducts = cartItems.filter(item => {
-      // Check if product is specifically listed in applicable_products
+      const productApplicableCoupons: string[] = productCouponsMap.get(item.id) || [];
+      
+      // First check if the product has this coupon in its applicable_coupons array
+      if (!productApplicableCoupons.includes(couponCode.toUpperCase())) {
+        return false;
+      }
+      
+      // Additional validation: Check if product is specifically listed in coupon's applicable_products
       if (coupon.applicable_products && coupon.applicable_products.length > 0) {
-        return coupon.applicable_products.includes(item.id);
+        if (!coupon.applicable_products.includes(item.id)) {
+          return false;
+        }
       }
       
-      // Check if product category is in applicable_categories
+      // Additional validation: Check if product category is in coupon's applicable_categories
       if (coupon.applicable_categories && coupon.applicable_categories.length > 0) {
-        return coupon.applicable_categories.includes(item.category);
+        if (!coupon.applicable_categories.includes(item.category)) {
+          return false;
+        }
       }
       
-      // If no specific products or categories, coupon applies to all
       return true;
     });
 
@@ -131,7 +163,7 @@ export const validateAndApplyProductSpecificCoupon = async (
 
     return {
       success: true,
-      message: `Coupon applied successfully! ₹${totalDiscount.toFixed(2)} discount on eligible products.`,
+      message: `Coupon applied successfully! ₹${totalDiscount.toFixed(2)} discount on ${eligibleProducts.length} product(s).`,
       productDiscounts,
       totalDiscount,
       eligibleProductsTotal
