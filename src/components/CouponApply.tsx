@@ -8,8 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/components/ui/sonner';
-import { validateCoupon, calculateDiscount, type Coupon } from '@/services/couponService';
+import { toast } from 'sonner';
+import { validateCoupon, calculateDiscount, type Coupon, type AppliedCoupon } from '@/services/couponService';
 import { useCouponState } from '@/components/CouponStateManager';
 import { useCart } from '@/hooks/useCart';
 
@@ -36,11 +36,11 @@ const CouponApply = () => {
 
   // Fetch cart items with their applicable coupons
   const { data: cartItemsWithCoupons = [] } = useQuery({
-    queryKey: ['cart-items-coupons', cartItems.map(item => item.id)],
+    queryKey: ['cart-items-coupons', cartItems.map((item: any) => item.id)],
     queryFn: async () => {
       if (cartItems.length === 0) return [];
       
-      const productIds = cartItems.map(item => item.id);
+      const productIds = cartItems.map((item: any) => item.id);
       const { data, error } = await supabase
         .from('products')
         .select('id, applicable_coupons')
@@ -48,8 +48,8 @@ const CouponApply = () => {
       
       if (error) throw error;
       
-      return cartItems.map(item => {
-        const productData = data.find(p => p.id === item.id);
+      return cartItems.map((item: any) => {
+        const productData = data.find((p: any) => p.id === item.id);
         return {
           ...item,
           applicable_coupons: productData?.applicable_coupons || []
@@ -62,15 +62,16 @@ const CouponApply = () => {
   const handleApplyCoupon = async (code: string) => {
     try {
       // Calculate cart total
-      const cartTotal = cartItemsWithCoupons.reduce((total, item) => {
+      const cartTotal = cartItemsWithCoupons.reduce((total: number, item: any) => {
         const itemPrice = item.salePrice || item.price;
         return total + (itemPrice * item.quantity);
       }, 0);
       
       // Convert AppliedCouponState to AppliedCoupon format for validation
-      const appliedCouponsForValidation = appliedCoupons.map(c => ({
+      const appliedCouponsForValidation: AppliedCoupon[] = appliedCoupons.map(c => ({
         ...c,
-        appliedToTotal: c.appliedToTotal || cartTotal
+        appliedToTotal: c.appliedToTotal || cartTotal,
+        applicableProducts: c.applicableProducts || []
       }));
       
       const coupon = await validateCoupon(code, cartTotal, appliedCouponsForValidation, cartItemsWithCoupons);
@@ -78,15 +79,15 @@ const CouponApply = () => {
       
       addCoupon(coupon, discountAmount, applicableProducts);
       
-      toast("Coupon applied successfully!", {
+      toast.success("Coupon applied successfully!", {
         description: `₹${discountAmount.toFixed(2)} discount applied to eligible products`
       });
       
       // Navigate back to cart
       navigate('/cart');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Coupon application error:', error);
-      toast("Unable to apply coupon", {
+      toast.error("Ineligible coupon", {
         description: error.message
       });
     }
@@ -94,7 +95,7 @@ const CouponApply = () => {
 
   const copyCouponCode = (code: string) => {
     navigator.clipboard.writeText(code);
-    toast('Coupon code copied!', {
+    toast.success('Coupon code copied!', {
       description: 'You can paste it in the cart.'
     });
   };
@@ -105,7 +106,7 @@ const CouponApply = () => {
 
   const canApplyCoupon = (coupon: any) => {
     // Check if any cart item has this coupon in its applicable_coupons
-    return cartItemsWithCoupons.some(item => {
+    return cartItemsWithCoupons.some((item: any) => {
       const itemApplicableCoupons = item.applicable_coupons || [];
       return itemApplicableCoupons.includes(coupon.code);
     });
@@ -143,7 +144,7 @@ const CouponApply = () => {
               </div>
             ) : (
               <div className="space-y-3">
-                {coupons.map((coupon) => {
+                {coupons.map((coupon: any) => {
                   const applied = isApplied(coupon.id);
                   const eligible = canApplyCoupon(coupon);
                   

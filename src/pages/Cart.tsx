@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from 'react-router-dom';
 import { ChevronLeft, Trash2, Plus, Minus, ShoppingCart } from 'lucide-react';
@@ -9,9 +10,9 @@ import { useCart } from '@/hooks/useCart';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
 import OptimizedCheckoutButton from '@/components/OptimizedCheckoutButton';
-import { toast } from '@/components/ui/sonner';
-import { validateCoupon, calculateDiscount, getItemDiscount } from '@/services/couponService';
-import { useCouponState } from '@/components/CouponStateManager';
+import { toast } from 'sonner';
+import { validateCoupon, calculateDiscount, getItemDiscount, type AppliedCoupon } from '@/services/couponService';
+import { useCouponState, type AppliedCouponState } from '@/components/CouponStateManager';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -113,21 +114,21 @@ const CartPage = () => {
 
   const handleCouponApply = async () => {
     if (!couponCode.trim()) {
-      toast("Please enter a coupon code");
+      toast.error("Please enter a coupon code");
       return;
     }
 
     // Check if coupon is already applied
     const isAlreadyApplied = appliedCoupons.some(c => c.coupon.code === couponCode.toUpperCase());
     if (isAlreadyApplied) {
-      toast("Coupon already applied");
+      toast.error("Coupon already applied");
       return;
     }
 
     setIsApplyingCoupon(true);
     try {
       // Convert AppliedCouponState to AppliedCoupon format for validation
-      const appliedCouponsForValidation = appliedCoupons.map(c => ({
+      const appliedCouponsForValidation: AppliedCoupon[] = appliedCoupons.map(c => ({
         ...c,
         appliedToTotal: c.appliedToTotal || totalBeforeDiscount,
         applicableProducts: c.applicableProducts || []
@@ -139,12 +140,12 @@ const CartPage = () => {
       addCoupon(coupon, discountResult.discountAmount, discountResult.applicableProducts);
       setCouponCode('');
       
-      toast("Coupon applied successfully!", {
+      toast.success("Coupon applied successfully!", {
         description: `₹${discountResult.discountAmount.toFixed(2)} discount applied to eligible products`
       });
     } catch (error: any) {
       console.error('Coupon application error:', error);
-      toast("Unable to apply coupon", {
+      toast.error("Ineligible coupon", {
         description: error.message
       });
     } finally {
@@ -158,8 +159,15 @@ const CartPage = () => {
     setTimeout(() => {
       setIsApplyingCoupon(false);
     }, 50);
-    toast('Coupon removed');
+    toast.success('Coupon removed');
   };
+
+  // Convert AppliedCouponState to AppliedCoupon for getItemDiscount
+  const appliedCouponsForDiscount: AppliedCoupon[] = appliedCoupons.map(c => ({
+    ...c,
+    appliedToTotal: c.appliedToTotal || totalBeforeDiscount,
+    applicableProducts: c.applicableProducts || []
+  }));
 
   return (
     <div className="pb-20">
@@ -192,7 +200,7 @@ const CartPage = () => {
               {cartItemsWithCoupons.map((item: any) => {
                 const itemPrice = item.salePrice !== undefined ? Number(item.salePrice) : Number(item.price);
                 const totalItemPrice = itemPrice * item.quantity;
-                const { totalDiscount, discountPercentage } = getItemDiscount(item, appliedCoupons);
+                const { totalDiscount, discountPercentage } = getItemDiscount(item, appliedCouponsForDiscount);
                 const finalItemPrice = totalItemPrice - totalDiscount;
                 
                 // Check if item has applicable coupons

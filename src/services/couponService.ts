@@ -123,7 +123,7 @@ export const validateCoupon = async (
 
   // Find eligible products in cart that have this coupon in their applicable_coupons array
   const eligibleProducts = cartItems.filter(item => {
-    const productData = products?.find(p => p.id === item.id);
+    const productData = products?.find((p: any) => p.id === item.id);
     const itemApplicableCoupons = productData?.applicable_coupons || [];
     return itemApplicableCoupons.includes(couponCode.toUpperCase());
   });
@@ -190,7 +190,7 @@ export const calculateDiscount = (
   console.log('Calculated discount amount:', discountAmount);
 
   return {
-    discountAmount: Math.round(discountAmount * 100) / 100,
+    discountAmount: Number(discountAmount) || 0,
     applicableProducts: applicableProductIds
   };
 };
@@ -238,7 +238,7 @@ export const getItemDiscount = (
     } else if (coupon.type === 'fixed') {
       // Distribute fixed discount proportionally
       const itemShare = itemTotal / eligibleItemsTotal;
-      itemDiscount = discountAmount * itemShare;
+      itemDiscount = Number(discountAmount) * itemShare;
       
       const effectivePercentage = (itemDiscount / itemTotal) * 100;
       maxDiscountPercentage = Math.max(maxDiscountPercentage, effectivePercentage);
@@ -248,7 +248,7 @@ export const getItemDiscount = (
   });
 
   return {
-    totalDiscount: Math.round(totalDiscount * 100) / 100,
-    discountPercentage: Math.round(maxDiscountPercentage)
+    totalDiscount: Number((totalDiscount || 0).toFixed(2)),
+    discountPercentage: Math.round(maxDiscountPercentage || 0)
   };
 };
