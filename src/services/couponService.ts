@@ -34,6 +34,40 @@ export interface CartItem {
   applicable_coupons?: string[];
 }
 
+export const getCouponById = async (couponId: string): Promise<Coupon | null> => {
+  try {
+    const { data: coupon, error } = await supabase
+      .from('coupons')
+      .select('*')
+      .eq('id', couponId)
+      .eq('is_active', true)
+      .single();
+
+    if (error || !coupon) {
+      console.error('Error fetching coupon:', error);
+      return null;
+    }
+
+    return coupon;
+  } catch (error) {
+    console.error('Error in getCouponById:', error);
+    return null;
+  }
+};
+
+export const formatCouponForDisplay = (coupon: Coupon) => {
+  const formattedDiscount = coupon.type === 'percentage' 
+    ? `${coupon.value}% OFF`
+    : `₹${coupon.value} OFF`;
+  
+  const formattedMinPurchase = `Min. purchase: ₹${coupon.min_purchase_amount}`;
+  
+  return {
+    formattedDiscount,
+    formattedMinPurchase
+  };
+};
+
 export const validateCoupon = async (
   couponCode: string,
   cartTotal: number,
@@ -75,9 +109,22 @@ export const validateCoupon = async (
     throw new Error('This coupon has reached its usage limit');
   }
 
+  // Fetch products data to get their applicable_coupons
+  const productIds = cartItems.map(item => item.id);
+  const { data: products, error: productsError } = await supabase
+    .from('products')
+    .select('id, applicable_coupons')
+    .in('id', productIds);
+
+  if (productsError) {
+    console.error('Error fetching products:', productsError);
+    throw new Error('Error validating coupon eligibility');
+  }
+
   // Find eligible products in cart that have this coupon in their applicable_coupons array
   const eligibleProducts = cartItems.filter(item => {
-    const itemApplicableCoupons = item.applicable_coupons || [];
+    const productData = products.find(p => p.id === item.id);
+    const itemApplicableCoupons = productData?.applicable_coupons || [];
     return itemApplicableCoupons.includes(couponCode.toUpperCase());
   });
 
