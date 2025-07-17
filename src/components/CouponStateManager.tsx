@@ -1,17 +1,17 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
+import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import type { Coupon } from '@/services/couponService';
 
 export interface AppliedCouponState {
   coupon: Coupon;
   discountAmount: number;
   appliedToTotal?: number;
-  applicableProducts?: string[]; // Add this line to track which products the coupon applies to
+  applicableProducts?: string[];
 }
 
 interface CouponStateContextType {
   appliedCoupons: AppliedCouponState[];
-  addCoupon: (coupon: Coupon, discountAmount: number) => void;
+  addCoupon: (coupon: Coupon, discountAmount: number, applicableProducts: string[]) => void;
   removeCoupon: (couponId: string) => void;
   clearCoupons: () => void;
   setCoupons: (coupons: AppliedCouponState[]) => void;

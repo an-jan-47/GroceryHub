@@ -1,16 +1,20 @@
+
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from 'react-router-dom';
 import { ChevronLeft, Trash2, Plus, Minus, ShoppingCart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
 import { useCart } from '@/hooks/useCart';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
 import OptimizedCheckoutButton from '@/components/OptimizedCheckoutButton';
 import { toast } from '@/components/ui/sonner';
-import { validateCoupon, calculateDiscount } from '@/services/couponService';
+import { validateCoupon, calculateDiscount, getItemDiscount } from '@/services/couponService';
 import { useCouponState } from '@/components/CouponStateManager';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 const CartPage = () => {
   const [couponCode, setCouponCode] = useState('');
@@ -25,6 +29,31 @@ const CartPage = () => {
   const { appliedCoupons, addCoupon, removeCoupon, clearCoupons, checkCartAndClearCoupons } = useCouponState();
   const navigate = useNavigate();
 
+  // Fetch cart items with their applicable coupons
+  const { data: cartItemsWithCoupons = [] } = useQuery({
+    queryKey: ['cart-items-coupons', cartItems.map(item => item.id)],
+    queryFn: async () => {
+      if (cartItems.length === 0) return [];
+      
+      const productIds = cartItems.map(item => item.id);
+      const { data, error } = await supabase
+        .from('products')
+        .select('id, applicable_coupons')
+        .in('id', productIds);
+      
+      if (error) throw error;
+      
+      return cartItems.map(item => {
+        const productData = data.find(p => p.id === item.id);
+        return {
+          ...item,
+          applicable_coupons: productData?.applicable_coupons || []
+        };
+      });
+    },
+    enabled: cartItems.length > 0,
+  });
+
   // Check if cart is empty and clear coupons accordingly
   useEffect(() => {
     checkCartAndClearCoupons(cartItems.length);
@@ -35,7 +64,7 @@ const CartPage = () => {
   const deliveryFees = 0.00;
   
   // Calculate item-wise pricing without tax
-  const itemCalculations = cartItems.map(item => {
+  const itemCalculations = cartItemsWithCoupons.map(item => {
     const itemPrice = item.salePrice !== undefined ? Number(item.salePrice) : Number(item.price);
     const itemTotal = itemPrice * Number(item.quantity);
     
@@ -56,52 +85,11 @@ const CartPage = () => {
   
   // Final total without transaction fee
   const finalTotal = totalAfterDiscount;
-
-  // Function to calculate item-specific discount
-  const getItemDiscount = (item) => {
-    let totalDiscount = 0;
-    let discountPercentage = 0;
-    
-    // Check each applied coupon
-    appliedCoupons.forEach(({ coupon, discountAmount, applicableProducts }) => {
-      // If this item is applicable for this coupon
-      if (applicableProducts?.includes(item.id)) {
-        const itemPrice = item.salePrice || item.price;
-        const itemTotal = itemPrice * item.quantity;
-        
-        // Calculate this item's share of the discount
-        if (coupon.type === 'percentage') {
-          const itemDiscount = (itemTotal * coupon.value) / 100;
-          totalDiscount += Math.min(itemDiscount, discountAmount);
-          discountPercentage = Math.max(discountPercentage, coupon.value);
-        } else {
-          // For fixed coupons, distribute proportionally
-          const applicableItemsTotal = cartItems
-            .filter(cartItem => applicableProducts.includes(cartItem.id))
-            .reduce((total, cartItem) => {
-              const price = cartItem.salePrice || cartItem.price;
-              return total + (price * cartItem.quantity);
-            }, 0);
-          
-          if (applicableItemsTotal > 0) {
-            const itemShare = itemTotal / applicableItemsTotal;
-            const itemDiscount = discountAmount * itemShare;
-            totalDiscount += itemDiscount;
-            discountPercentage = Math.max(discountPercentage, Math.round((itemDiscount / itemTotal) * 100));
-          }
-        }
-      }
-    });
-    
-    return { totalDiscount, discountPercentage };
-  };
   
   // Fixed clearCart function
   const clearCart = () => {
     setCartItems([]);
     clearCoupons(); // Clear all applied coupons
-    // Don't show toast notification when clearing cart programmatically
-    // toast("Cart cleared");
   };
   
   // Add coupon clearing when removing last item
@@ -142,17 +130,18 @@ const CartPage = () => {
         appliedToTotal: c.appliedToTotal || totalBeforeDiscount
       }));
       
-      const coupon = await validateCoupon(couponCode, totalBeforeDiscount, appliedCouponsForValidation, cartItems);
-      const { discountAmount, applicableProducts } = calculateDiscount(coupon, totalBeforeDiscount, cartItems);
+      const coupon = await validateCoupon(couponCode, totalBeforeDiscount, appliedCouponsForValidation, cartItemsWithCoupons);
+      const { discountAmount, applicableProducts } = calculateDiscount(coupon, totalBeforeDiscount, cartItemsWithCoupons);
       
       addCoupon(coupon, discountAmount, applicableProducts);
       setCouponCode('');
       
-      toast("Coupon applied!", {
-        description: `₹${discountAmount.toFixed(2)} discount applied`
+      toast("Coupon applied successfully!", {
+        description: `₹${discountAmount.toFixed(2)} discount applied to eligible products`
       });
     } catch (error) {
-      toast("Invalid coupon", {
+      console.error('Coupon application error:', error);
+      toast("Unable to apply coupon", {
         description: error.message
       });
     } finally {
@@ -197,11 +186,16 @@ const CartPage = () => {
         ) : (
           <>
             <div key={cartItems.length} className="divide-y">
-              {cartItems.map((item) => {
+              {cartItemsWithCoupons.map((item) => {
                 const itemPrice = item.salePrice !== undefined ? Number(item.salePrice) : Number(item.price);
                 const totalItemPrice = itemPrice * item.quantity;
-                const { totalDiscount, discountPercentage } = getItemDiscount(item);
+                const { totalDiscount, discountPercentage } = getItemDiscount(item, appliedCoupons);
                 const finalItemPrice = totalItemPrice - totalDiscount;
+                
+                // Check if item has applicable coupons
+                const hasApplicableCoupons = appliedCoupons.some(ac => 
+                  ac.applicableProducts?.includes(item.id)
+                );
                 
                 return (
                   <div key={item.id} className="flex py-4 border-b">
@@ -216,6 +210,16 @@ const CartPage = () => {
                       <Link to={`/product/${item.id}`} className="font-medium text-gray-800 hover:text-brand-blue">
                         {item.name}
                       </Link>
+                      
+                      {/* Show coupon applied badge */}
+                      {hasApplicableCoupons && (
+                        <div className="mt-1">
+                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300 text-xs">
+                            Coupon Applied
+                          </Badge>
+                        </div>
+                      )}
+                      
                       <div className="flex items-center justify-between mt-2">
                         <div className="flex items-center space-x-2">
                           <Button
@@ -246,11 +250,16 @@ const CartPage = () => {
                         
                         <div className="flex items-center space-x-4">
                           <div className="flex flex-col items-end">
-                            {discountPercentage > 0 ? (
+                            {totalDiscount > 0 ? (
                               <>
                                 <span className="text-gray-800 font-semibold">₹{finalItemPrice.toFixed(2)}</span>
                                 <span className="text-gray-500 line-through text-sm">₹{totalItemPrice.toFixed(2)}</span>
-                                <span className="text-green-600 text-xs">-{discountPercentage}% off</span>
+                                <div className="flex items-center space-x-1">
+                                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300 text-xs">
+                                    -{discountPercentage}% OFF
+                                  </Badge>
+                                  <span className="text-green-600 text-xs">Save ₹{totalDiscount.toFixed(2)}</span>
+                                </div>
                               </>
                             ) : (
                               <>
@@ -281,12 +290,14 @@ const CartPage = () => {
               {/* Applied Coupons Display */}
               {appliedCoupons.length > 0 && (
                 <div className="space-y-3 mb-4">
-                  {appliedCoupons.map(({ coupon, discountAmount }) => (
-                    <div key={coupon.id} className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  {appliedCoupons.map(({ coupon, discountAmount, applicableProducts }) => (
+                    <div key={coupon.id} className="bg-green-50 border border-green-200 rounded-lg p-4">
                       <div className="flex justify-between items-center">
                         <div>
-                          <span className="font-semibold text-blue-800">Coupon Applied: {coupon.code}</span>
-                          <p className="text-sm text-blue-600">You saved ₹{discountAmount.toFixed(2)}</p>
+                          <span className="font-semibold text-green-800">Coupon Applied: {coupon.code}</span>
+                          <p className="text-sm text-green-600">
+                            You saved ₹{discountAmount.toFixed(2)} on {applicableProducts?.length || 0} eligible products
+                          </p>
                         </div>
                         <Button 
                           variant="outline" 

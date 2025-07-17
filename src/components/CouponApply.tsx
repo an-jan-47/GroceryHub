@@ -1,5 +1,5 @@
-import React, { useState } from "react";
 
+import React, { useState } from "react";
 import { Link, useNavigate } from 'react-router-dom';
 import { ChevronLeft, Tag, Copy } from 'lucide-react';
 import Header from '@/components/Header';
@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/sonner';
-import { calculateDiscount, validateCoupon, type Coupon } from '@/services/couponService';
+import { validateCoupon, calculateDiscount, type Coupon } from '@/services/couponService';
 import { useCouponState } from '@/components/CouponStateManager';
 import { useCart } from '@/hooks/useCart';
 
@@ -34,10 +34,35 @@ const CouponApply = () => {
     },
   });
 
+  // Fetch cart items with their applicable coupons
+  const { data: cartItemsWithCoupons = [] } = useQuery({
+    queryKey: ['cart-items-coupons', cartItems.map(item => item.id)],
+    queryFn: async () => {
+      if (cartItems.length === 0) return [];
+      
+      const productIds = cartItems.map(item => item.id);
+      const { data, error } = await supabase
+        .from('products')
+        .select('id, applicable_coupons')
+        .in('id', productIds);
+      
+      if (error) throw error;
+      
+      return cartItems.map(item => {
+        const productData = data.find(p => p.id === item.id);
+        return {
+          ...item,
+          applicable_coupons: productData?.applicable_coupons || []
+        };
+      });
+    },
+    enabled: cartItems.length > 0,
+  });
+
   const handleApplyCoupon = async (code: string) => {
     try {
       // Calculate cart total
-      const cartTotal = cartItems.reduce((total, item) => {
+      const cartTotal = cartItemsWithCoupons.reduce((total, item) => {
         const itemPrice = item.salePrice || item.price;
         return total + (itemPrice * item.quantity);
       }, 0);
@@ -48,19 +73,20 @@ const CouponApply = () => {
         appliedToTotal: c.appliedToTotal || cartTotal
       }));
       
-      const coupon = await validateCoupon(code, cartTotal, appliedCouponsForValidation, cartItems);
-      const { discountAmount, applicableProducts } = calculateDiscount(coupon, cartTotal, cartItems);
+      const coupon = await validateCoupon(code, cartTotal, appliedCouponsForValidation, cartItemsWithCoupons);
+      const { discountAmount, applicableProducts } = calculateDiscount(coupon, cartTotal, cartItemsWithCoupons);
       
       addCoupon(coupon, discountAmount, applicableProducts);
       
-      toast("Coupon applied!", {
-        description: `₹${discountAmount.toFixed(2)} discount applied`
+      toast("Coupon applied successfully!", {
+        description: `₹${discountAmount.toFixed(2)} discount applied to eligible products`
       });
       
       // Navigate back to cart
       navigate('/cart');
     } catch (error) {
-      toast("Invalid coupon", {
+      console.error('Coupon application error:', error);
+      toast("Unable to apply coupon", {
         description: error.message
       });
     }
@@ -75,6 +101,14 @@ const CouponApply = () => {
 
   const isApplied = (couponId: string) => {
     return appliedCoupons.some(c => c.coupon.id === couponId);
+  };
+
+  const canApplyCoupon = (coupon: any) => {
+    // Check if any cart item has this coupon in its applicable_coupons
+    return cartItemsWithCoupons.some(item => {
+      const itemApplicableCoupons = item.applicable_coupons || [];
+      return itemApplicableCoupons.includes(coupon.code);
+    });
   };
 
   return (
@@ -111,9 +145,10 @@ const CouponApply = () => {
               <div className="space-y-3">
                 {coupons.map((coupon) => {
                   const applied = isApplied(coupon.id);
+                  const eligible = canApplyCoupon(coupon);
                   
                   return (
-                    <div key={coupon.id} className={`bg-white rounded-lg shadow-sm border p-4 ${applied ? 'bg-green-50 border-green-200' : ''}`}>
+                    <div key={coupon.id} className={`bg-white rounded-lg shadow-sm border p-4 ${applied ? 'bg-green-50 border-green-200' : eligible ? '' : 'opacity-50'}`}>
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center space-x-2">
                           <Badge variant="outline" className={`${applied ? 'bg-green-100 text-green-700 border-green-300' : 'bg-blue-50 text-blue-700 border-blue-200'}`}>
@@ -122,6 +157,11 @@ const CouponApply = () => {
                           {applied && (
                             <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300">
                               Applied
+                            </Badge>
+                          )}
+                          {!eligible && !applied && (
+                            <Badge variant="outline" className="bg-gray-100 text-gray-500 border-gray-300">
+                              Not Eligible
                             </Badge>
                           )}
                         </div>
@@ -146,14 +186,19 @@ const CouponApply = () => {
                           Min. purchase: ₹{coupon.min_purchase_amount}
                           {coupon.max_discount_amount && ` • Max discount: ₹${coupon.max_discount_amount}`}
                         </p>
+                        {!eligible && !applied && (
+                          <p className="text-xs text-red-500 mt-1">
+                            No eligible products in cart
+                          </p>
+                        )}
                       </div>
                       
                       <Button 
                         onClick={() => handleApplyCoupon(coupon.code)}
-                        disabled={applied}
-                        className={`w-full ${applied ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'}`}
+                        disabled={applied || !eligible}
+                        className={`w-full ${applied ? 'bg-green-600 hover:bg-green-700' : eligible ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400'}`}
                       >
-                        {applied ? 'Applied to Cart' : 'Apply Coupon'}
+                        {applied ? 'Applied to Cart' : eligible ? 'Apply Coupon' : 'Not Eligible'}
                       </Button>
                     </div>
                   );
