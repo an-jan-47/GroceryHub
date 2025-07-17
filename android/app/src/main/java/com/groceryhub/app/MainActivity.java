@@ -15,6 +15,12 @@ import android.content.Intent;
 import android.content.ActivityNotFoundException;
 import android.net.Uri;
 import android.webkit.DownloadListener;
+import android.app.DownloadManager;
+import android.os.Environment;
+import android.widget.Toast;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import android.util.Log;
 
 import com.getcapacitor.BridgeActivity;
 
@@ -51,9 +57,47 @@ public class MainActivity extends BridgeActivity {
             @Override
             public void onDownloadStart(String url, String userAgent, String contentDisposition, 
                                         String mimetype, long contentLength) {
-                Intent intent = new Intent(Intent.ACTION_VIEW);
-                intent.setData(Uri.parse(url));
-                startActivity(intent);
+                try {
+                    // Create a DownloadManager request
+                    DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url));
+                    
+                    // Extract filename from content disposition or create a default one
+                    String fileName = "invoice.pdf";
+                    if (contentDisposition != null) {
+                        String fileNameRegex = "filename=\\\"([^\\\"]*)\\\"";
+                        Pattern pattern = Pattern.compile(fileNameRegex, Pattern.CASE_INSENSITIVE);
+                        Matcher matcher = pattern.matcher(contentDisposition);
+                        if (matcher.find()) {
+                            fileName = matcher.group(1);
+                        }
+                    }
+                    
+                    // Configure the download
+                    request.setTitle("Downloading Invoice");
+                    request.setDescription("Downloading invoice PDF file");
+                    request.allowScanningByMediaScanner();
+                    request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+                    request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, fileName);
+                    
+                    // Get the download service and enqueue the request
+                    DownloadManager downloadManager = (DownloadManager) getSystemService(Context.DOWNLOAD_SERVICE);
+                    downloadManager.enqueue(request);
+                    
+                    // Show a toast message
+                    Toast.makeText(getApplicationContext(), "Downloading Invoice...", Toast.LENGTH_SHORT).show();
+                } catch (Exception e) {
+                    // If there's an error, try the fallback method
+                    Log.e(TAG, "Download error: " + e.getMessage());
+                    
+                    // Fallback to browser download
+                    Intent intent = new Intent(Intent.ACTION_VIEW);
+                    intent.setData(Uri.parse(url));
+                    try {
+                        startActivity(intent);
+                    } catch (ActivityNotFoundException anfe) {
+                        Toast.makeText(getApplicationContext(), "No application available to view PDF", Toast.LENGTH_SHORT).show();
+                    }
+                }
             }
         });
         

@@ -34,53 +34,33 @@ const CouponApply = () => {
     },
   });
 
-  const handleApplyCoupon = async (couponCode: string) => {
-    if (!cartItems || cartItems.length === 0) {
-      toast('Your cart is empty!', {
-        description: 'Add items to your cart before applying a coupon.'
-      });
-      return;
-    }
-
-    const couponData = coupons.find(c => c.code === couponCode);
-    if (!couponData) {
-      toast('Coupon not found');
-      return;
-    }
-
-    // Check if coupon is already applied
-    const isAlreadyApplied = appliedCoupons.some(c => c.coupon.code === couponCode);
-    if (isAlreadyApplied) {
-      toast('Coupon already applied', {
-        description: 'This coupon is already in your cart.'
-      });
-      return;
-    }
-
+  const handleApplyCoupon = async (code: string) => {
     try {
+      // Calculate cart total
       const cartTotal = cartItems.reduce((total, item) => {
         const itemPrice = item.salePrice || item.price;
         return total + (itemPrice * item.quantity);
       }, 0);
       
-      // Validate the coupon before applying
-      await validateCoupon(couponCode, cartTotal, appliedCoupons.map(c => ({
-        coupon: c.coupon,
-        discountAmount: c.discountAmount,
-        appliedToTotal: c.appliedToTotal || 0
-      })));
-      const discountAmount = calculateDiscount(couponData, cartTotal);
+      // Convert AppliedCouponState to AppliedCoupon format for validation
+      const appliedCouponsForValidation = appliedCoupons.map(c => ({
+        ...c,
+        appliedToTotal: c.appliedToTotal || cartTotal
+      }));
       
-      // Add coupon to global state
-      addCoupon(couponData, discountAmount);
+      const coupon = await validateCoupon(code, cartTotal, appliedCouponsForValidation, cartItems);
+      const { discountAmount, applicableProducts } = calculateDiscount(coupon, cartTotal, cartItems);
       
-      toast('Coupon applied successfully!', {
-        description: `₹${discountAmount.toFixed(2)} discount will be applied at checkout.`
+      addCoupon(coupon, discountAmount, applicableProducts);
+      
+      toast("Coupon applied!", {
+        description: `₹${discountAmount.toFixed(2)} discount applied`
       });
       
+      // Navigate back to cart
       navigate('/cart');
-    } catch (error: any) {
-      toast('Error applying coupon', {
+    } catch (error) {
+      toast("Invalid coupon", {
         description: error.message
       });
     }

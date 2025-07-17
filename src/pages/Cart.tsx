@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-
 import { Link, useNavigate } from 'react-router-dom';
 import { ChevronLeft, Trash2, Plus, Minus, ShoppingCart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -57,6 +56,45 @@ const CartPage = () => {
   
   // Final total without transaction fee
   const finalTotal = totalAfterDiscount;
+
+  // Function to calculate item-specific discount
+  const getItemDiscount = (item) => {
+    let totalDiscount = 0;
+    let discountPercentage = 0;
+    
+    // Check each applied coupon
+    appliedCoupons.forEach(({ coupon, discountAmount, applicableProducts }) => {
+      // If this item is applicable for this coupon
+      if (applicableProducts?.includes(item.id)) {
+        const itemPrice = item.salePrice || item.price;
+        const itemTotal = itemPrice * item.quantity;
+        
+        // Calculate this item's share of the discount
+        if (coupon.type === 'percentage') {
+          const itemDiscount = (itemTotal * coupon.value) / 100;
+          totalDiscount += Math.min(itemDiscount, discountAmount);
+          discountPercentage = Math.max(discountPercentage, coupon.value);
+        } else {
+          // For fixed coupons, distribute proportionally
+          const applicableItemsTotal = cartItems
+            .filter(cartItem => applicableProducts.includes(cartItem.id))
+            .reduce((total, cartItem) => {
+              const price = cartItem.salePrice || cartItem.price;
+              return total + (price * cartItem.quantity);
+            }, 0);
+          
+          if (applicableItemsTotal > 0) {
+            const itemShare = itemTotal / applicableItemsTotal;
+            const itemDiscount = discountAmount * itemShare;
+            totalDiscount += itemDiscount;
+            discountPercentage = Math.max(discountPercentage, Math.round((itemDiscount / itemTotal) * 100));
+          }
+        }
+      }
+    });
+    
+    return { totalDiscount, discountPercentage };
+  };
   
   // Fixed clearCart function
   const clearCart = () => {
@@ -76,7 +114,7 @@ const CartPage = () => {
   };
 
   // Handle direct quantity input
-  const handleQuantityInputChange = (itemId: string, value: string) => {
+  const handleQuantityInputChange = (itemId, value) => {
     const newQuantity = parseInt(value) || 1;
     if (newQuantity > 0 && newQuantity <= 999) {
       updateQuantity(itemId, newQuantity);
@@ -104,14 +142,14 @@ const CartPage = () => {
         appliedToTotal: c.appliedToTotal || totalBeforeDiscount
       }));
       
-      const coupon = await validateCoupon(couponCode, totalBeforeDiscount, appliedCouponsForValidation);
-      const discount = calculateDiscount(coupon, totalBeforeDiscount);
+      const coupon = await validateCoupon(couponCode, totalBeforeDiscount, appliedCouponsForValidation, cartItems);
+      const { discountAmount, applicableProducts } = calculateDiscount(coupon, totalBeforeDiscount, cartItems);
       
-      addCoupon(coupon, discount);
+      addCoupon(coupon, discountAmount, applicableProducts);
       setCouponCode('');
       
       toast("Coupon applied!", {
-        description: `₹${discount.toFixed(2)} discount applied`
+        description: `₹${discountAmount.toFixed(2)} discount applied`
       });
     } catch (error) {
       toast("Invalid coupon", {
@@ -162,6 +200,8 @@ const CartPage = () => {
               {cartItems.map((item) => {
                 const itemPrice = item.salePrice !== undefined ? Number(item.salePrice) : Number(item.price);
                 const totalItemPrice = itemPrice * item.quantity;
+                const { totalDiscount, discountPercentage } = getItemDiscount(item);
+                const finalItemPrice = totalItemPrice - totalDiscount;
                 
                 return (
                   <div key={item.id} className="flex py-4 border-b">
@@ -206,9 +246,19 @@ const CartPage = () => {
                         
                         <div className="flex items-center space-x-4">
                           <div className="flex flex-col items-end">
-                            <span className="text-gray-800 font-semibold">₹{(item.salePrice || item.price).toFixed(2)}</span>
-                            {item.salePrice && (
-                              <span className="text-gray-500 line-through text-sm">₹{item.price.toFixed(2)}</span>
+                            {discountPercentage > 0 ? (
+                              <>
+                                <span className="text-gray-800 font-semibold">₹{finalItemPrice.toFixed(2)}</span>
+                                <span className="text-gray-500 line-through text-sm">₹{totalItemPrice.toFixed(2)}</span>
+                                <span className="text-green-600 text-xs">-{discountPercentage}% off</span>
+                              </>
+                            ) : (
+                              <>
+                                <span className="text-gray-800 font-semibold">₹{(item.salePrice || item.price).toFixed(2)}</span>
+                                {item.salePrice && (
+                                  <span className="text-gray-500 line-through text-sm">₹{item.price.toFixed(2)}</span>
+                                )}
+                              </>
                             )}
                           </div>
                           <Button

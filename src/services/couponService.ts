@@ -63,7 +63,7 @@ export const getCouponById = async (couponId: string) => {
   return data as Coupon;
 };
 
-export const validateCoupon = async (code: string, cartTotal: number, appliedCoupons: AppliedCoupon[] = []) => {
+export const validateCoupon = async (code: string, cartTotal: number, appliedCoupons: AppliedCoupon[] = [], cartItems: CartItem[] = []) => {
   const { data, error } = await supabase
     .from('coupons')
     .select('*')
@@ -81,9 +81,20 @@ export const validateCoupon = async (code: string, cartTotal: number, appliedCou
     throw new Error('Coupon not found');
   }
 
-  // Check if minimum purchase amount is met
-  if (data.min_purchase_amount > cartTotal) {
-    throw new Error(`Minimum purchase amount of ₹${data.min_purchase_amount} required for this coupon`);
+  // Find applicable products in cart
+  const applicableProducts = cartItems.filter(item => 
+    data.applicable_products?.includes(item.id)
+  );
+
+  // Calculate total value of applicable products
+  const applicableTotal = applicableProducts.reduce((total, item) => {
+    const itemPrice = item.salePrice || item.price;
+    return total + (itemPrice * item.quantity);
+  }, 0);
+
+  // Check if minimum purchase amount is met for applicable products
+  if (data.min_purchase_amount > applicableTotal) {
+    throw new Error(`Minimum purchase amount of ₹${data.min_purchase_amount} required for products eligible for this coupon`);
   }
 
   // Check if coupon has reached usage limit
@@ -97,20 +108,40 @@ export const validateCoupon = async (code: string, cartTotal: number, appliedCou
     throw new Error('This coupon has already been applied');
   }
 
-  // Return the coupon data
+  // Return the coupon data with applicable total
   return {
     ...data,
-    type: data.type as 'percentage' | 'fixed'
+    type: data.type as 'percentage' | 'fixed',
+    applicableTotal
   };
 };
 
-export const calculateDiscount = (coupon: Coupon, cartTotal: number): number => {
+export const calculateDiscount = (coupon: Coupon, cartTotal: number, cartItems: CartItem[] = []): { discountAmount: number, applicableProducts: string[] } => {
   let discount = 0;
-
-  if (coupon.type === 'percentage') {
-    discount = (cartTotal * coupon.value) / 100;
-  } else if (coupon.type === 'fixed') {
-    discount = coupon.value;
+  
+  // Find applicable products
+  const applicableProductIds = coupon.applicable_products || [];
+  const applicableProducts = cartItems.filter(item => applicableProductIds.includes(item.id));
+  
+  // If no applicable products specified, apply to entire cart
+  if (!applicableProductIds.length) {
+    if (coupon.type === 'percentage') {
+      discount = (cartTotal * coupon.value) / 100;
+    } else if (coupon.type === 'fixed') {
+      discount = Math.min(coupon.value, cartTotal);
+    }
+  } else {
+    // Calculate total for applicable products only
+    const applicableTotal = applicableProducts.reduce((total, item) => {
+      const itemPrice = item.salePrice || item.price;
+      return total + (itemPrice * item.quantity);
+    }, 0);
+    
+    if (coupon.type === 'percentage') {
+      discount = (applicableTotal * coupon.value) / 100;
+    } else if (coupon.type === 'fixed') {
+      discount = Math.min(coupon.value, applicableTotal);
+    }
   }
 
   // Apply maximum discount limit if specified
@@ -118,7 +149,13 @@ export const calculateDiscount = (coupon: Coupon, cartTotal: number): number => 
     discount = coupon.max_discount_amount;
   }
 
-  return Math.min(discount, cartTotal);
+  // Ensure discount is a number and doesn't exceed cart total
+  discount = Number(Math.min(discount, cartTotal));
+
+  return {
+    discountAmount: discount,
+    applicableProducts: applicableProducts.map(item => item.id)
+  };
 };
 
 export const calculateMultipleCouponsDiscount = (coupons: Coupon[], cartTotal: number): AppliedCoupon[] => {

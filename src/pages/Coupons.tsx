@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-
 import { Link, useNavigate } from 'react-router-dom';
 import { ChevronLeft, Tag, Copy } from 'lucide-react';
 import Header from '@/components/Header';
@@ -34,7 +33,7 @@ const Coupons = () => {
     },
   });
 
-  const handleApplyCoupon = (couponCode: string) => {
+  const handleApplyCoupon = (couponCode) => {
     if (!cartItems || cartItems.length === 0) {
       toast('Your cart is empty!', {
         description: 'Add items to your cart before applying a coupon.'
@@ -45,9 +44,9 @@ const Coupons = () => {
     const couponData = coupons.find(c => c.code === couponCode);
     if (couponData) {
       // Type assertion to ensure compatibility
-      const typedCoupon: Coupon = {
+      const typedCoupon = {
         ...couponData,
-        type: couponData.type as 'percentage' | 'fixed'
+        type: couponData.type
       };
       
       const cartTotal = cartItems.reduce((total, item) => {
@@ -55,19 +54,24 @@ const Coupons = () => {
         return total + (itemPrice * item.quantity);
       }, 0);
       
-      const discountAmount = calculateDiscount(typedCoupon, cartTotal);
+      // Calculate discount - the function returns an object with discountAmount and applicableProducts
+      const discountResult = calculateDiscount(typedCoupon, cartTotal, cartItems);
       
-      addCoupon(typedCoupon, discountAmount);
+      // Extract the discount amount from the result
+      const discountAmount = discountResult.discountAmount || discountResult;
+      const applicableProducts = discountResult.applicableProducts || [];
+      
+      addCoupon(typedCoupon, discountAmount, applicableProducts);
       
       toast('Coupon applied! Redirecting to cart...', {
-        description: `₹${discountAmount.toFixed(2)} discount will be applied at checkout.`
+        description: `₹${Number(discountAmount).toFixed(2)} discount will be applied at checkout.`
       });
       
       navigate('/cart');
     }
   };
 
-  const copyCouponCode = (code: string) => {
+  const copyCouponCode = (code) => {
     navigator.clipboard.writeText(code);
     toast('Coupon code copied!', {
       description: 'You can paste it at checkout.'
@@ -148,6 +152,7 @@ const Coupons = () => {
           </div>
         )}
       </main>
+      
       
       <BottomNavigation />
     </div>

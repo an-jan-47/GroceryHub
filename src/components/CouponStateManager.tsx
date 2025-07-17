@@ -6,6 +6,7 @@ export interface AppliedCouponState {
   coupon: Coupon;
   discountAmount: number;
   appliedToTotal?: number;
+  applicableProducts?: string[]; // Add this line to track which products the coupon applies to
 }
 
 interface CouponStateContextType {
@@ -58,12 +59,12 @@ export const CouponStateProvider: React.FC<{ children: ReactNode }> = ({ childre
     return () => clearTimeout(timeoutId);
   }, [appliedCoupons, isInitialized]);
 
-  const addCoupon = (coupon: Coupon, discountAmount: number) => {
+  const addCoupon = (coupon: Coupon, discountAmount: number, applicableProducts: string[] = []) => {
     setAppliedCoupons(prevCoupons => {
       // Check for existing coupon to prevent duplicates
       const existingCoupon = prevCoupons.find(c => c.coupon.id === coupon.id);
       if (existingCoupon) return prevCoupons;
-      return [...prevCoupons, { coupon, discountAmount }];
+      return [...prevCoupons, { coupon, discountAmount, applicableProducts }];
     });
   };
 
