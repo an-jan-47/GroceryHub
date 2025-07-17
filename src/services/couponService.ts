@@ -123,7 +123,7 @@ export const validateCoupon = async (
 
   // Find eligible products in cart that have this coupon in their applicable_coupons array
   const eligibleProducts = cartItems.filter(item => {
-    const productData = products.find(p => p.id === item.id);
+    const productData = products?.find(p => p.id === item.id);
     const itemApplicableCoupons = productData?.applicable_coupons || [];
     return itemApplicableCoupons.includes(couponCode.toUpperCase());
   });

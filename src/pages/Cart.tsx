@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from 'react-router-dom';
 import { ChevronLeft, Trash2, Plus, Minus, ShoppingCart } from 'lucide-react';
@@ -31,11 +30,11 @@ const CartPage = () => {
 
   // Fetch cart items with their applicable coupons
   const { data: cartItemsWithCoupons = [] } = useQuery({
-    queryKey: ['cart-items-coupons', cartItems.map(item => item.id)],
+    queryKey: ['cart-items-coupons', cartItems.map((item: any) => item.id)],
     queryFn: async () => {
       if (cartItems.length === 0) return [];
       
-      const productIds = cartItems.map(item => item.id);
+      const productIds = cartItems.map((item: any) => item.id);
       const { data, error } = await supabase
         .from('products')
         .select('id, applicable_coupons')
@@ -43,8 +42,8 @@ const CartPage = () => {
       
       if (error) throw error;
       
-      return cartItems.map(item => {
-        const productData = data.find(p => p.id === item.id);
+      return cartItems.map((item: any) => {
+        const productData = data?.find((p: any) => p.id === item.id);
         return {
           ...item,
           applicable_coupons: productData?.applicable_coupons || []
@@ -64,7 +63,7 @@ const CartPage = () => {
   const deliveryFees = 0.00;
   
   // Calculate item-wise pricing without tax
-  const itemCalculations = cartItemsWithCoupons.map(item => {
+  const itemCalculations = cartItemsWithCoupons.map((item: any) => {
     const itemPrice = item.salePrice !== undefined ? Number(item.salePrice) : Number(item.price);
     const itemTotal = itemPrice * Number(item.quantity);
     
@@ -76,11 +75,14 @@ const CartPage = () => {
   });
   
   // Calculate totals without tax
-  const subtotal = itemCalculations.reduce((total, item) => total + Number(item.itemTotal), 0);
+  const subtotal = itemCalculations.reduce((total: number, item: any) => total + Number(item.itemTotal), 0);
   const totalBeforeDiscount = subtotal + platformFees + deliveryFees;
   
   // Calculate total discount from all applied coupons
-  const totalDiscountAmount = appliedCoupons.reduce((total, { discountAmount }) => total + discountAmount, 0);
+  const totalDiscountAmount = appliedCoupons.reduce((total, applied) => {
+    const discount = Number(applied.discountAmount) || 0;
+    return total + discount;
+  }, 0);
   const totalAfterDiscount = Math.max(0, totalBeforeDiscount - totalDiscountAmount);
   
   // Final total without transaction fee
@@ -93,7 +95,7 @@ const CartPage = () => {
   };
   
   // Add coupon clearing when removing last item
-  const handleRemoveFromCart = (productId) => {
+  const handleRemoveFromCart = (productId: string) => {
     removeFromCart(productId);
     // Check if this was the last item and clear coupons if needed
     if (cartItems.length === 1) {
@@ -102,7 +104,7 @@ const CartPage = () => {
   };
 
   // Handle direct quantity input
-  const handleQuantityInputChange = (itemId, value) => {
+  const handleQuantityInputChange = (itemId: string, value: string) => {
     const newQuantity = parseInt(value) || 1;
     if (newQuantity > 0 && newQuantity <= 999) {
       updateQuantity(itemId, newQuantity);
@@ -127,19 +129,20 @@ const CartPage = () => {
       // Convert AppliedCouponState to AppliedCoupon format for validation
       const appliedCouponsForValidation = appliedCoupons.map(c => ({
         ...c,
-        appliedToTotal: c.appliedToTotal || totalBeforeDiscount
+        appliedToTotal: c.appliedToTotal || totalBeforeDiscount,
+        applicableProducts: c.applicableProducts || []
       }));
       
       const coupon = await validateCoupon(couponCode, totalBeforeDiscount, appliedCouponsForValidation, cartItemsWithCoupons);
-      const { discountAmount, applicableProducts } = calculateDiscount(coupon, totalBeforeDiscount, cartItemsWithCoupons);
+      const discountResult = calculateDiscount(coupon, totalBeforeDiscount, cartItemsWithCoupons);
       
-      addCoupon(coupon, discountAmount, applicableProducts);
+      addCoupon(coupon, discountResult.discountAmount, discountResult.applicableProducts);
       setCouponCode('');
       
       toast("Coupon applied successfully!", {
-        description: `₹${discountAmount.toFixed(2)} discount applied to eligible products`
+        description: `₹${discountResult.discountAmount.toFixed(2)} discount applied to eligible products`
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Coupon application error:', error);
       toast("Unable to apply coupon", {
         description: error.message
@@ -149,7 +152,7 @@ const CartPage = () => {
     }
   };
 
-  const handleRemoveCoupon = (couponId) => {
+  const handleRemoveCoupon = (couponId: string) => {
     console.log('Removing coupon with ID:', couponId);
     removeCoupon(couponId);
     setTimeout(() => {
@@ -186,7 +189,7 @@ const CartPage = () => {
         ) : (
           <>
             <div key={cartItems.length} className="divide-y">
-              {cartItemsWithCoupons.map((item) => {
+              {cartItemsWithCoupons.map((item: any) => {
                 const itemPrice = item.salePrice !== undefined ? Number(item.salePrice) : Number(item.price);
                 const totalItemPrice = itemPrice * item.quantity;
                 const { totalDiscount, discountPercentage } = getItemDiscount(item, appliedCoupons);
@@ -296,7 +299,7 @@ const CartPage = () => {
                         <div>
                           <span className="font-semibold text-green-800">Coupon Applied: {coupon.code}</span>
                           <p className="text-sm text-green-600">
-                            You saved ₹{discountAmount.toFixed(2)} on {applicableProducts?.length || 0} eligible products
+                            You saved ₹{Number(discountAmount).toFixed(2)} on {applicableProducts?.length || 0} eligible products
                           </p>
                         </div>
                         <Button 
@@ -373,7 +376,7 @@ const CartPage = () => {
                 {appliedCoupons.map((applied) => (
                   <div key={applied.coupon.id} className="flex justify-between text-green-600">
                     <span className="text-sm">{applied.coupon.code} Discount</span>
-                    <span className="text-sm">-₹{applied.discountAmount.toFixed(2)}</span>
+                    <span className="text-sm">-₹{Number(applied.discountAmount).toFixed(2)}</span>
                   </div>
                 ))}
                 
