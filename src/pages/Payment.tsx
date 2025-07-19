@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
 
+import React, { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { CreditCard, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -33,8 +33,9 @@ const PRICING_CONFIG = {
   razorpayTestKey: 'rzp_test_NhYbBXqUSxpojf'
 } as const;
 
-const formatCurrency = (amount: number): string => {
-  return `₹${amount.toFixed(2)}`;
+const formatCurrency = (amount: number | string): string => {
+  const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+  return `₹${(numAmount || 0).toFixed(2)}`;
 };
 
 declare global {
@@ -92,7 +93,10 @@ const PaymentMethodsPage = () => {
     }, 0);
     
     // Calculate total discount from all applied coupons
-    const totalDiscountAmount = appliedCoupons.reduce((total, couponData) => total + couponData.discountAmount, 0);
+    const totalDiscountAmount = appliedCoupons.reduce((total, couponData) => {
+      const discount = typeof couponData.discountAmount === 'number' ? couponData.discountAmount : 0;
+      return total + discount;
+    }, 0);
     
     // Calculate total before transaction fee
     const totalBeforeTransactionFee = subtotal + PRICING_CONFIG.platformFees + PRICING_CONFIG.deliveryFees - totalDiscountAmount;
@@ -144,15 +148,20 @@ const PaymentMethodsPage = () => {
       for (const couponData of couponsToValidate) {
         try {
           // Validate each coupon
-          const validatedCoupon = await validateCoupon(couponData.coupon.code, orderTotal - totalDiscount);
-          const discount = calculateDiscount(validatedCoupon, orderTotal - totalDiscount);
+          const validatedCoupon = await validateCoupon(
+            couponData.coupon.code, 
+            orderTotal - totalDiscount, 
+            [], 
+            cartItems
+          );
+          const discountResult = calculateDiscount(validatedCoupon, orderTotal - totalDiscount, cartItems);
           
           validatedCoupons.push({
             coupon: validatedCoupon,
-            discountAmount: discount
+            discountAmount: discountResult.discountAmount
           });
           
-          totalDiscount += discount;
+          totalDiscount += discountResult.discountAmount;
         } catch (error) {
           console.warn(`Coupon ${couponData.coupon.code} is no longer valid:`, error);
           toast(`Coupon ${couponData.coupon.code} is no longer valid`, {

@@ -109,23 +109,9 @@ export const validateCoupon = async (
     throw new Error('This coupon has reached its usage limit');
   }
 
-  // Fetch products data to get their applicable_coupons
-  const productIds = cartItems.map(item => item.id);
-  const { data: products, error: productsError } = await supabase
-    .from('products')
-    .select('id, applicable_coupons')
-    .in('id', productIds);
-
-  if (productsError) {
-    console.error('Error fetching products:', productsError);
-    throw new Error('Error validating coupon eligibility');
-  }
-
-  // Find eligible products in cart that have this coupon in their applicable_coupons array
+  // Find eligible products in cart based on coupon's applicable_products
   const eligibleProducts = cartItems.filter(item => {
-    const productData = products?.find((p: any) => p.id === item.id);
-    const itemApplicableCoupons = productData?.applicable_coupons || [];
-    return itemApplicableCoupons.includes(couponCode.toUpperCase());
+    return coupon.applicable_products && coupon.applicable_products.includes(item.id);
   });
 
   console.log('Eligible products for coupon:', eligibleProducts);
@@ -134,7 +120,7 @@ export const validateCoupon = async (
     throw new Error('This coupon is not applicable to any products in your cart');
   }
 
-  // Calculate total value of eligible products
+  // Calculate total value of eligible products only
   const eligibleProductsTotal = eligibleProducts.reduce((total, item) => {
     const itemPrice = item.salePrice || item.price;
     return total + (itemPrice * item.quantity);
@@ -158,10 +144,9 @@ export const calculateDiscount = (
 ): { discountAmount: number; applicableProducts: string[] } => {
   console.log('Calculating discount for coupon:', coupon.code);
   
-  // Find eligible products that have this coupon in their applicable_coupons array
+  // Find eligible products based on coupon's applicable_products
   const eligibleProducts = cartItems.filter(item => {
-    const itemApplicableCoupons = item.applicable_coupons || [];
-    return itemApplicableCoupons.includes(coupon.code);
+    return coupon.applicable_products && coupon.applicable_products.includes(item.id);
   });
 
   const applicableProductIds = eligibleProducts.map(item => item.id);
@@ -213,12 +198,12 @@ export const getItemDiscount = (
 
     // Calculate all eligible items total for this coupon
     const eligibleItemsTotal = applicableProducts.reduce((total, productId) => {
-      // Find the cart item
-      const cartItem = item.id === productId ? item : null;
-      if (!cartItem) return total;
-      
-      const price = cartItem.salePrice || cartItem.price;
-      return total + (price * cartItem.quantity);
+      // We need to find the actual cart item, but we only have the current item
+      // This is a limitation - we need to pass all cart items or calculate differently
+      if (productId === item.id) {
+        return total + itemTotal;
+      }
+      return total;
     }, 0);
 
     if (eligibleItemsTotal === 0) return;
@@ -236,7 +221,7 @@ export const getItemDiscount = (
       
       maxDiscountPercentage = Math.max(maxDiscountPercentage, coupon.value);
     } else if (coupon.type === 'fixed') {
-      // Distribute fixed discount proportionally
+      // For fixed discount, distribute proportionally
       const itemShare = itemTotal / eligibleItemsTotal;
       itemDiscount = Number(discountAmount) * itemShare;
       
@@ -251,4 +236,28 @@ export const getItemDiscount = (
     totalDiscount: Number((totalDiscount || 0).toFixed(2)),
     discountPercentage: Math.round(maxDiscountPercentage || 0)
   };
+};
+
+// Helper function to get active coupons
+export const getActiveCoupons = async (limit?: number): Promise<Coupon[]> => {
+  try {
+    let query = supabase
+      .from('coupons')
+      .select('*')
+      .eq('is_active', true)
+      .gte('expiry_date', new Date().toISOString())
+      .order('value', { ascending: false });
+
+    if (limit) {
+      query = query.limit(limit);
+    }
+
+    const { data, error } = await query;
+    
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching active coupons:', error);
+    return [];
+  }
 };

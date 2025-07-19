@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from "react";
 
+import React from "react";
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Tag, Clock, Gift } from 'lucide-react';
+import { Tag, Gift } from 'lucide-react';
 import { getActiveCoupons, type Coupon } from '@/services/couponService';
 import { useNavigate } from 'react-router-dom';
 
@@ -20,7 +20,7 @@ const CouponRecommendations = ({ onApplyCoupon, cartTotal }: CouponRecommendatio
     queryFn: () => getActiveCoupons(3)
   });
 
-  const eligibleCoupons = coupons.filter(coupon => cartTotal >= coupon.min_purchase_amount);
+  const eligibleCoupons = coupons.filter((coupon: Coupon) => cartTotal >= coupon.min_purchase_amount);
 
   if (isLoading) {
     return (
@@ -45,7 +45,7 @@ const CouponRecommendations = ({ onApplyCoupon, cartTotal }: CouponRecommendatio
       </div>
       
       <div className="space-y-2 mb-3">
-        {eligibleCoupons.map((coupon) => (
+        {eligibleCoupons.map((coupon: Coupon) => (
           <div key={coupon.id} className="bg-white rounded-lg p-3 border border-blue-200">
             <div className="flex justify-between items-start">
               <div className="flex-1">
