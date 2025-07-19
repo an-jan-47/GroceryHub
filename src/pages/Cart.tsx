@@ -127,6 +127,9 @@ const CartPage = () => {
 
     setIsApplyingCoupon(true);
     try {
+      console.log('Applying coupon:', couponCode);
+      console.log('Cart items for validation:', cartItemsWithCoupons);
+      
       // Convert AppliedCouponState to AppliedCoupon format for validation
       const appliedCouponsForValidation: AppliedCoupon[] = appliedCoupons.map(c => ({
         ...c,
@@ -137,12 +140,17 @@ const CartPage = () => {
       const coupon = await validateCoupon(couponCode, totalBeforeDiscount, appliedCouponsForValidation, cartItemsWithCoupons);
       const discountResult = calculateDiscount(coupon, totalBeforeDiscount, cartItemsWithCoupons);
       
-      addCoupon(coupon, discountResult.discountAmount, discountResult.applicableProducts);
-      setCouponCode('');
-      
-      toast.success("Coupon applied successfully!", {
-        description: `₹${discountResult.discountAmount.toFixed(2)} discount applied to eligible products`
-      });
+      // Only add coupon if it has eligible products and provides discount
+      if (discountResult.applicableProducts.length > 0 && discountResult.discountAmount > 0) {
+        addCoupon(coupon, discountResult.discountAmount, discountResult.applicableProducts);
+        setCouponCode('');
+        
+        toast.success("Coupon applied successfully!", {
+          description: `₹${discountResult.discountAmount.toFixed(2)} discount applied to ${discountResult.applicableProducts.length} eligible products`
+        });
+      } else {
+        toast.error("This coupon is not applicable to any products in your cart");
+      }
     } catch (error: any) {
       console.error('Coupon application error:', error);
       toast.error("Ineligible coupon", {
@@ -199,7 +207,7 @@ const CartPage = () => {
             <div key={cartItems.length} className="divide-y">
               {cartItemsWithCoupons.map((item: any) => {
                 const itemPrice = item.salePrice !== undefined ? Number(item.salePrice) : Number(item.price);
-                const totalItemPrice = itemPrice * item.quantity;
+                const totalItemPrice = itemPrice * Number(item.quantity);
                 const { totalDiscount, discountPercentage } = getItemDiscount(item, appliedCouponsForDiscount);
                 const finalItemPrice = totalItemPrice - totalDiscount;
                 
@@ -236,7 +244,7 @@ const CartPage = () => {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1))}
+                            onClick={() => updateQuantity(item.id, Math.max(1, Number(item.quantity) - 1))}
                             className="h-8 w-8 p-0"
                           >
                             <Minus className="h-4 w-4" />
@@ -252,7 +260,7 @@ const CartPage = () => {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                            onClick={() => updateQuantity(item.id, Number(item.quantity) + 1)}
                             className="h-8 w-8 p-0"
                           >
                             <Plus className="h-4 w-4" />
@@ -301,26 +309,36 @@ const CartPage = () => {
               {/* Applied Coupons Display */}
               {appliedCoupons.length > 0 && (
                 <div className="space-y-3 mb-4">
-                  {appliedCoupons.map(({ coupon, discountAmount, applicableProducts }) => (
-                    <div key={coupon.id} className="bg-green-50 border border-green-200 rounded-lg p-4">
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <span className="font-semibold text-green-800">Coupon Applied: {coupon.code}</span>
-                          <p className="text-sm text-green-600">
-                            You saved ₹{Number(discountAmount).toFixed(2)} on {applicableProducts?.length || 0} eligible products
-                          </p>
+                  {appliedCoupons.map(({ coupon, discountAmount, applicableProducts }) => {
+                    const discount = Number(discountAmount) || 0;
+                    const eligibleCount = applicableProducts?.length || 0;
+                    
+                    // Only show coupon if it has eligible products and provides discount
+                    if (eligibleCount === 0 || discount === 0) {
+                      return null;
+                    }
+                    
+                    return (
+                      <div key={coupon.id} className="bg-green-50 border border-green-200 rounded-lg p-4">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <span className="font-semibold text-green-800">Coupon Applied: {coupon.code}</span>
+                            <p className="text-sm text-green-600">
+                              You saved ₹{discount.toFixed(2)} on {eligibleCount} eligible products
+                            </p>
+                          </div>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => handleRemoveCoupon(coupon.id)}
+                            className="text-red-600 border-red-300 hover:bg-red-50"
+                          >
+                            Remove
+                          </Button>
                         </div>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={() => handleRemoveCoupon(coupon.id)}
-                          className="text-red-600 border-red-300 hover:bg-red-50"
-                        >
-                          Remove
-                        </Button>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
               
@@ -380,13 +398,18 @@ const CartPage = () => {
                   <span className="text-green-600">FREE</span>
                 </div>
                 
-                {/* Individual coupon discounts */}
-                {appliedCoupons.map((applied) => (
-                  <div key={applied.coupon.id} className="flex justify-between text-green-600">
-                    <span className="text-sm">{applied.coupon.code} Discount</span>
-                    <span className="text-sm">-₹{Number(applied.discountAmount).toFixed(2)}</span>
-                  </div>
-                ))}
+                {/* Individual coupon discounts - only show if discount > 0 */}
+                {appliedCoupons.map((applied) => {
+                  const discount = Number(applied.discountAmount) || 0;
+                  if (discount === 0) return null;
+                  
+                  return (
+                    <div key={applied.coupon.id} className="flex justify-between text-green-600">
+                      <span className="text-sm">{applied.coupon.code} Discount</span>
+                      <span className="text-sm">-₹{discount.toFixed(2)}</span>
+                    </div>
+                  );
+                })}
                 
                 {/* Total discount summary */}
                 {totalDiscountAmount > 0 && (

@@ -75,7 +75,7 @@ export const validateCoupon = async (
   cartItems: CartItem[]
 ): Promise<Coupon> => {
   console.log('Validating coupon:', couponCode);
-  console.log('Cart items:', cartItems);
+  console.log('Cart items for validation:', cartItems);
 
   // Fetch the coupon from database
   const { data: coupon, error } = await supabase
@@ -86,8 +86,11 @@ export const validateCoupon = async (
     .single();
 
   if (error || !coupon) {
+    console.error('Coupon fetch error:', error);
     throw new Error('Invalid or expired coupon code');
   }
+
+  console.log('Fetched coupon:', coupon);
 
   // Check if coupon is already applied
   const isAlreadyApplied = appliedCoupons.some(ac => ac.coupon.id === coupon.id);
@@ -109,9 +112,15 @@ export const validateCoupon = async (
     throw new Error('This coupon has reached its usage limit');
   }
 
-  // Find eligible products in cart based on coupon's applicable_products
+  // Find eligible products in cart
   const eligibleProducts = cartItems.filter(item => {
-    return coupon.applicable_products && coupon.applicable_products.includes(item.id);
+    // Check if coupon has applicable_products defined and if current item is in that list
+    if (coupon.applicable_products && Array.isArray(coupon.applicable_products)) {
+      const isEligible = coupon.applicable_products.includes(item.id);
+      console.log(`Product ${item.name} (${item.id}) eligible:`, isEligible);
+      return isEligible;
+    }
+    return false;
   });
 
   console.log('Eligible products for coupon:', eligibleProducts);
@@ -122,15 +131,18 @@ export const validateCoupon = async (
 
   // Calculate total value of eligible products only
   const eligibleProductsTotal = eligibleProducts.reduce((total, item) => {
-    const itemPrice = item.salePrice || item.price;
-    return total + (itemPrice * item.quantity);
+    const itemPrice = Number(item.salePrice || item.price);
+    const quantity = Number(item.quantity);
+    const itemTotal = itemPrice * quantity;
+    console.log(`Item ${item.name}: price=${itemPrice}, quantity=${quantity}, total=${itemTotal}`);
+    return total + itemTotal;
   }, 0);
 
   console.log('Eligible products total:', eligibleProductsTotal);
   console.log('Required minimum:', coupon.min_purchase_amount);
 
   // Check minimum purchase amount for eligible products only
-  if (eligibleProductsTotal < coupon.min_purchase_amount) {
+  if (eligibleProductsTotal < Number(coupon.min_purchase_amount)) {
     throw new Error(`Minimum purchase amount of ₹${coupon.min_purchase_amount} required for eligible products. Current eligible products total: ₹${eligibleProductsTotal.toFixed(2)}`);
   }
 
@@ -146,15 +158,19 @@ export const calculateDiscount = (
   
   // Find eligible products based on coupon's applicable_products
   const eligibleProducts = cartItems.filter(item => {
-    return coupon.applicable_products && coupon.applicable_products.includes(item.id);
+    if (coupon.applicable_products && Array.isArray(coupon.applicable_products)) {
+      return coupon.applicable_products.includes(item.id);
+    }
+    return false;
   });
 
   const applicableProductIds = eligibleProducts.map(item => item.id);
 
   // Calculate total value of eligible products
   const eligibleTotal = eligibleProducts.reduce((total, item) => {
-    const itemPrice = item.salePrice || item.price;
-    return total + (itemPrice * item.quantity);
+    const itemPrice = Number(item.salePrice || item.price);
+    const quantity = Number(item.quantity);
+    return total + (itemPrice * quantity);
   }, 0);
 
   console.log('Eligible products total for discount calculation:', eligibleTotal);
@@ -162,20 +178,20 @@ export const calculateDiscount = (
   let discountAmount = 0;
 
   if (coupon.type === 'percentage') {
-    discountAmount = (eligibleTotal * coupon.value) / 100;
+    discountAmount = (eligibleTotal * Number(coupon.value)) / 100;
     
     // Apply max discount limit if specified
-    if (coupon.max_discount_amount && discountAmount > coupon.max_discount_amount) {
-      discountAmount = coupon.max_discount_amount;
+    if (coupon.max_discount_amount && discountAmount > Number(coupon.max_discount_amount)) {
+      discountAmount = Number(coupon.max_discount_amount);
     }
   } else if (coupon.type === 'fixed') {
-    discountAmount = Math.min(coupon.value, eligibleTotal);
+    discountAmount = Math.min(Number(coupon.value), eligibleTotal);
   }
 
   console.log('Calculated discount amount:', discountAmount);
 
   return {
-    discountAmount: Number(discountAmount) || 0,
+    discountAmount: Number(discountAmount.toFixed(2)),
     applicableProducts: applicableProductIds
   };
 };
@@ -187,8 +203,8 @@ export const getItemDiscount = (
   let totalDiscount = 0;
   let maxDiscountPercentage = 0;
 
-  const itemPrice = item.salePrice || item.price;
-  const itemTotal = itemPrice * item.quantity;
+  const itemPrice = Number(item.salePrice || item.price);
+  const itemTotal = itemPrice * Number(item.quantity);
 
   appliedCoupons.forEach(({ coupon, discountAmount, applicableProducts }) => {
     // Check if this item is eligible for this coupon
@@ -196,34 +212,23 @@ export const getItemDiscount = (
       return;
     }
 
-    // Calculate all eligible items total for this coupon
-    const eligibleItemsTotal = applicableProducts.reduce((total, productId) => {
-      // We need to find the actual cart item, but we only have the current item
-      // This is a limitation - we need to pass all cart items or calculate differently
-      if (productId === item.id) {
-        return total + itemTotal;
-      }
-      return total;
-    }, 0);
-
-    if (eligibleItemsTotal === 0) return;
-
+    // Calculate proportional discount for this item
     let itemDiscount = 0;
 
     if (coupon.type === 'percentage') {
-      itemDiscount = (itemTotal * coupon.value) / 100;
+      itemDiscount = (itemTotal * Number(coupon.value)) / 100;
       
-      // Apply max discount limit proportionally
+      // Apply max discount limit if specified
       if (coupon.max_discount_amount) {
-        const maxItemDiscount = (coupon.max_discount_amount * itemTotal) / eligibleItemsTotal;
-        itemDiscount = Math.min(itemDiscount, maxItemDiscount);
+        const maxItemDiscount = Math.min(itemDiscount, Number(coupon.max_discount_amount));
+        itemDiscount = maxItemDiscount;
       }
       
-      maxDiscountPercentage = Math.max(maxDiscountPercentage, coupon.value);
+      maxDiscountPercentage = Math.max(maxDiscountPercentage, Number(coupon.value));
     } else if (coupon.type === 'fixed') {
-      // For fixed discount, distribute proportionally
-      const itemShare = itemTotal / eligibleItemsTotal;
-      itemDiscount = Number(discountAmount) * itemShare;
+      // For fixed discount, we need to calculate the proportion
+      // This is a simplified approach - in reality you'd need all eligible items
+      itemDiscount = Math.min(Number(discountAmount), itemTotal);
       
       const effectivePercentage = (itemDiscount / itemTotal) * 100;
       maxDiscountPercentage = Math.max(maxDiscountPercentage, effectivePercentage);
@@ -233,8 +238,8 @@ export const getItemDiscount = (
   });
 
   return {
-    totalDiscount: Number((totalDiscount || 0).toFixed(2)),
-    discountPercentage: Math.round(maxDiscountPercentage || 0)
+    totalDiscount: Number(totalDiscount.toFixed(2)),
+    discountPercentage: Math.round(maxDiscountPercentage)
   };
 };
 

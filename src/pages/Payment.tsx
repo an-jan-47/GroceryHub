@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { CreditCard, MapPin } from 'lucide-react';
@@ -6,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { toast } from '@/components/ui/sonner';
+import { toast } from 'sonner';
 import { useCart } from '@/hooks/useCart';
 import { useNavigationGestures } from '@/hooks/useNavigationGestures';
 import Header from '@/components/Header';
@@ -88,13 +87,13 @@ const PaymentMethodsPage = () => {
   const calculatePricing = () => {
     // Calculate subtotal using sale price when available
     const subtotal = cartItems.reduce((total, item) => {
-      const itemPrice = item.salePrice || item.price;
+      const itemPrice = Number(item.salePrice || item.price);
       return total + (itemPrice * Number(item.quantity)); // Ensure quantity is a number
     }, 0);
     
     // Calculate total discount from all applied coupons
     const totalDiscountAmount = appliedCoupons.reduce((total, couponData) => {
-      const discount = typeof couponData.discountAmount === 'number' ? couponData.discountAmount : 0;
+      const discount = Number(couponData.discountAmount) || 0;
       return total + discount;
     }, 0);
     
@@ -118,7 +117,7 @@ const PaymentMethodsPage = () => {
   
   const pricing = calculatePricing();
   
-  // Load and validate coupons from localStorage
+  // Load and validate coupons from localStorage - IMPROVED VERSION
   const loadAndValidateCoupons = async () => {
     const storedCouponData = localStorage.getItem('appliedCoupon');
     if (!storedCouponData) return;
@@ -135,41 +134,54 @@ const PaymentMethodsPage = () => {
       }
       
       const validatedCoupons: CouponData[] = [];
-      let totalDiscount = 0;
       
       // Calculate subtotal for validation
       const subtotal = cartItems.reduce((total, item) => {
-        const itemPrice = item.salePrice || item.price;
-        return total + (itemPrice * item.quantity);
+        const itemPrice = Number(item.salePrice || item.price);
+        const quantity = Number(item.quantity);
+        return total + (itemPrice * quantity);
       }, 0);
       
       const orderTotal = subtotal + PRICING_CONFIG.platformFees + PRICING_CONFIG.deliveryFees;
       
       for (const couponData of couponsToValidate) {
         try {
-          // Validate each coupon
+          console.log('Validating coupon on payment page:', couponData.coupon.code);
+          
+          // Create cart items with applicable_coupons field for validation
+          const cartItemsForValidation = cartItems.map(item => ({
+            ...item,
+            applicable_coupons: item.applicable_coupons || []
+          }));
+
+          // Validate each coupon with current cart state
           const validatedCoupon = await validateCoupon(
             couponData.coupon.code, 
-            orderTotal - totalDiscount, 
-            [], 
-            cartItems
+            orderTotal, 
+            [], // Empty array since we're validating each coupon individually
+            cartItemsForValidation
           );
-          const discountResult = calculateDiscount(validatedCoupon, orderTotal - totalDiscount, cartItems);
           
-          validatedCoupons.push({
-            coupon: validatedCoupon,
-            discountAmount: discountResult.discountAmount
-          });
+          const discountResult = calculateDiscount(validatedCoupon, orderTotal, cartItemsForValidation);
           
-          totalDiscount += discountResult.discountAmount;
-        } catch (error) {
-          console.warn(`Coupon ${couponData.coupon.code} is no longer valid:`, error);
-          toast(`Coupon ${couponData.coupon.code} is no longer valid`, {
-            description: 'It has been removed from your order'
-          });
+          // Only add coupon if it has eligible products and provides discount
+          if (discountResult.applicableProducts.length > 0 && discountResult.discountAmount > 0) {
+            validatedCoupons.push({
+              coupon: validatedCoupon,
+              discountAmount: discountResult.discountAmount
+            });
+            console.log('Coupon validated successfully:', validatedCoupon.code);
+          } else {
+            console.log('Coupon has no eligible products, removing:', couponData.coupon.code);
+          }
+          
+        } catch (error: any) {
+          console.warn(`Coupon ${couponData.coupon.code} is no longer valid:`, error.message);
+          // Don't show toast here as it's automatic validation
         }
       }
       
+      // Update state with validated coupons
       setCoupons(validatedCoupons);
       
       // Update localStorage with validated coupons
@@ -245,8 +257,8 @@ const PaymentMethodsPage = () => {
         products: cartItems.map(item => ({
           productId: item.id,
           name: item.name,
-          price: item.salePrice || item.price,
-          quantity: item.quantity
+          price: Number(item.salePrice || item.price),
+          quantity: Number(item.quantity)
         }))
       });
 
@@ -289,7 +301,6 @@ const PaymentMethodsPage = () => {
     }
   });
 
-  // Function to initiate Razorpay payment
   const initiateRazorpayPayment = async () => {
     if (!window.Razorpay) {
       toast('Razorpay SDK not loaded', {
@@ -424,7 +435,7 @@ const PaymentMethodsPage = () => {
           {appliedCoupons.map((couponData, index) => (
             <div key={index} className="flex justify-between text-green-600">
               <span>Coupon Discount ({couponData.coupon.code})</span>
-              <span>-{formatCurrency(couponData.discountAmount)}</span>
+              <span>-{formatCurrency(Number(couponData.discountAmount))}</span>
             </div>
           ))}
           {appliedCoupons.length > 1 && (
