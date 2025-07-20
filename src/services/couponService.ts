@@ -112,9 +112,8 @@ export const validateCoupon = async (
     throw new Error('This coupon has reached its usage limit');
   }
 
-  // Find eligible products in cart
+  // Find eligible products in cart based on coupon's applicable_products
   const eligibleProducts = cartItems.filter(item => {
-    // Check if coupon has applicable_products defined and if current item is in that list
     if (coupon.applicable_products && Array.isArray(coupon.applicable_products)) {
       const isEligible = coupon.applicable_products.includes(item.id);
       console.log(`Product ${item.name} (${item.id}) eligible:`, isEligible);

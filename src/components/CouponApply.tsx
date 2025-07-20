@@ -77,14 +77,20 @@ const CouponApply = () => {
       const coupon = await validateCoupon(code, cartTotal, appliedCouponsForValidation, cartItemsWithCoupons);
       const { discountAmount, applicableProducts } = calculateDiscount(coupon, cartTotal, cartItemsWithCoupons);
       
-      addCoupon(coupon, discountAmount, applicableProducts);
-      
-      toast.success("Coupon applied successfully!", {
-        description: `₹${discountAmount.toFixed(2)} discount applied to eligible products`
-      });
-      
-      // Navigate back to cart
-      navigate('/cart');
+      if (applicableProducts.length > 0 && discountAmount > 0) {
+        addCoupon(coupon, discountAmount, applicableProducts);
+        
+        toast.success("Coupon applied successfully!", {
+          description: `₹${discountAmount.toFixed(2)} discount applied to eligible products`
+        });
+        
+        // Navigate back to cart
+        navigate('/cart');
+      } else {
+        toast.error("Ineligible coupon", {
+          description: "This coupon is not applicable to any products in your cart"
+        });
+      }
     } catch (error: any) {
       console.error('Coupon application error:', error);
       toast.error("Ineligible coupon", {

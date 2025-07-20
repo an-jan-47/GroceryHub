@@ -149,7 +149,9 @@ const CartPage = () => {
           description: `₹${discountResult.discountAmount.toFixed(2)} discount applied to ${discountResult.applicableProducts.length} eligible products`
         });
       } else {
-        toast.error("This coupon is not applicable to any products in your cart");
+        toast.error("Ineligible coupon", {
+          description: "This coupon is not applicable to any products in your cart"
+        });
       }
     } catch (error: any) {
       console.error('Coupon application error:', error);

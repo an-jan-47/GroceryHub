@@ -133,7 +133,7 @@ const PaymentMethodsPage = () => {
         couponsToValidate = [parsedData];
       }
       
-      const validatedCoupons: CouponData[] = [];
+      const validatedCoupons: any[] = [];
       
       // Calculate subtotal for validation
       const subtotal = cartItems.reduce((total, item) => {
@@ -168,7 +168,8 @@ const PaymentMethodsPage = () => {
           if (discountResult.applicableProducts.length > 0 && discountResult.discountAmount > 0) {
             validatedCoupons.push({
               coupon: validatedCoupon,
-              discountAmount: discountResult.discountAmount
+              discountAmount: discountResult.discountAmount,
+              applicableProducts: discountResult.applicableProducts
             });
             console.log('Coupon validated successfully:', validatedCoupon.code);
           } else {
@@ -432,12 +433,17 @@ const PaymentMethodsPage = () => {
       
       {appliedCoupons.length > 0 && (
         <div className="space-y-1">
-          {appliedCoupons.map((couponData, index) => (
-            <div key={index} className="flex justify-between text-green-600">
-              <span>Coupon Discount ({couponData.coupon.code})</span>
-              <span>-{formatCurrency(Number(couponData.discountAmount))}</span>
-            </div>
-          ))}
+          {appliedCoupons.map((couponData, index) => {
+            const discount = Number(couponData.discountAmount) || 0;
+            if (discount === 0) return null;
+            
+            return (
+              <div key={index} className="flex justify-between text-green-600">
+                <span>Coupon Discount ({couponData.coupon.code})</span>
+                <span>-{formatCurrency(discount)}</span>
+              </div>
+            );
+          })}
           {appliedCoupons.length > 1 && (
             <div className="flex justify-between text-green-700 font-medium">
               <span>Total Coupon Savings</span>
