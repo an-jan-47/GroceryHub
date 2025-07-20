@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from 'react-router-dom';
 import { ChevronLeft, Trash2, Plus, Minus, ShoppingCart } from 'lucide-react';
@@ -19,6 +18,7 @@ import { supabase } from '@/integrations/supabase/client';
 const CartPage = () => {
   const [couponCode, setCouponCode] = useState('');
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
+  const [updatingQuantities, setUpdatingQuantities] = useState<Set<string>>(new Set());
   const {
     cartItems,
     removeFromCart,
@@ -29,7 +29,7 @@ const CartPage = () => {
   const { appliedCoupons, addCoupon, removeCoupon, clearCoupons, checkCartAndClearCoupons } = useCouponState();
   const navigate = useNavigate();
 
-  // Fetch cart items with their applicable coupons
+  // Fetch cart items with their applicable coupons and current stock
   const { data: cartItemsWithCoupons = [] } = useQuery({
     queryKey: ['cart-items-coupons', cartItems.map((item: any) => item.id)],
     queryFn: async () => {
@@ -38,7 +38,7 @@ const CartPage = () => {
       const productIds = cartItems.map((item: any) => item.id);
       const { data, error } = await supabase
         .from('products')
-        .select('id, applicable_coupons')
+        .select('id, applicable_coupons, stock')
         .in('id', productIds);
       
       if (error) throw error;
@@ -47,7 +47,8 @@ const CartPage = () => {
         const productData = data?.find((p: any) => p.id === item.id);
         return {
           ...item,
-          applicable_coupons: productData?.applicable_coupons || []
+          applicable_coupons: productData?.applicable_coupons || [],
+          currentStock: productData?.stock || 0
         };
       });
     },
@@ -104,11 +105,50 @@ const CartPage = () => {
     }
   };
 
-  // Handle direct quantity input
+  // Optimized quantity update with stock validation
+  const handleQuantityUpdate = async (itemId: string, newQuantity: number) => {
+    if (newQuantity <= 0) {
+      handleRemoveFromCart(itemId);
+      return;
+    }
+
+    // Find the item to check stock
+    const item = cartItemsWithCoupons.find((item: any) => item.id === itemId);
+    if (!item) return;
+
+    // Check stock availability
+    if (newQuantity > item.currentStock) {
+      toast.error(`Only ${item.currentStock} items available in stock`, {
+        description: `Cannot add ${newQuantity} items. Maximum available: ${item.currentStock}`
+      });
+      // Update to maximum available stock
+      updateQuantity(itemId, item.currentStock);
+      return;
+    }
+
+    // Set loading state for this item
+    setUpdatingQuantities(prev => new Set(prev).add(itemId));
+
+    try {
+      // Optimistic update
+      updateQuantity(itemId, newQuantity);
+    } finally {
+      // Remove loading state
+      setTimeout(() => {
+        setUpdatingQuantities(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(itemId);
+          return newSet;
+        });
+      }, 100);
+    }
+  };
+
+  // Handle direct quantity input with validation
   const handleQuantityInputChange = (itemId: string, value: string) => {
     const newQuantity = parseInt(value) || 1;
     if (newQuantity > 0 && newQuantity <= 999) {
-      updateQuantity(itemId, newQuantity);
+      handleQuantityUpdate(itemId, newQuantity);
     }
   };
 
@@ -230,6 +270,7 @@ const CartPage = () => {
                 const totalItemPrice = itemPrice * Number(item.quantity);
                 const { totalDiscount, discountPercentage } = getItemDiscount(item, appliedCouponsForDiscount);
                 const finalItemPrice = totalItemPrice - totalDiscount;
+                const isUpdating = updatingQuantities.has(item.id);
                 
                 // Check if item has applicable coupons
                 const hasApplicableCoupons = appliedCoupons.some(ac => 
@@ -250,7 +291,7 @@ const CartPage = () => {
                         {item.name}
                       </Link>
                       
-                      {/* Show coupon applied badge */}
+                      {/* Show coupon applied badge - responsive */}
                       {hasApplicableCoupons && (
                         <div className="mt-1">
                           <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300 text-xs">
@@ -259,54 +300,62 @@ const CartPage = () => {
                         </div>
                       )}
                       
-                      <div className="flex items-center justify-between mt-2">
+                      {/* Mobile-responsive layout for quantity and price */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between mt-2 gap-3">
                         <div className="flex items-center space-x-2">
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => updateQuantity(item.id, Math.max(1, Number(item.quantity) - 1))}
+                            onClick={() => handleQuantityUpdate(item.id, Math.max(1, Number(item.quantity) - 1))}
                             className="h-8 w-8 p-0"
+                            disabled={isUpdating}
                           >
                             <Minus className="h-4 w-4" />
                           </Button>
                           <Input
                             type="number"
                             min="1"
-                            max="999"
+                            max={item.currentStock}
                             value={item.quantity}
                             onChange={(e) => handleQuantityInputChange(item.id, e.target.value)}
                             className="w-16 h-8 text-center"
+                            disabled={isUpdating}
                           />
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => updateQuantity(item.id, Number(item.quantity) + 1)}
+                            onClick={() => handleQuantityUpdate(item.id, Number(item.quantity) + 1)}
                             className="h-8 w-8 p-0"
+                            disabled={isUpdating || Number(item.quantity) >= item.currentStock}
                           >
                             <Plus className="h-4 w-4" />
                           </Button>
+                          {item.currentStock <= 5 && (
+                            <span className="text-xs text-orange-600">Only {item.currentStock} left</span>
+                          )}
                         </div>
                         
-                        <div className="flex items-center space-x-4">
-                          <div className="flex flex-col items-end">
+                        {/* Price section - mobile responsive */}
+                        <div className="flex items-center justify-between sm:justify-end space-x-4">
+                          <div className="flex flex-col items-start sm:items-end">
                             {totalDiscount > 0 ? (
-                              <>
+                              <div className="space-y-1">
                                 <span className="text-gray-800 font-semibold">₹{finalItemPrice.toFixed(2)}</span>
                                 <span className="text-gray-500 line-through text-sm">₹{totalItemPrice.toFixed(2)}</span>
-                                <div className="flex items-center space-x-1">
-                                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300 text-xs">
+                                <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2 space-y-1 sm:space-y-0">
+                                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300 text-xs w-fit">
                                     -{discountPercentage}% OFF
                                   </Badge>
                                   <span className="text-green-600 text-xs">Save ₹{totalDiscount.toFixed(2)}</span>
                                 </div>
-                              </>
+                              </div>
                             ) : (
-                              <>
-                                <span className="text-gray-800 font-semibold">₹{(item.salePrice || item.price).toFixed(2)}</span>
+                              <div className="space-y-1">
+                                <span className="text-gray-800 font-semibold">₹{totalItemPrice.toFixed(2)}</span>
                                 {item.salePrice && (
-                                  <span className="text-gray-500 line-through text-sm">₹{item.price.toFixed(2)}</span>
+                                  <span className="text-gray-500 line-through text-sm">₹{(item.price * item.quantity).toFixed(2)}</span>
                                 )}
-                              </>
+                              </div>
                             )}
                           </div>
                           <Button
