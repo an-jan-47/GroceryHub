@@ -53,6 +53,37 @@ const Coupons = () => {
         const itemPrice = item.salePrice || item.price;
         return total + (itemPrice * item.quantity);
       }, 0);
+
+      // Find eligible products in cart based on coupon's applicable_products
+      const eligibleProducts = cartItems.filter(item => {
+        if (typedCoupon.applicable_products && Array.isArray(typedCoupon.applicable_products)) {
+          return typedCoupon.applicable_products.includes(item.id);
+        }
+        return false;
+      });
+
+      // Check if there are any eligible products
+      if (eligibleProducts.length === 0) {
+        toast.error('Coupon cannot be applied', {
+          description: 'This coupon has no eligible products in your cart.'
+        });
+        return;
+      }
+
+      // Calculate total value of eligible products
+      const eligibleProductsTotal = eligibleProducts.reduce((total, item) => {
+        const itemPrice = Number(item.salePrice || item.price);
+        const quantity = Number(item.quantity);
+        return total + (itemPrice * quantity);
+      }, 0);
+
+      // Check minimum purchase amount for eligible products
+      if (eligibleProductsTotal < typedCoupon.min_purchase_amount) {
+        toast.error('Coupon is not applicable ', {
+          description: `You need to add ₹${(typedCoupon.min_purchase_amount - eligibleProductsTotal).toFixed(2)} more of eligible products to use this coupon.`
+        });
+        return;
+      }
       
       // Calculate discount - the function returns an object with discountAmount and applicableProducts
       const discountResult = calculateDiscount(typedCoupon, cartTotal, cartItems);
@@ -60,10 +91,18 @@ const Coupons = () => {
       // Extract the discount amount from the result
       const discountAmount = discountResult.discountAmount || discountResult;
       const applicableProducts = discountResult.applicableProducts || [];
+
+      // Only apply the coupon if there is a valid discount amount
+      if (discountAmount <= 0) {
+        toast.error('Coupon cannot be applied', {
+          description: 'No discount can be applied with this coupon for your current cart.'
+        });
+        return;
+      }
       
       addCoupon(typedCoupon, discountAmount, applicableProducts);
       
-      toast('Coupon applied! Redirecting to cart...', {
+      toast.success('Coupon applied! Redirecting to cart...', {
         description: `₹${Number(discountAmount).toFixed(2)} discount will be applied at checkout.`
       });
       

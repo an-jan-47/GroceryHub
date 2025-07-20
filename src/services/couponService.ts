@@ -107,8 +107,8 @@ export const validateCoupon = async (
     throw new Error('This coupon has expired or is not yet valid');
   }
 
-  // Check usage limit
-  if (coupon.usage_count >= coupon.usage_limit) {
+  // Check usage limit - only if it's not set to 0 (unlimited)
+  if (coupon.usage_limit > 0 && coupon.usage_count >= coupon.usage_limit) {
     throw new Error('This coupon has reached its usage limit');
   }
 

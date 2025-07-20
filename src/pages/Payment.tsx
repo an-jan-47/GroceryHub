@@ -117,83 +117,17 @@ const PaymentMethodsPage = () => {
   
   const pricing = calculatePricing();
   
-  // Load and validate coupons from localStorage - IMPROVED VERSION
+  // Update loadAndValidateCoupons function to only load coupons without revalidation
   const loadAndValidateCoupons = async () => {
     const storedCouponData = localStorage.getItem('appliedCoupon');
     if (!storedCouponData) return;
     
     try {
       const parsedData = JSON.parse(storedCouponData);
-      
-      // Handle both single coupon and multiple coupons format
-      let couponsToValidate: any[] = [];
-      if (Array.isArray(parsedData)) {
-        couponsToValidate = parsedData;
-      } else if (parsedData.coupon) {
-        couponsToValidate = [parsedData];
-      }
-      
-      const validatedCoupons: any[] = [];
-      
-      // Calculate subtotal for validation
-      const subtotal = cartItems.reduce((total, item) => {
-        const itemPrice = Number(item.salePrice || item.price);
-        const quantity = Number(item.quantity);
-        return total + (itemPrice * quantity);
-      }, 0);
-      
-      const orderTotal = subtotal + PRICING_CONFIG.platformFees + PRICING_CONFIG.deliveryFees;
-      
-      for (const couponData of couponsToValidate) {
-        try {
-          console.log('Validating coupon on payment page:', couponData.coupon.code);
-          
-          // Create cart items with applicable_coupons field for validation
-          const cartItemsForValidation = cartItems.map(item => ({
-            ...item,
-            applicable_coupons: item.applicable_coupons || []
-          }));
-
-          // Validate each coupon with current cart state
-          const validatedCoupon = await validateCoupon(
-            couponData.coupon.code, 
-            orderTotal, 
-            [], // Empty array since we're validating each coupon individually
-            cartItemsForValidation
-          );
-          
-          const discountResult = calculateDiscount(validatedCoupon, orderTotal, cartItemsForValidation);
-          
-          // Only add coupon if it has eligible products and provides discount
-          if (discountResult.applicableProducts.length > 0 && discountResult.discountAmount > 0) {
-            validatedCoupons.push({
-              coupon: validatedCoupon,
-              discountAmount: discountResult.discountAmount,
-              applicableProducts: discountResult.applicableProducts
-            });
-            console.log('Coupon validated successfully:', validatedCoupon.code);
-          } else {
-            console.log('Coupon has no eligible products, removing:', couponData.coupon.code);
-          }
-          
-        } catch (error: any) {
-          console.warn(`Coupon ${couponData.coupon.code} is no longer valid:`, error.message);
-          // Don't show toast here as it's automatic validation
-        }
-      }
-      
-      // Update state with validated coupons
-      setCoupons(validatedCoupons);
-      
-      // Update localStorage with validated coupons
-      if (validatedCoupons.length > 0) {
-        localStorage.setItem('appliedCoupon', JSON.stringify(validatedCoupons));
-      } else {
-        localStorage.removeItem('appliedCoupon');
-      }
-      
+      const couponsToLoad = Array.isArray(parsedData) ? parsedData : [parsedData];
+      setCoupons(couponsToLoad);
     } catch (error) {
-      console.error('Error parsing coupon data:', error);
+      console.error('Error loading stored coupons:', error);
       localStorage.removeItem('appliedCoupon');
       setCoupons([]);
     }
@@ -277,7 +211,7 @@ const PaymentMethodsPage = () => {
       return orderResult;
     },
     onSuccess: ({ orderId }) => {
-      console.log('Order created successfully, redirecting to confirmation page');
+      console.log('Order created successfully');
       // Store order ID for confirmation page
       localStorage.setItem('lastOrderId', orderId!);
       
@@ -291,7 +225,7 @@ const PaymentMethodsPage = () => {
         console.log('Navigating to order confirmation page');
         // Navigate to confirmation - use replace: true to prevent back navigation to payment
         navigate('/order-confirmation', { replace: true });
-      }, 100);
+      }, 200);
     },
     onError: (error: any) => {
       console.error('Order creation error:', error);

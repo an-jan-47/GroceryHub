@@ -106,17 +106,18 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const updateQuantity = (productId: string, quantity: number) => {
-    console.log('Updating quantity for:', productId, 'to:', quantity);
     if (quantity <= 0) {
       removeFromCart(productId);
       return;
     }
 
+    // Optimistic update
     setCartItems(prevItems => {
       const updatedItems = prevItems.map(item =>
         item.id === productId ? { ...item, quantity } : item
       );
-      console.log('Cart after quantity update:', updatedItems);
+      // Update localStorage immediately
+      localStorage.setItem('groceryHub_cart', JSON.stringify(updatedItems));
       return updatedItems;
     });
   };

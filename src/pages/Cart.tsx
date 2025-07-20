@@ -121,15 +121,12 @@ const CartPage = () => {
     // Check if coupon is already applied
     const isAlreadyApplied = appliedCoupons.some(c => c.coupon.code === couponCode.toUpperCase());
     if (isAlreadyApplied) {
-      toast.error("Coupon already applied");
+      toast.error("This coupon has already been applied");
       return;
     }
 
     setIsApplyingCoupon(true);
     try {
-      console.log('Applying coupon:', couponCode);
-      console.log('Cart items for validation:', cartItemsWithCoupons);
-      
       // Convert AppliedCouponState to AppliedCoupon format for validation
       const appliedCouponsForValidation: AppliedCoupon[] = appliedCoupons.map(c => ({
         ...c,
@@ -137,25 +134,46 @@ const CartPage = () => {
         applicableProducts: c.applicableProducts || []
       }));
       
+      // First validate the coupon to get its details
       const coupon = await validateCoupon(couponCode, totalBeforeDiscount, appliedCouponsForValidation, cartItemsWithCoupons);
-      const discountResult = calculateDiscount(coupon, totalBeforeDiscount, cartItemsWithCoupons);
       
-      // Only add coupon if it has eligible products and provides discount
-      if (discountResult.applicableProducts.length > 0 && discountResult.discountAmount > 0) {
-        addCoupon(coupon, discountResult.discountAmount, discountResult.applicableProducts);
-        setCouponCode('');
-        
-        toast.success("Coupon applied successfully!", {
-          description: `₹${discountResult.discountAmount.toFixed(2)} discount applied to ${discountResult.applicableProducts.length} eligible products`
-        });
-      } else {
-        toast.error("Ineligible coupon", {
-          description: "This coupon is not applicable to any products in your cart"
-        });
+      // Calculate eligible products total first
+      const eligibleProductsTotal = cartItemsWithCoupons
+        .filter(item => coupon.applicable_products?.includes(item.id))
+        .reduce((total, item) => {
+          const itemPrice = Number(item.salePrice || item.price);
+          const quantity = Number(item.quantity);
+          return total + (itemPrice * quantity);
+        }, 0);
+
+      // Check minimum purchase amount before proceeding with discount calculation
+      if (eligibleProductsTotal < coupon.min_purchase_amount) {
+        throw new Error(`Minimum purchase amount of ₹${coupon.min_purchase_amount} required for eligible products. Current eligible products total: ₹${eligibleProductsTotal.toFixed(2)}`);
       }
+
+      // Only calculate discount if minimum purchase requirement is met
+      const discountResult = calculateDiscount(coupon, totalBeforeDiscount, cartItemsWithCoupons);
+
+      // Verify the discount is applicable
+      if (discountResult.applicableProducts.length === 0) {
+        throw new Error("This coupon is not applicable to any products in your cart");
+      }
+
+      if (discountResult.discountAmount <= 0) {
+        throw new Error("This coupon cannot be applied to your current cart");
+      }
+
+      // Apply the coupon if all validations pass
+      addCoupon(coupon, discountResult.discountAmount, discountResult.applicableProducts);
+      setCouponCode('');
+      
+      toast.success("Coupon applied successfully!", {
+        description: `₹${discountResult.discountAmount.toFixed(2)} discount applied to ${discountResult.applicableProducts.length} eligible products`
+      });
+
     } catch (error: any) {
       console.error('Coupon application error:', error);
-      toast.error("Ineligible coupon", {
+      toast.error("Coupon validation failed", {
         description: error.message
       });
     } finally {
