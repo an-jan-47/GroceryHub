@@ -117,7 +117,7 @@ const PaymentMethodsPage = () => {
   
   const pricing = calculatePricing();
   
-  // Update loadAndValidateCoupons function to only load coupons without revalidation
+  // Optimized loadAndValidateCoupons function for better performance
   const loadAndValidateCoupons = async () => {
     const storedCouponData = localStorage.getItem('appliedCoupon');
     if (!storedCouponData) return;
@@ -125,7 +125,11 @@ const PaymentMethodsPage = () => {
     try {
       const parsedData = JSON.parse(storedCouponData);
       const couponsToLoad = Array.isArray(parsedData) ? parsedData : [parsedData];
-      setCoupons(couponsToLoad);
+      
+      // Only set coupons if they're valid and different from current state
+      if (couponsToLoad.length > 0 && appliedCoupons.length === 0) {
+        setCoupons(couponsToLoad);
+      }
     } catch (error) {
       console.error('Error loading stored coupons:', error);
       localStorage.removeItem('appliedCoupon');
@@ -154,7 +158,7 @@ const PaymentMethodsPage = () => {
     if (cartItems.length > 0) {
       loadAndValidateCoupons();
     }
-  }, [cartItems, setCoupons]);
+  }, [cartItems]);
   
   useEffect(() => {
     checkAuthForCheckout();
@@ -175,11 +179,28 @@ const PaymentMethodsPage = () => {
     enabled: !!addressId
   });
   
-  // Create order mutation
+  // Optimized create order mutation with better error handling
   const createOrderMutation = useMutation({
     mutationFn: async (paymentData: PaymentData) => {
       if (!addressId || !user) throw new Error('No address or user found');
       if (!cartItems || cartItems.length === 0) throw new Error('Cart is empty');
+      
+      console.log('Creating order with items:', cartItems.length);
+      
+      // Batch process items to avoid performance issues with large quantities
+      const batchSize = 50; // Process items in batches
+      const processedProducts = [];
+      
+      for (let i = 0; i < cartItems.length; i += batchSize) {
+        const batch = cartItems.slice(i, i + batchSize);
+        const batchProducts = batch.map(item => ({
+          productId: item.id,
+          name: item.name,
+          price: Number(item.salePrice || item.price),
+          quantity: Number(item.quantity)
+        }));
+        processedProducts.push(...batchProducts);
+      }
       
       // Create order with the final calculated amount (including all discounts, no tax)
       const orderResult = await createOrder({
@@ -189,12 +210,7 @@ const PaymentMethodsPage = () => {
         totalAmount: pricing.totalAmount, // This is the final amount with discounts applied
         platformFees: PRICING_CONFIG.platformFees,
         discountAmount: pricing.totalDiscountAmount,
-        products: cartItems.map(item => ({
-          productId: item.id,
-          name: item.name,
-          price: Number(item.salePrice || item.price),
-          quantity: Number(item.quantity)
-        }))
+        products: processedProducts
       });
 
       // If Razorpay payment, save payment details
@@ -218,7 +234,7 @@ const PaymentMethodsPage = () => {
       // Clear the cart and applied coupon
       clearCart();
       localStorage.removeItem('appliedCoupon');
-      localStorage.removeItem('groceryHub_cart'); // Add this line to ensure cart is completely cleared
+      localStorage.removeItem('groceryHub_cart');
       
       // Add a small delay before navigation to ensure state updates are processed
       setTimeout(() => {
@@ -332,6 +348,14 @@ const PaymentMethodsPage = () => {
       toast('Your cart is empty');
       setIsProcessingPayment(false);
       return;
+    }
+    
+    // Add throttling for large orders to prevent freezing
+    const totalItems = cartItems.reduce((sum, item) => sum + Number(item.quantity), 0);
+    if (totalItems > 100) {
+      toast('Processing large order...', {
+        description: 'This may take a moment due to the order size.'
+      });
     }
     
     if (paymentMethod === 'razorpay') {

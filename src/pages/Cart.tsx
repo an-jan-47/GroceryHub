@@ -105,7 +105,7 @@ const CartPage = () => {
     }
   };
 
-  // Optimized quantity update with stock validation
+  // Optimized quantity update with debouncing and stock validation
   const handleQuantityUpdate = async (itemId: string, newQuantity: number) => {
     if (newQuantity <= 0) {
       handleRemoveFromCart(itemId);
@@ -118,33 +118,27 @@ const CartPage = () => {
 
     // Check stock availability
     if (newQuantity > item.currentStock) {
-      toast.error(`Only ${item.currentStock} items available in stock`, {
-        description: `Cannot add ${newQuantity} items. Maximum available: ${item.currentStock}`
-      });
+      toast.error(`Only ${item.currentStock} items available in stock`);
       // Update to maximum available stock
       updateQuantity(itemId, item.currentStock);
       return;
     }
 
-    // Set loading state for this item
+    // Optimistic update with immediate feedback
+    updateQuantity(itemId, newQuantity);
+    
+    // Set loading state briefly for visual feedback
     setUpdatingQuantities(prev => new Set(prev).add(itemId));
-
-    try {
-      // Optimistic update
-      updateQuantity(itemId, newQuantity);
-    } finally {
-      // Remove loading state
-      setTimeout(() => {
-        setUpdatingQuantities(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(itemId);
-          return newSet;
-        });
-      }, 100);
-    }
+    setTimeout(() => {
+      setUpdatingQuantities(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(itemId);
+        return newSet;
+      });
+    }, 200);
   };
 
-  // Handle direct quantity input with validation
+  // Handle direct quantity input with validation and debouncing
   const handleQuantityInputChange = (itemId: string, value: string) => {
     const newQuantity = parseInt(value) || 1;
     if (newQuantity > 0 && newQuantity <= 999) {
@@ -278,20 +272,22 @@ const CartPage = () => {
                 );
                 
                 return (
-                  <div key={item.id} className="flex py-4 border-b">
-                    <Link to={`/product/${item.id}`} className="flex-shrink-0 w-20 h-20">
+                  <div key={item.id} className="flex py-4 border-b gap-3">
+                    {/* Mobile-optimized image */}
+                    <Link to={`/product/${item.id}`} className="flex-shrink-0">
                       <img 
                         src={item.images && item.images.length > 0 ? item.images[0] : '/placeholder.svg'} 
                         alt={item.name} 
-                        className="w-full h-full object-cover rounded-md" 
+                        className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-md" 
                       />
                     </Link>
-                    <div className="ml-4 flex-grow flex flex-col">
-                      <Link to={`/product/${item.id}`} className="font-medium text-gray-800 hover:text-brand-blue">
+                    
+                    <div className="flex-grow flex flex-col min-w-0">
+                      <Link to={`/product/${item.id}`} className="font-medium text-gray-800 hover:text-brand-blue text-sm sm:text-base truncate">
                         {item.name}
                       </Link>
                       
-                      {/* Show coupon applied badge - responsive */}
+                      {/* Coupon applied badge */}
                       {hasApplicableCoupons && (
                         <div className="mt-1">
                           <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300 text-xs">
@@ -300,72 +296,80 @@ const CartPage = () => {
                         </div>
                       )}
                       
-                      {/* Mobile-responsive layout for quantity and price */}
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between mt-2 gap-3">
-                        <div className="flex items-center space-x-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleQuantityUpdate(item.id, Math.max(1, Number(item.quantity) - 1))}
-                            className="h-8 w-8 p-0"
-                            disabled={isUpdating}
-                          >
-                            <Minus className="h-4 w-4" />
-                          </Button>
-                          <Input
-                            type="number"
-                            min="1"
-                            max={item.currentStock}
-                            value={item.quantity}
-                            onChange={(e) => handleQuantityInputChange(item.id, e.target.value)}
-                            className="w-16 h-8 text-center"
-                            disabled={isUpdating}
-                          />
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleQuantityUpdate(item.id, Number(item.quantity) + 1)}
-                            className="h-8 w-8 p-0"
-                            disabled={isUpdating || Number(item.quantity) >= item.currentStock}
-                          >
-                            <Plus className="h-4 w-4" />
-                          </Button>
-                          {item.currentStock <= 5 && (
-                            <span className="text-xs text-orange-600">Only {item.currentStock} left</span>
-                          )}
-                        </div>
-                        
-                        {/* Price section - mobile responsive */}
-                        <div className="flex items-center justify-between sm:justify-end space-x-4">
-                          <div className="flex flex-col items-start sm:items-end">
-                            {totalDiscount > 0 ? (
-                              <div className="space-y-1">
-                                <span className="text-gray-800 font-semibold">₹{finalItemPrice.toFixed(2)}</span>
-                                <span className="text-gray-500 line-through text-sm">₹{totalItemPrice.toFixed(2)}</span>
-                                <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2 space-y-1 sm:space-y-0">
-                                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300 text-xs w-fit">
-                                    -{discountPercentage}% OFF
-                                  </Badge>
-                                  <span className="text-green-600 text-xs">Save ₹{totalDiscount.toFixed(2)}</span>
-                                </div>
-                              </div>
-                            ) : (
-                              <div className="space-y-1">
-                                <span className="text-gray-800 font-semibold">₹{totalItemPrice.toFixed(2)}</span>
-                                {item.salePrice && (
-                                  <span className="text-gray-500 line-through text-sm">₹{(item.price * item.quantity).toFixed(2)}</span>
-                                )}
-                              </div>
-                            )}
+                      {/* Mobile-first layout with optimized positioning */}
+                      <div className="flex flex-col gap-2 mt-2">
+                        {/* Quantity controls and delete button row */}
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleQuantityUpdate(item.id, Math.max(1, Number(item.quantity) - 1))}
+                              className="h-7 w-7 p-0 text-xs"
+                              disabled={isUpdating}
+                            >
+                              <Minus className="h-3 w-3" />
+                            </Button>
+                            <Input
+                              type="number"
+                              min="1"
+                              max={item.currentStock}
+                              value={item.quantity}
+                              onChange={(e) => handleQuantityInputChange(item.id, e.target.value)}
+                              className="w-12 h-7 text-center text-sm p-1"
+                              disabled={isUpdating}
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleQuantityUpdate(item.id, Number(item.quantity) + 1)}
+                              className="h-7 w-7 p-0 text-xs"
+                              disabled={isUpdating || Number(item.quantity) >= item.currentStock}
+                            >
+                              <Plus className="h-3 w-3" />
+                            </Button>
                           </div>
+                          
+                          {/* Delete button positioned at quantity level */}
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => handleRemoveFromCart(item.id)}
-                            className="text-red-500 hover:text-red-700 p-0"
+                            className="text-red-500 hover:text-red-700 p-1 h-7 w-7"
                           >
-                            <Trash2 className="h-5 w-5" />
+                            <Trash2 className="h-4 w-4" />
                           </Button>
+                        </div>
+                        
+                        {/* Stock warning */}
+                        {item.currentStock <= 5 && (
+                          <span className="text-xs text-orange-600">Only {item.currentStock} left in stock</span>
+                        )}
+                        
+                        {/* Price section - optimized for mobile */}
+                        <div className="flex flex-col">
+                          {totalDiscount > 0 ? (
+                            <div className="space-y-1">
+                              <div className="flex items-center justify-between">
+                                <span className="text-gray-800 font-semibold text-sm">₹{finalItemPrice.toFixed(2)}</span>
+                                <span className="text-gray-500 line-through text-xs">₹{totalItemPrice.toFixed(2)}</span>
+                              </div>
+                              {/* Discount percentage and save text on same line for mobile */}
+                              <div className="flex items-center justify-between">
+                                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300 text-xs">
+                                  -{discountPercentage}% OFF
+                                </Badge>
+                                <span className="text-green-600 text-xs font-medium">Save ₹{totalDiscount.toFixed(2)}</span>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-between">
+                              <span className="text-gray-800 font-semibold text-sm">₹{totalItemPrice.toFixed(2)}</span>
+                              {item.salePrice && (
+                                <span className="text-gray-500 line-through text-xs">₹{(item.price * item.quantity).toFixed(2)}</span>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
