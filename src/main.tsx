@@ -5,6 +5,7 @@ import './index.css';
 
 import { BrowserRouter } from 'react-router-dom';
 
+
 // Wait for the device to be ready when using Capacitor
 const initialize = async () => {
   // Standard React initialization

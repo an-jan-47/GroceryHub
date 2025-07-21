@@ -9,6 +9,7 @@ import LoadingScreen from "./components/LoadingScreen";
 import { useNavigationGestures } from './hooks/useNavigationGestures';
 import { history } from './history';
 import PaymentDetails from '@/pages/PaymentDetails';
+import ScrollToTop from './components/ScrollToTop';
 
 // Pages
 import Index from "./pages/Index";
@@ -36,7 +37,7 @@ import HelpSupport from "./pages/HelpSupport";
 import TermsOfUse from "./pages/TermsOfUse";
 import ReturnPolicy from "./pages/ReturnPolicy";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
-import DeleteAccount from "./pages/DeleteAccount"; // Add this line
+import DeleteAccount from "./pages/DeleteAccount";
 
 // Providers
 import { CartProvider } from "./hooks/useCart";
@@ -45,6 +46,8 @@ import { CouponStateProvider } from "./components/CouponStateManager";
 import ProtectedRoute from "./components/ProtectedRoute";
 import OrderCompletedGuard from "./components/OrderCompletedGuard";
 import ErrorBoundary from './components/ErrorBoundary';
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 // Services initialization
 import { initializeApp, setupPerformanceMonitoring } from "./utils/appInitializer";
@@ -71,19 +74,9 @@ const AppContent = () => {
   console.log('AppContent rendering');
   useNavigationGestures();
 
-  // Add this effect to ensure proper history tracking
-  useEffect(() => {
-    const isCapacitor = !!(window as any).Capacitor;
-    if (isCapacitor) {
-      // Add this to ensure proper history management
-      window.addEventListener('popstate', (event) => {
-        console.log('popstate event', event);
-      });
-    }
-  }, []);
-
   return (
-    <ErrorBoundary>
+    <>
+      <ScrollToTop />
       <Routes>
         <Route path="/" element={<Index />} />
         <Route path="/product/:productId" element={<ProductDetail />} />
@@ -128,7 +121,8 @@ const AppContent = () => {
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
         <Route path="/payment-details" element={<PaymentDetails />} />
       </Routes>
-    </ErrorBoundary>
+      <Toaster />
+    </>
   );
 };
 

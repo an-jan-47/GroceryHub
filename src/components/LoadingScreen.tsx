@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 
 import { useAuth } from '@/contexts/AuthContext';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, WifiOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const LoadingScreen = () => {
@@ -63,8 +63,27 @@ const LoadingScreen = () => {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-white">
       <h1 className="text-3xl font-bold text-blue-900 mb-2">GroceryHub</h1>
-      <RefreshCw className="animate-spin w-8 h-8 text-gray-600" />
-      <p className="mt-4 text-gray-500">Loading...</p>
+      
+      {!isOnline && connectionChecked ? (
+        <div className="flex flex-col items-center justify-center p-6 rounded-lg">
+          <WifiOff className="w-16 h-16 text-gray-400 mb-4" />
+          <h2 className="text-xl font-semibold text-gray-800 mb-2">No Internet Connection</h2>
+          <p className="text-gray-600 text-center mb-4">
+            Please check your internet connection and try again
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-6 py-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors"
+          >
+            Retry Connection
+          </button>
+        </div>
+      ) : (
+        <>
+          <RefreshCw className="animate-spin w-8 h-8 text-gray-600" />
+          <p className="mt-4 text-gray-500">Loading...</p>
+        </>
+      )}
     </div>
   );
 };
