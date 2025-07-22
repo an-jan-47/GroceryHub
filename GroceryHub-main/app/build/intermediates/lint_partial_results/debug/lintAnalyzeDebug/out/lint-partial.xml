@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<incidents format="6" by="lint 8.9.1" type="partial_results">
+    <map id="UnsafeIntentLaunch">
+            <map id="unprotected">
+                <entry
+                    name="LauncherActivity"
+                    boolean="true"/>
+            </map>
+    </map>
+    <map id="UnusedResources">
+        <location id="R.bool.enableSiteSettingsShortcut"
+            file="${:app*projectDir}/build.gradle"/>
+        <location id="R.color.colorAccent"
+            file="${:app*debug*MAIN*sourceProvider*0*resDir*0}/values/colors.xml"
+            line="4"
+            column="12"
+            startOffset="119"
+            endLine="4"
+            endColumn="30"
+            endOffset="137"/>
+        <location id="R.color.shortcut_background"
+            file="${:app*debug*MAIN*sourceProvider*0*resDir*0}/values/colors.xml"
+            line="3"
+            column="12"
+            startOffset="64"
+            endLine="3"
+            endColumn="38"
+            endOffset="90"/>
+        <location id="R.drawable.shortcut_legacy_background"
+            file="${:app*debug*MAIN*sourceProvider*0*resDir*0}/drawable-anydpi/shortcut_legacy_background.xml"
+            line="16"
+            column="1"
+            startOffset="646"
+            endLine="25"
+            endColumn="9"
+            endOffset="1043"/>
+        <location id="R.raw.web_app_manifest"
+            file="${:app*debug*MAIN*sourceProvider*0*resDir*0}/raw/web_app_manifest.json"/>
+        <location id="R.string.fullScopeUrl"
+            file="${:app*projectDir}/build.gradle"/>
+        <location id="R.style.AppTheme"
+            file="${:app*debug*MAIN*sourceProvider*0*resDir*0}/values/styles.xml"
+            line="4"
+            column="12"
+            startOffset="101"
+            endLine="4"
+            endColumn="27"
+            endOffset="116"/>
+        <location id="R.style.AppTheme_NoActionBarLaunch"
+            file="${:app*debug*MAIN*sourceProvider*0*resDir*0}/values/styles.xml"
+            line="23"
+            column="12"
+            startOffset="1086"
+            endLine="23"
+            endColumn="45"
+            endOffset="1119"/>
+        <location id="R.style.Theme_SplashScreen"
+            file="${:app*debug*MAIN*sourceProvider*0*resDir*0}/values/styles.xml"
+            line="13"
+            column="12"
+            startOffset="566"
+            endLine="13"
+            endColumn="37"
+            endOffset="591"/>
+        <entry
+            name="model"
+            string="bool[enableNotification(U),enableSiteSettingsShortcut(D)],color[colorPrimary(U),colorPrimaryDark(U),navigationColor(U),navigationColorDark(U),navigationDividerColor(U),navigationDividerColorDark(U),backgroundColor(U),shortcut_background(D),colorAccent(D)],drawable[splash(U),ic_notification_icon(U),shortcut_legacy_background(D),shortcut_legacy_background_1(E)],integer[splashScreenFadeOutDuration(U)],mipmap[ic_launcher(U),ic_maskable(U)],raw[web_app_manifest(D)],string[appName(U),assetStatements(U),webManifestUrl(U),generatorApp(U),launchUrl(U),launcherName(U),providerAuthority(U),fallbackType(U),orientation(U),hostName(U),fullScopeUrl(D)],style[AppTheme(D),Theme_AppCompat_Light_NoActionBar(E),Theme_SplashScreen(D),AppTheme_NoActionBarLaunch(D)],xml[shortcuts(U),filepaths(U)];d^e^9,10^11,1e^1f^2^3^a^4,20^1e^8^2^4^3^a,21^1e^8;;;"/>
+    </map>
+
+</incidents>

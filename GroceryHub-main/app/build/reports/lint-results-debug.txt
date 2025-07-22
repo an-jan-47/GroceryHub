@@ -1,0 +1,104 @@
+D:\p07\Project007\app\src\main\AndroidManifest.xml:141: Warning: Attribute autoVerify is only used in API level 23 and higher (current min is 21) [UnusedAttribute]
+            <intent-filter android:autoVerify="true">
+                           ~~~~~~~~~~~~~~~~~~~~~~~~~
+
+   Explanation for issues of type "UnusedAttribute":
+   This check finds attributes set in XML files that were introduced in a
+   version newer than the oldest version targeted by your application (with
+   the minSdkVersion attribute).
+
+   This is not an error; the application will simply ignore the attribute.
+   However, if the attribute is important to the appearance or functionality
+   of your application, you should consider finding an alternative way to
+   achieve the same result with only available attributes, and then you can
+   optionally create a copy of the layout in a layout-vNN folder which will be
+   used on API NN or higher where you can take advantage of the newer
+   attribute.
+
+   Note: This check does not only apply to attributes. For example, some tags
+   can be unused too, such as the new <tag> element in layouts introduced in
+   API 21.
+
+D:\p07\Project007\app\src\main\java\com\groceryhub\app\LauncherActivity.java:39: Warning: You should not lock orientation of your activities, so that you can support a good user experience for any device or orientation [SourceLockedOrientationActivity]
+            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_USER_PORTRAIT);
+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+   Explanation for issues of type "SourceLockedOrientationActivity":
+   The Activity should not be locked to a portrait orientation so that users
+   can take advantage of the multi-window environments and larger
+   landscape-first screens that Android runs on such as ChromeOS, tablets, and
+   foldables. To fix the issue, consider calling setRequestedOrientation with
+   the ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR or
+   ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED options or removing the call
+   all together.
+
+   https://developer.android.com/guide/topics/large-screens/large-screen-cookbook#restricted_app_orientation
+
+D:\p07\Project007\app\build.gradle: Warning: The resource R.bool.enableSiteSettingsShortcut appears to be unused [UnusedResources]
+D:\p07\Project007\app\build.gradle: Warning: The resource R.bool.enableSiteSettingsShortcut appears to be unused [UnusedResources]
+D:\p07\Project007\app\build.gradle: Warning: The resource R.bool.enableSiteSettingsShortcut appears to be unused [UnusedResources]
+D:\p07\Project007\app\build.gradle: Warning: The resource R.string.fullScopeUrl appears to be unused [UnusedResources]
+D:\p07\Project007\app\build.gradle: Warning: The resource R.string.fullScopeUrl appears to be unused [UnusedResources]
+D:\p07\Project007\app\build.gradle: Warning: The resource R.string.fullScopeUrl appears to be unused [UnusedResources]
+D:\p07\Project007\app\src\main\res\values\colors.xml:3: Warning: The resource R.color.shortcut_background appears to be unused [UnusedResources]
+    <color name="shortcut_background">#F5F5F5</color>
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~
+D:\p07\Project007\app\src\main\res\values\colors.xml:4: Warning: The resource R.color.colorAccent appears to be unused [UnusedResources]
+    <color name="colorAccent">#3B82F6</color>
+           ~~~~~~~~~~~~~~~~~~
+D:\p07\Project007\app\src\main\res\drawable-anydpi\shortcut_legacy_background.xml:16: Warning: The resource R.drawable.shortcut_legacy_background appears to be unused [UnusedResources]
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+^
+D:\p07\Project007\app\src\main\res\values\styles.xml:4: Warning: The resource R.style.AppTheme appears to be unused [UnusedResources]
+    <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
+           ~~~~~~~~~~~~~~~
+D:\p07\Project007\app\src\main\res\values\styles.xml:13: Warning: The resource R.style.Theme_SplashScreen appears to be unused [UnusedResources]
+    <style name="Theme.SplashScreen" parent="AppTheme">
+           ~~~~~~~~~~~~~~~~~~~~~~~~~
+D:\p07\Project007\app\src\main\res\values\styles.xml:23: Warning: The resource R.style.AppTheme_NoActionBarLaunch appears to be unused [UnusedResources]
+    <style name="AppTheme.NoActionBarLaunch" parent="AppTheme">
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+D:\p07\Project007\app\src\main\res\raw\web_app_manifest.json: Warning: The resource R.raw.web_app_manifest appears to be unused [UnusedResources]
+
+   Explanation for issues of type "UnusedResources":
+   Unused resources make applications larger and slow down builds.
+
+
+   The unused resource check can ignore tests. If you want to include
+   resources that are only referenced from tests, consider packaging them in a
+   test source set instead.
+
+   You can include test sources in the unused resource check by setting the
+   system property lint.unused-resources.include-tests =true, and to exclude
+   them (usually for performance reasons), use
+   lint.unused-resources.exclude-tests =true.
+   ,
+
+D:\p07\Project007\app\src\main\res\mipmap-anydpi-v26\ic_launcher.xml:16: Warning: The application adaptive icon is missing a monochrome tag [MonochromeLauncherIcon]
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android"
+^
+
+   Explanation for issues of type "MonochromeLauncherIcon":
+   If android:roundIcon and android:icon are both in your manifest, you must
+   either remove the reference to android:roundIcon if it is not needed; or,
+   supply the monochrome icon in the drawable defined by the android:roundIcon
+   and android:icon attribute.
+
+   For example, if android:roundIcon and android:icon are both in the
+   manifest, a launcher might choose to use android:roundIcon over
+   android:icon to display the adaptive app icon. Therefore, your themed
+   application iconwill not show if your monochrome attribute is not also
+   specified in android:roundIcon.
+
+D:\p07\Project007\app\src\main\res\mipmap-hdpi\ic_launcher.png: Warning: The following unrelated icon files have identical contents: ic_notification_icon.png, ic_launcher.png [IconDuplicates]
+D:\p07\Project007\app\src\main\res\mipmap-mdpi\ic_launcher.png: Warning: The following unrelated icon files have identical contents: ic_notification_icon.png, ic_launcher.png [IconDuplicates]
+D:\p07\Project007\app\src\main\res\mipmap-xhdpi\ic_launcher.png: Warning: The following unrelated icon files have identical contents: ic_notification_icon.png, ic_launcher.png [IconDuplicates]
+
+   Explanation for issues of type "IconDuplicates":
+   If an icon is repeated under different names, you can consolidate and just
+   use one of the icons and delete the others to make your application
+   smaller. However, duplicated icons usually are not intentional and can
+   sometimes point to icons that were accidentally overwritten or accidentally
+   not updated.
+
+0 errors, 19 warnings
