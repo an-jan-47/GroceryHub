@@ -138,14 +138,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const msg = error?.message?.toLowerCase() || '';
 
       if (
-        msg.includes('invalid login credentials') ||
         msg.includes('user not found') ||
         msg.includes('no user found')
       ) {
         toast('Login failed', {
           description: 'No account found. Please sign up first.',
         });
-      } else {
+      } else if (
+         msg.includes('invalid login credentials')
+      ) {
+        toast('Login failed', {
+          description: 'Invalid email or password. Please try again.',
+        });
+      }
+      else {
         toast('Login failed', {
           description: error?.message || 'Unable to log you in.',
         });
