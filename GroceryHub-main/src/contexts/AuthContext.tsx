@@ -74,7 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       setLoading(true);
 
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -82,28 +82,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           data: {
             name: userData.name,
             phone: userData.phone,
-          }
-        }
+          },
+        },
       });
 
-      if (error) throw error;
+      console.log("Signup result:", { data, error });
 
-      toast('Account created successfully', {
-        description: 'Please check your email to confirm your account.',
-      });
-    } catch (error: any) {
       const msg = error?.message?.toLowerCase() || '';
 
-      if (msg.includes('already') && msg.includes('email')) {
+      if (
+        msg.includes('already registered') ||
+        msg.includes('already exists') ||
+        msg.includes('duplicate') ||
+        (msg.includes('email') && msg.includes('exists'))
+      ) {
         toast('Email already exists', {
           description: 'Please log in or reset your password.',
         });
-      } else {
-        toast('Signup failed', {
-          description: error?.message || 'Unable to create your account.',
-        });
+        return;
       }
 
+      if (!error && !data?.user) {
+        toast('Signup failed', {
+          description: 'This email may already be registered.',
+        });
+        return;
+      }
+
+      toast('Verification email sent', {
+        description: 'Check your email to confirm your account.',
+      });
+    } catch (error: any) {
+      toast('Signup failed', {
+        description: error?.message || 'Unable to create your account.',
+      });
       throw error;
     } finally {
       setLoading(false);
@@ -199,7 +211,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (error) throw error;
 
-      await signOut(); // Will clear session and local data
+      await signOut();
 
       toast('Account deleted successfully', {
         description: 'Your account has been permanently deleted.',
