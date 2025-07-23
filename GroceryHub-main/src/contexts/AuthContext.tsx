@@ -3,17 +3,21 @@ import React, {
   useContext,
   useState,
   useEffect,
-  ReactNode
+  ReactNode,
 } from "react";
 
-import { Session, User } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/components/ui/sonner';
+import { Session, User } from "@supabase/supabase-js";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/components/ui/sonner";
 
 interface AuthContextType {
   session: Session | null;
   user: User | null;
-  signUp: (email: string, password: string, userData: { name: string; phone: string }) => Promise<void>;
+  signUp: (
+    email: string,
+    password: string,
+    userData: { name: string; phone: string }
+  ) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
@@ -25,7 +29,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) throw new Error('useAuth must be used within an AuthProvider');
+  if (!context) throw new Error("useAuth must be used within an AuthProvider");
   return context;
 };
 
@@ -39,28 +43,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const initializeAuth = async () => {
       try {
-        const { data: { session: initialSession } } = await supabase.auth.getSession();
+        const {
+          data: { session: initialSession },
+        } = await supabase.auth.getSession();
+
         if (mounted) {
           setSession(initialSession);
           setUser(initialSession?.user ?? null);
         }
 
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(
-          (_event, currentSession) => {
-            if (mounted) {
-              setSession(currentSession);
-              setUser(currentSession?.user ?? null);
-            }
+        const {
+          data: { subscription },
+        } = supabase.auth.onAuthStateChange((_event, currentSession) => {
+          if (mounted) {
+            setSession(currentSession);
+            setUser(currentSession?.user ?? null);
           }
-        );
+        });
       } catch (error) {
-        console.error('Error initializing auth:', error);
+        console.error("Error initializing auth:", error);
       } finally {
         if (mounted) setLoading(false);
       }
     };
 
     initializeAuth();
+
     return () => {
       mounted = false;
     };
@@ -78,7 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email,
         password,
         options: {
-          emailRedirectTo: 'https://email-verification-woad.vercel.app/',
+          emailRedirectTo: "https://email-verification-woad.vercel.app/",
           data: {
             name: userData.name,
             phone: userData.phone,
@@ -88,33 +96,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       console.log("Signup result:", { data, error });
 
-      const msg = error?.message?.toLowerCase() || '';
-
-      if (
-        msg.includes('already registered') ||
-        msg.includes('already exists') ||
-        msg.includes('duplicate') ||
-        (msg.includes('email') && msg.includes('exists'))
-      ) {
-        toast('Email already exists', {
-          description: 'Please log in or reset your password.',
+      if (data?.user && data.user.identities?.length === 0) {
+        toast("Email already registered", {
+          description: "Please log in or reset your password or try forgot password.",
         });
         return;
       }
 
-      if (!error && !data?.user) {
-        toast('Signup failed', {
-          description: 'This email may already be registered.',
+      if (error) {
+        toast("Signup failed", {
+          description: error.message || "Something went wrong.",
         });
         return;
       }
 
-      toast('Verification email sent', {
-        description: 'Check your email to confirm your account.',
+      toast("Verification email sent", {
+        description: "Check your inbox to confirm your account.",
       });
     } catch (error: any) {
-      toast('Signup failed', {
-        description: error?.message || 'Unable to create your account.',
+      toast("Signup failed", {
+        description: error?.message || "Unable to create your account.",
       });
       throw error;
     } finally {
@@ -128,35 +129,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const { error } = await supabase.auth.signInWithPassword({
         email,
-        password
+        password,
       });
 
-      if (error) throw error;
+      if (error) {
+        const msg = error.message.toLowerCase();
+        if (msg.includes("invalid login credentials")) {
+          toast("Login failed", {
+            description: "Invalid email or password. Please try again.",
+          });
+        } else if (msg.includes("user not found")) {
+          toast("Login failed", {
+            description: "Account does not exist. Please sign up.",
+          });
+        } else {
+          toast("Login failed", {
+            description: error.message || "Unable to log you in.",
+          });
+        }
+        throw error;
+      }
 
-      toast('Welcome back!');
+      toast("Welcome back!");
     } catch (error: any) {
-      const msg = error?.message?.toLowerCase() || '';
-
-      if (
-        msg.includes('user not found') ||
-        msg.includes('no user found')
-      ) {
-        toast('Login failed', {
-          description: 'No account found. Please sign up first.',
-        });
-      } else if (
-         msg.includes('invalid login credentials')
-      ) {
-        toast('Login failed', {
-          description: 'Invalid email or password. Please try again.',
-        });
-      }
-      else {
-        toast('Login failed', {
-          description: error?.message || 'Unable to log you in.',
-        });
-      }
-
+      console.error("Login error:", error);
       throw error;
     } finally {
       setLoading(false);
@@ -167,14 +163,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       setLoading(true);
       const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google'
+        provider: "google",
       });
 
       if (error) throw error;
     } catch (error: any) {
-      console.error('Google sign-in error:', error);
-      toast('Google sign-in failed', {
-        description: error?.message || 'Please try again.',
+      console.error("Google sign-in error:", error);
+      toast("Google sign-in failed", {
+        description: error?.message || "Please try again.",
       });
       throw error;
     } finally {
@@ -190,11 +186,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       sessionStorage.clear();
       setUser(null);
       setSession(null);
-      toast('Signed out successfully');
+      toast("Signed out successfully");
     } catch (error: any) {
-      console.error('Sign out error:', error);
-      toast('Sign out failed', {
-        description: error?.message || 'Please try again.',
+      console.error("Sign out error:", error);
+      toast("Sign out failed", {
+        description: error?.message || "Please try again.",
       });
     } finally {
       setLoading(false);
@@ -209,25 +205,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error("No user is logged in");
       }
 
-      const { data, error } = await supabase.functions.invoke('delete-user-account', {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      });
+      const { data, error } = await supabase.functions.invoke(
+        "delete-user-account",
+        {
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        }
+      );
 
       if (error) throw error;
 
       await signOut();
 
-      toast('Account deleted successfully', {
-        description: 'Your account has been permanently deleted.',
+      toast("Account deleted successfully", {
+        description: "Your account has been permanently deleted.",
       });
 
-      window.location.href = '/login';
+      window.location.href = "/login";
     } catch (error: any) {
-      console.error('Account deletion error:', error);
-      toast('Account deletion failed', {
-        description: error?.message || 'Please try again.',
+      console.error("Account deletion error:", error);
+      toast("Account deletion failed", {
+        description: error?.message || "Please try again.",
       });
       throw error;
     } finally {
