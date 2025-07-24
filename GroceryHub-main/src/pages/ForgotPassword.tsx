@@ -23,7 +23,7 @@ const ForgotPassword = () => {
     setIsLoading(true);
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: 'https://reset-password-rho-swart.vercel.app/',
+        redirectTo: 'https://reset-password-rho-swart.vercel.app',
       });
 
       if (error) throw error;
