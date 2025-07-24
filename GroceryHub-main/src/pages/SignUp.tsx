@@ -9,8 +9,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/components/ui/sonner';
 import { ArrowLeft } from 'lucide-react';
 
-console.log('SignUp component loaded'); // Debugging line
-
 const SignUp = () => {
   const [formData, setFormData] = useState({
     name: '',

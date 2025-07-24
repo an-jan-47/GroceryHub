@@ -1,15 +1,23 @@
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
-
-import { Session, User } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import { toast } from '@/components/ui/sonner';
+import { Session, User } from "@supabase/supabase-js";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/components/ui/sonner";
 
 interface AuthContextType {
   session: Session | null;
   user: User | null;
-  signUp: (email: string, password: string, userData: { name: string; phone: string }) => Promise<void>;
+  signUp: (
+    email: string,
+    password: string,
+    userData: { name: string; phone: string }
+  ) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
@@ -19,12 +27,9 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Export the useAuth hook at the top level instead of at the bottom
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
+  if (!context) throw new Error("useAuth must be used within an AuthProvider");
   return context;
 };
 
@@ -38,83 +43,81 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const initializeAuth = async () => {
       try {
-        console.log('Initializing auth...');
-        // Get initial session
-        const { data: { session: initialSession } } = await supabase.auth.getSession();
-        console.log('Initial session:', initialSession);
-        
+        const {
+          data: { session: initialSession },
+        } = await supabase.auth.getSession();
+
         if (mounted) {
           setSession(initialSession);
           setUser(initialSession?.user ?? null);
         }
 
-        // Set up auth state change listener
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
-          console.log('Auth state changed:', event, currentSession);
+        const {
+          data: { subscription },
+        } = supabase.auth.onAuthStateChange((_event, currentSession) => {
           if (mounted) {
             setSession(currentSession);
             setUser(currentSession?.user ?? null);
           }
         });
-
       } catch (error) {
-        console.error('Error initializing auth:', error);
+        console.error("Error initializing auth:", error);
       } finally {
-        if (mounted) {
-          setLoading(false);
-        }
+        if (mounted) setLoading(false);
       }
     };
 
     initializeAuth();
 
     return () => {
-      console.log('Cleaning up auth...');
       mounted = false;
     };
   }, []);
 
-  const signUp = async (email: string, password: string, userData: { name: string; phone: string }) => {
+  const signUp = async (
+    email: string,
+    password: string,
+    userData: { name: string; phone: string }
+  ) => {
     try {
       setLoading(true);
-      const { error } = await supabase.auth.signUp({
+
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: 'https://email-verification-woad.vercel.app/',
+          emailRedirectTo: "https://email-verification-woad.vercel.app/",
           data: {
             name: userData.name,
             phone: userData.phone,
-          }
-        }
+          },
+        },
       });
 
-      if (error) throw error;
-      
-      toast('Account created successfully', {
-        description: 'Please check your email to confirm your account'
-      });
-    } catch (error: any) {
-      // Log the detailed error for debugging but don't expose to user
-      console.error('Signup error:', error);
+      console.log("Signup result:", { data, error });
 
-      // If the error is related to email already being used, we can handle it specifically
-      if (error.message.includes('already registered')) {
-        toast('Email already in exists', {
-          description: 'This email is already associated with an account. Please try logging in or use a different email.',
+      if (data?.user && data.user.identities?.length === 0) {
+        toast("Email already registered", {
+          description: "Please log in or reset your password or try forgot password.",
         });
         return;
-        }
-
-      // Handle other specific errors if needed
-      else{
-        toast('Signup failed', {
-          description: 'Unable to create your account. Please try again later.'
-        });
       }
-      
-      // Throw a sanitized error
-      throw new Error('Account creation failed');
+
+      if (error) {
+        toast("Signup failed", {
+          description: error.message || "Something went wrong.",
+        });
+        return;
+      }
+
+      toast("Verification email sent", {
+        description: "Check your inbox to confirm your account.",
+      });
+    } catch (error: any) {
+      toast("Signup failed", {
+        description: error?.message || "Unable to create your account.",
+      });
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -123,25 +126,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signIn = async (email: string, password: string) => {
     try {
       setLoading(true);
+
       const { error } = await supabase.auth.signInWithPassword({
         email,
-        password
+        password,
       });
 
-      if (error) throw error;
-      
-      toast('Welcome back!');
+      if (error) {
+        const msg = error.message.toLowerCase();
+        if (msg.includes("invalid login credentials")) {
+          toast("Login failed", {
+            description: "Invalid email or password. Please try again.",
+          });
+        } else if (msg.includes("user not found")) {
+          toast("Login failed", {
+            description: "Account does not exist. Please sign up.",
+          });
+        } else {
+          toast("Login failed", {
+            description: error.message || "Unable to log you in.",
+          });
+        }
+        throw error;
+      }
+
+      toast("Welcome back!");
     } catch (error: any) {
-      // Log the detailed error for debugging
-      console.error('Login error:', error);
-      
-      // Display a generic message to the user
-      toast('Login failed', {
-        description: 'Invalid email or password'
-      });
-      
-      // Throw a sanitized error
-      throw new Error('Authentication failed');
+      console.error("Login error:", error);
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -151,21 +163,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       setLoading(true);
       const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google'
+        provider: "google",
       });
 
       if (error) throw error;
     } catch (error: any) {
-      // Log the detailed error for debugging
-      console.error('Google sign-in error:', error);
-      
-      // Display a generic message to the user
-      toast('Google sign-in failed', {
-        description: 'Unable to sign in with Google. Please try again.'
+      console.error("Google sign-in error:", error);
+      toast("Google sign-in failed", {
+        description: error?.message || "Please try again.",
       });
-      
-      // Throw a sanitized error
-      throw new Error('Google authentication failed');
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -175,17 +182,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       setLoading(true);
       await supabase.auth.signOut();
-      toast('Signed out successfully');
+      localStorage.clear();
+      sessionStorage.clear();
+      setUser(null);
+      setSession(null);
+      toast("Signed out successfully");
     } catch (error: any) {
-      // Log the detailed error for debugging
-      console.error('Sign out error:', error);
-      
-      // Display a generic message to the user
-      toast('Sign out failed', {
-        description: 'Unable to sign out. Please try again.'
+      console.error("Sign out error:", error);
+      toast("Sign out failed", {
+        description: error?.message || "Please try again.",
       });
-      
-      // No need to throw here as this is typically a terminal operation
     } finally {
       setLoading(false);
     }
@@ -194,61 +200,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const deleteAccount = async () => {
     try {
       setLoading(true);
-      
+
       if (!user || !session) {
         throw new Error("No user is logged in");
       }
-      
-      console.log('Starting account deletion process for user:', user.id);
-      
-      // Call our edge function to delete the account
-      const { data, error } = await supabase.functions.invoke('delete-user-account', {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
+
+      const { data, error } = await supabase.functions.invoke(
+        "delete-user-account",
+        {
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        }
+      );
+
+      if (error) throw error;
+
+      await signOut();
+
+      toast("Account deleted successfully", {
+        description: "Your account has been permanently deleted.",
       });
-      
-      if (error) {
-        console.error('Error calling delete function:', error);
-        throw error;
-      }
-      
-      console.log('Account deletion response:', data);
-      
-      // Clear local storage and session
-      localStorage.clear();
-      sessionStorage.clear();
-      
-      // Sign out locally (the user is already deleted on the server)
-      await supabase.auth.signOut();
-      
-      // Reset local state
-      setUser(null);
-      setSession(null);
-      
-      toast('Account deleted successfully', {
-        description: 'Your account has been permanently deleted.'
-      });
-      
-      // Force redirect to login page
-      window.location.href = '/login';
-      
+
+      window.location.href = "/login";
     } catch (error: any) {
-      console.error('Account deletion error:', error);
-      
-      toast('Account deletion failed', {
-        description: 'Unable to delete your account. Please try again later.'
+      console.error("Account deletion error:", error);
+      toast("Account deletion failed", {
+        description: error?.message || "Please try again.",
       });
-      
-      throw new Error('Account deletion failed');
+      throw error;
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <AuthContext.Provider 
-      value={{ 
+    <AuthContext.Provider
+      value={{
         session,
         user,
         signUp,
@@ -257,7 +245,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signOut,
         deleteAccount,
         loading,
-      }}>
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
