@@ -1,0 +1,13 @@
+{
+  "dependencies": {
+    "@supabase/supabase-js": "^2.52.1",
+    "@types/react-router-dom": "^5.3.3",
+    "lucide-react": "^0.525.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-router-dom": "^7.7.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.8"
+  }
+}
