@@ -1,12 +1,10 @@
-import React, { useState, useEffect } from "react";
 
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-
 import { Label } from '@/components/ui/label';
-import { toast } from '@/components/ui/sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { ArrowLeft } from 'lucide-react';
 
@@ -15,6 +13,7 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
   const { signIn, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -23,15 +22,22 @@ const Login = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!email || !password) {
+      setFormError("Please fill in all fields");
+      return;
+    }
+    
     setIsLoading(true);
+    setFormError(null);
 
     try {
       await signIn(email, password);
       navigate(from, { replace: true });
     } catch (error: any) {
-      toast('Login failed', {
-        description: 'Invalid email or password. Please try again.',
-      });
+      console.error('Login error:', error);
+      // Error handling is done in AuthContext, just set a generic form error
+      setFormError("Login failed. Please check your credentials and try again.");
     } finally {
       setIsLoading(false);
     }
@@ -42,6 +48,10 @@ const Login = () => {
       navigate(from, { replace: true });
     }
   }, [user, navigate, from]);
+
+  const handleInputChange = () => {
+    if (formError) setFormError(null);
+  };
 
   return (
     <div className="min-h-screen flex flex-col justify-start px-4 py-6 bg-gray-50 overflow-y-auto md:py-12 md:justify-center">
@@ -66,6 +76,12 @@ const Login = () => {
         </div>
 
         <form className="space-y-4 md:space-y-6" onSubmit={handleSubmit}>
+          {formError && (
+            <div className="text-red-600 text-sm text-center bg-red-50 p-3 rounded-md border border-red-200">
+              {formError}
+            </div>
+          )}
+
           <div className="space-y-3 md:space-y-4">
             <div>
               <Label htmlFor="email" className="block mb-1.5">Email address</Label>
@@ -76,9 +92,13 @@ const Login = () => {
                 autoComplete="email"
                 required
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  handleInputChange();
+                }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Email address"
+                disabled={isLoading}
               />
             </div>
             
@@ -92,14 +112,19 @@ const Login = () => {
                   autoComplete="current-password"
                   required
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    handleInputChange();
+                  }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                   placeholder="Password"
+                  disabled={isLoading}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  disabled={isLoading}
                 >
                   {showPassword ? (
                     <EyeOff className="h-5 w-5 text-gray-400" />
@@ -122,7 +147,7 @@ const Login = () => {
 
           <Button
             type="submit"
-            className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={isLoading}
           >
             {isLoading ? 'Signing in...' : 'Sign in'}

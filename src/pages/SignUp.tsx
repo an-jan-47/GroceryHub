@@ -1,12 +1,11 @@
-import React, { useState, useEffect } from "react";
 
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
-import { toast } from '@/components/ui/sonner';
 import { ArrowLeft } from 'lucide-react';
 
 const SignUp = () => {
@@ -90,22 +89,22 @@ const SignUp = () => {
           phone: formData.phone 
         }
       );
-      // Don't navigate - user needs to confirm their email first
+      // Success - don't navigate, let user know to check email
     } catch (error: any) {
       console.error('Signup error:', error);
       
-      // Handle specific Supabase email validation error
-      if (error.message?.includes('invalid') && error.message?.includes('Email')) {
-        setFormError(`Please use a valid email address.`);
+      // Handle specific error types without showing duplicate toasts
+      if (error.message?.includes('Account already exists')) {
+        setFormError('This email is already registered. Please try signing in instead.');
+      } else if (error.message?.includes('Email service error')) {
+        setFormError('Email service is temporarily unavailable. Please try again later.');
       } else {
-        setFormError(error.message || "An unexpected error occurred");
+        setFormError('Account creation failed. Please try again.');
       }
     } finally {
       setIsSubmitting(false);
     }
   };
-  
-  // Remove handleGoogleSignUp function
   
   return (
     <div className="min-h-screen flex flex-col justify-start px-4 py-6 bg-gray-50 overflow-y-auto md:py-12 md:justify-center">
@@ -131,7 +130,9 @@ const SignUp = () => {
 
         <form className="space-y-4 md:space-y-6" onSubmit={handleSubmit}>
           {formError && (
-            <div className="text-red-600 text-sm text-center">{formError}</div>
+            <div className="text-red-600 text-sm text-center bg-red-50 p-3 rounded-md border border-red-200">
+              {formError}
+            </div>
           )}
 
           <div className="space-y-3 md:space-y-4">
@@ -146,6 +147,7 @@ const SignUp = () => {
                 onChange={handleInputChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Enter your full name"
+                disabled={isSubmitting}
               />
             </div>
 
@@ -160,6 +162,7 @@ const SignUp = () => {
                 onChange={handleInputChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Enter your email"
+                disabled={isSubmitting}
               />
             </div>
 
@@ -173,6 +176,7 @@ const SignUp = () => {
                 onChange={handleInputChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Enter your phone number"
+                disabled={isSubmitting}
               />
             </div>
 
@@ -188,11 +192,13 @@ const SignUp = () => {
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                   placeholder="Create a password"
+                  disabled={isSubmitting}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  disabled={isSubmitting}
                 >
                   {showPassword ? (
                     <EyeOff className="h-5 w-5 text-gray-400" />
@@ -206,7 +212,7 @@ const SignUp = () => {
 
           <Button
             type="submit"
-            className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={isSubmitting}
           >
             {isSubmitting ? 'Creating account...' : 'Create account'}
