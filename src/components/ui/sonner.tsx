@@ -1,3 +1,4 @@
+import React from 'react';
 
 'use client';
 
@@ -13,7 +14,8 @@ export function Toaster() {
     <Sonner
       theme={theme as 'light' | 'dark' | 'system'}
       className="toaster group"
-      position="bottom-center"
+      position="top-center"
+      duration={3000}
       toastOptions={{
         classNames: {
           toast:

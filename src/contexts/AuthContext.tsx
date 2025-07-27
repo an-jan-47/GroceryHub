@@ -80,9 +80,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signUp = async (email: string, password: string, userData: { name: string; phone: string }) => {
     try {
       setLoading(true);
-      
       // Set up redirect URL for email confirmation
-      const redirectUrl = `${window.location.origin}/`;
+      const redirectUrl = `https://email-verification-woad.vercel.app/`;
       
       const { data, error } = await supabase.auth.signUp({
         email,
