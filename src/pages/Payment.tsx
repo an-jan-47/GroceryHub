@@ -83,7 +83,7 @@ const PaymentMethodsPage = () => {
     }
   }, [cartItems, navigate]);
 
-  // Calculation functions - NO TAX INCLUDED
+  // Calculation functions 
   const calculatePricing = () => {
     // Calculate subtotal using sale price when available
     const subtotal = cartItems.reduce((total, item) => {

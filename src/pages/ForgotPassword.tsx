@@ -62,8 +62,8 @@ const ForgotPassword = () => {
         {isSuccess ? (
           <div className="text-center">
             <p className="text-sm text-gray-600 mb-4">
-              We've sent you an email with instructions to reset your password.
-              Please check your inbox.
+              We&apos;ve sent you an email with instructions to reset your password.
+              Please check your inbox and spam folder. 
             </p>
             <Link
               to="/login"

@@ -118,7 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Success - user created but needs email verification
       if (data.user && !data.session) {
         toast('Account created successfully', {
-          description: 'Please check your email to confirm your account before signing in.'
+          description: 'Please check your inbox and spam folder to confirm your account before signing in.'
         });
       }
       
