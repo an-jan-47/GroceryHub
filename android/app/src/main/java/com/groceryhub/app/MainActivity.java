@@ -21,11 +21,25 @@ import android.widget.Toast;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import android.util.Log;
+// Remove permission imports
+// import android.Manifest;
+// import android.content.pm.PackageManager;
+// import androidx.core.app.ActivityCompat;
+// import androidx.core.content.ContextCompat;
 
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
     private static final String TAG = "MainActivity";
+    // Remove permission constants
+    // private static final int STORAGE_PERMISSION_CODE = 1001;
+    
+    // Remove pending download variables
+    // private String pendingDownloadUrl = null;
+    // private String pendingUserAgent = null;
+    // private String pendingContentDisposition = null;
+    // private String pendingMimeType = null;
+    // private long pendingContentLength = 0;
     
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -52,52 +66,13 @@ public class MainActivity extends BridgeActivity {
         settings.setAllowFileAccessFromFileURLs(true);
         settings.setAllowUniversalAccessFromFileURLs(true);
         
-        // Set download listener
+        // Set download listener - simplified to directly download without permission checks
         webView.setDownloadListener(new DownloadListener() {
             @Override
             public void onDownloadStart(String url, String userAgent, String contentDisposition, 
                                         String mimetype, long contentLength) {
-                try {
-                    // Create a DownloadManager request
-                    DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url));
-                    
-                    // Extract filename from content disposition or create a default one
-                    String fileName = "invoice.pdf";
-                    if (contentDisposition != null) {
-                        String fileNameRegex = "filename=\\\"([^\\\"]*)\\\"";
-                        Pattern pattern = Pattern.compile(fileNameRegex, Pattern.CASE_INSENSITIVE);
-                        Matcher matcher = pattern.matcher(contentDisposition);
-                        if (matcher.find()) {
-                            fileName = matcher.group(1);
-                        }
-                    }
-                    
-                    // Configure the download
-                    request.setTitle("Downloading Invoice");
-                    request.setDescription("Downloading invoice PDF file");
-                    request.allowScanningByMediaScanner();
-                    request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
-                    request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, fileName);
-                    
-                    // Get the download service and enqueue the request
-                    DownloadManager downloadManager = (DownloadManager) getSystemService(Context.DOWNLOAD_SERVICE);
-                    downloadManager.enqueue(request);
-                    
-                    // Show a toast message
-                    Toast.makeText(getApplicationContext(), "Downloading Invoice...", Toast.LENGTH_SHORT).show();
-                } catch (Exception e) {
-                    // If there's an error, try the fallback method
-                    Log.e(TAG, "Download error: " + e.getMessage());
-                    
-                    // Fallback to browser download
-                    Intent intent = new Intent(Intent.ACTION_VIEW);
-                    intent.setData(Uri.parse(url));
-                    try {
-                        startActivity(intent);
-                    } catch (ActivityNotFoundException anfe) {
-                        Toast.makeText(getApplicationContext(), "No application available to view PDF", Toast.LENGTH_SHORT).show();
-                    }
-                }
+                // Directly download the file without permission checks
+                downloadFile(url, userAgent, contentDisposition, mimetype, contentLength);
             }
         });
         
@@ -180,6 +155,71 @@ public class MainActivity extends BridgeActivity {
                 Log.d(TAG, "Page loaded: " + url);
             }
         });
+    }
+    
+    // Remove permission checking methods
+    // private boolean checkStoragePermission() {...}
+    // private void requestStoragePermission() {...}
+    // @Override
+    // public void onRequestPermissionsResult(...) {...}
+    
+    // Keep the download functionality method
+    private void downloadFile(String url, String userAgent, String contentDisposition, 
+                            String mimetype, long contentLength) {
+        try {
+            // Create a DownloadManager request
+            DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url));
+            
+            // Extract filename from content disposition or create a default one
+            String fileName = "invoice.pdf";
+            if (contentDisposition != null) {
+                String fileNameRegex = "filename=\\\"([^\\\"]*)\\\"";
+                Pattern pattern = Pattern.compile(fileNameRegex, Pattern.CASE_INSENSITIVE);
+                Matcher matcher = pattern.matcher(contentDisposition);
+                if (matcher.find()) {
+                    fileName = matcher.group(1);
+                }
+            }
+            
+            // Configure the download with more permissive settings
+            request.setTitle("Downloading Invoice");
+            request.setDescription("Downloading invoice PDF file");
+            request.allowScanningByMediaScanner();
+            request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+            request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, fileName);
+            
+            // Add headers that might help with some servers
+            if (userAgent != null) {
+                request.addRequestHeader("User-Agent", userAgent);
+            }
+            
+            // Set MIME type explicitly if available
+            if (mimetype != null) {
+                request.setMimeType(mimetype);
+            }
+            
+            // Get the download service and enqueue the request
+            DownloadManager downloadManager = (DownloadManager) getSystemService(Context.DOWNLOAD_SERVICE);
+            long downloadId = downloadManager.enqueue(request);
+            
+            // Show a toast message
+            Toast.makeText(getApplicationContext(), "Downloading Invoice...", Toast.LENGTH_SHORT).show();
+            
+            // Log success for debugging
+            Log.d(TAG, "Download started with ID: " + downloadId);
+        } catch (Exception e) {
+            // If there's an error, try the fallback method
+            Log.e(TAG, "Download error: " + e.getMessage());
+            
+            // Fallback to browser download
+            Intent intent = new Intent(Intent.ACTION_VIEW);
+            intent.setData(Uri.parse(url));
+            try {
+                startActivity(intent);
+            } catch (ActivityNotFoundException anfe) {
+                Toast.makeText(getApplicationContext(), "No application available to view PDF", Toast.LENGTH_SHORT).show();
+            }
+        }
     }
     
     @Override

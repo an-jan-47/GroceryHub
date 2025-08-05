@@ -18,7 +18,8 @@ const PaymentDetails = () => {
         <div className="bg-white rounded-lg shadow-sm p-6">
           <h1 className="text-2xl font-bold mb-6">Payment Details</h1>
           
-          <div className="space-y-4">
+          <div className="space-y-8">
+            {/* Bank Details Section */}
             <div className="border-b pb-4">
               <h2 className="text-lg font-semibold mb-4">Bank Account Information</h2>
               <div className="space-y-3">
@@ -44,10 +45,20 @@ const PaymentDetails = () => {
                 </div>
               </div>
             </div>
+
+            {/* QR Code Section */}
+            <div className="text-center">
+              <h2 className="text-lg font-semibold mb-4">Or Scan to Pay via UPI</h2>
+              <img
+                src="https://res.cloudinary.com/dzkq32gr1/image/upload/v1754375986/WhatsApp_Image_2025-08-05_at_10.53.48_6a5e733f_lwiwnt.jpg"
+                alt="UPI QR Code"
+                className="w-full max-w-xs mx-auto rounded-lg shadow-md"
+                loading="lazy"
+              />
+            </div>
           </div>
         </div>
       </main>
-      
       <BottomNavigation />
     </div>
   );
