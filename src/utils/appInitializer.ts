@@ -1,5 +1,9 @@
 
-import { showToast } from './toastUtils';
+import { toast } from '@/hooks/use-toast';
+
+// Debounce tracking for error toasts
+let errorToastTimeout: NodeJS.Timeout | null = null;
+let rejectionToastTimeout: NodeJS.Timeout | null = null;
 
 /**
  * Initialize application services
@@ -43,26 +47,19 @@ export const initializeApp = async (): Promise<void> => {
     });
   } else if ('serviceWorker' in navigator) {
     // In development, ensure service workers are unregistered
-    // Update the service worker section in initializeApp function
+    navigator.serviceWorker.getRegistrations().then(registrations => {
+      for (const registration of registrations) {
+        registration.unregister();
+      }
+    });
     
-    // Always unregister service workers
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then(registrations => {
-        for (const registration of registrations) {
-          registration.unregister();
-        }
-      });
-      
-      // Clear all caches
-      caches.keys().then(cacheNames => {
-        Promise.all(cacheNames.map(cacheName => caches.delete(cacheName)));
-      });
-    }
+    // Clear all caches
+    caches.keys().then(cacheNames => {
+      Promise.all(cacheNames.map(cacheName => caches.delete(cacheName)));
+    });
   }
   
   // Setup global error handling with debounced toasts
-  let errorToastTimeout: NodeJS.Timeout | null = null;
-  
   window.addEventListener('error', (event) => {
     console.error('Global error:', event.error);
     
@@ -74,7 +71,7 @@ export const initializeApp = async (): Promise<void> => {
       }
       
       errorToastTimeout = setTimeout(() => {
-        showToast({
+        toast({
           title: "Something went wrong",
           description: "An unexpected error occurred. Please try again later.",
           variant: "destructive"
@@ -85,8 +82,6 @@ export const initializeApp = async (): Promise<void> => {
   });
   
   // Handle promise rejections that aren't caught
-  let rejectionToastTimeout: NodeJS.Timeout | null = null;
-  
   window.addEventListener('unhandledrejection', (event) => {
     console.error('Unhandled promise rejection:', event.reason);
     
@@ -97,7 +92,7 @@ export const initializeApp = async (): Promise<void> => {
       }
       
       rejectionToastTimeout = setTimeout(() => {
-        showToast({
+        toast({
           title: "Something went wrong",
           description: "An unexpected error occurred. Please try again later.",
           variant: "destructive"
@@ -129,9 +124,6 @@ export const setupPerformanceMonitoring = (): void => {
           const loadTime = navigationEntry.loadEventEnd - navigationEntry.startTime;
           
           console.log(`Page load completed in ${loadTime.toFixed(2)}ms`);
-          
-          // Track page load time to analytics service
-          // trackPerformanceMetric('page_load_time', loadTime);
         }
       });
     });
@@ -147,7 +139,6 @@ export const setupPerformanceMonitoring = (): void => {
       list.getEntries().forEach(entry => {
         if (entry.duration > 100) {
           console.warn(`Long task detected: ${entry.duration.toFixed(2)}ms`);
-          // trackPerformanceMetric('long_task', entry.duration);
         }
       });
     });

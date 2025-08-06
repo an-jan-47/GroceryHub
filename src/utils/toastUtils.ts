@@ -29,11 +29,15 @@ export const showToast = (options: {
   // Add to active toasts
   activeToasts.add(key);
   
-  // Show the toast
-  const toastResult = toast(options);
+  // Show the toast using the correct API
+  const toastResult = toast({
+    title: options.title,
+    description: options.description,
+    variant: options.variant,
+  });
   
   // Remove from active toasts after duration
-  const duration = options.duration || 5000;
+  const duration = options.duration || 3000;
   const timeout = setTimeout(() => {
     activeToasts.delete(key);
     debounceTimeouts.delete(key);

@@ -49,7 +49,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 
-// Toast components - only use one system
+// Toast components
 import { Toaster } from "@/components/ui/toaster";
 
 // Services initialization
@@ -175,7 +175,6 @@ const App = () => {
                   <TooltipProvider>
                     <ErrorBoundary>
                       <AppContent />
-                      {/* Single Toaster instance */}
                       <Toaster />
                     </ErrorBoundary>
                   </TooltipProvider>
