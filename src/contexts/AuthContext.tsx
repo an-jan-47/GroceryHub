@@ -1,8 +1,8 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
+import { useToast } from '@/hooks/use-toast';
+import { toast } from '@/components/ui/sonner';
 
 interface AuthContextType {
   session: Session | null;
@@ -17,6 +17,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Export the useAuth hook at the top level instead of at the bottom
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
@@ -38,7 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.log('Initializing auth...');
         
         // Set up auth state change listener FIRST
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: any, currentSession: any) => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
           console.log('Auth state changed:', event, currentSession);
           if (mounted) {
             setSession(currentSession);
@@ -97,24 +98,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (error) {
         // Handle specific error types
         if (error.message.includes('User already registered')) {
-          toast({
-            title: 'Account already exists',
-            description: 'This email is already registered. Please try signing in instead.',
-            variant: 'destructive'
+          toast('Account already exists', {
+            description: 'This email is already registered. Please try signing in instead.'
           });
           throw new Error('Account already exists');
         } else if (error.message.includes('confirmation email')) {
-          toast({
-            title: 'Email service temporarily unavailable',
-            description: 'Please try again in a few minutes or contact support.',
-            variant: 'destructive'
+          toast('Email service temporarily unavailable', {
+            description: 'Please try again in a few minutes or contact support.'
           });
           throw new Error('Email service error');
         } else {
-          toast({
-            title: 'Account creation failed',
-            description: error.message || 'Please try again.',
-            variant: 'destructive'
+          toast('Account creation failed', {
+            description: error.message || 'Please try again.'
           });
           throw error;
         }
@@ -122,14 +117,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Success - user created but needs email verification
       if (data.user && !data.session) {
-        toast({
-          title: 'Account created successfully',
+        toast('Account created successfully', {
           description: 'Please check your inbox and spam folder to confirm your account before signing in.'
         });
       }
       
     } catch (error: any) {
       console.error('Signup error:', error);
+      // Don't show duplicate toast - already handled above
       throw error;
     } finally {
       setLoading(false);
@@ -146,26 +141,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (error) {
         if (error.message.includes('Invalid login credentials')) {
-          toast({
-            title: 'Login failed',
-            description: 'Invalid email or password. Please try again.',
-            variant: 'destructive'
+          toast('Login failed', {
+            description: 'Invalid email or password. Please try again.'
           });
         } else if (error.message.includes('Email not confirmed')) {
-          toast({
-            title: 'Email not verified',
-            description: 'Please check your email and click the verification link before signing in.',
-            variant: 'destructive'
+          toast('Email not verified', {
+            description: 'Please check your email and click the verification link before signing in.'
           });
         } else {
-          toast({
-            title: 'Login failed',
-            description: error.message || 'Please try again.',
-            variant: 'destructive'
+          toast('Login failed', {
+            description: error.message || 'Please try again.'
           });
         }
         throw error;
       }
+      
+      // Success toast will be handled by auth state change
       
     } catch (error: any) {
       console.error('Login error:', error);
@@ -186,10 +177,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       if (error) {
-        toast({
-          title: 'Google sign-in failed',
-          description: 'Unable to sign in with Google. Please try again.',
-          variant: 'destructive'
+        toast('Google sign-in failed', {
+          description: 'Unable to sign in with Google. Please try again.'
         });
         throw error;
       }
@@ -205,15 +194,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       setLoading(true);
       await supabase.auth.signOut();
-      toast({
-        title: 'Signed out successfully'
-      });
+      toast('Signed out successfully');
     } catch (error: any) {
       console.error('Sign out error:', error);
-      toast({
-        title: 'Sign out failed',
-        description: 'Unable to sign out. Please try again.',
-        variant: 'destructive'
+      toast('Sign out failed', {
+        description: 'Unable to sign out. Please try again.'
       });
     } finally {
       setLoading(false);
@@ -255,8 +240,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null);
       setSession(null);
       
-      toast({
-        title: 'Account deleted successfully',
+      toast('Account deleted successfully', {
         description: 'Your account has been permanently deleted.'
       });
       
@@ -266,10 +250,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error: any) {
       console.error('Account deletion error:', error);
       
-      toast({
-        title: 'Account deletion failed',
-        description: 'Unable to delete your account. Please try again later.',
-        variant: 'destructive'
+      toast('Account deletion failed', {
+        description: 'Unable to delete your account. Please try again later.'
       });
       
       throw new Error('Account deletion failed');

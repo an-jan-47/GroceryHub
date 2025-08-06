@@ -1,9 +1,5 @@
 
-import { toast } from '@/hooks/use-toast';
-
-// Debounce tracking for error toasts
-let errorToastTimeout: NodeJS.Timeout | null = null;
-let rejectionToastTimeout: NodeJS.Timeout | null = null;
+import { toast } from "@/components/ui/sonner";
 
 /**
  * Initialize application services
@@ -25,7 +21,7 @@ export const initializeApp = async (): Promise<void> => {
   
   // Clear local storage cache except for auth and cart data
   const keysToKeep = Object.keys(localStorage).filter(key => key.startsWith('sb-')).concat(['groceryHub_cart']);
-  const savedData: Record<string, string> = {};
+  const savedData = {};
   
   keysToKeep.forEach(key => {
     const value = localStorage.getItem(key);
@@ -47,37 +43,32 @@ export const initializeApp = async (): Promise<void> => {
     });
   } else if ('serviceWorker' in navigator) {
     // In development, ensure service workers are unregistered
-    navigator.serviceWorker.getRegistrations().then(registrations => {
-      for (const registration of registrations) {
-        registration.unregister();
-      }
-    });
+    // Update the service worker section in initializeApp function
     
-    // Clear all caches
-    caches.keys().then(cacheNames => {
-      Promise.all(cacheNames.map(cacheName => caches.delete(cacheName)));
-    });
+    // Always unregister service workers
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(registrations => {
+        for (const registration of registrations) {
+          registration.unregister();
+        }
+      });
+      
+      // Clear all caches
+      caches.keys().then(cacheNames => {
+        Promise.all(cacheNames.map(cacheName => caches.delete(cacheName)));
+      });
+    }
   }
   
-  // Setup global error handling with debounced toasts
+  // Setup global error handling
   window.addEventListener('error', (event) => {
     console.error('Global error:', event.error);
     
     // Don't show error toasts for network issues, which are already handled by React Query
     if (event.error && !event.error.toString().includes('Network Error')) {
-      // Debounce error toasts to prevent spam
-      if (errorToastTimeout) {
-        clearTimeout(errorToastTimeout);
-      }
-      
-      errorToastTimeout = setTimeout(() => {
-        toast({
-          title: "Something went wrong",
-          description: "An unexpected error occurred. Please try again later.",
-          variant: "destructive"
-        });
-        errorToastTimeout = null;
-      }, 1000); // 1 second debounce
+      toast("Something went wrong", {
+        description: "An unexpected error occurred. Please try again later."
+      });
     }
   });
   
@@ -86,19 +77,9 @@ export const initializeApp = async (): Promise<void> => {
     console.error('Unhandled promise rejection:', event.reason);
     
     if (event.reason && !event.reason.toString().includes('Network Error')) {
-      // Debounce rejection toasts to prevent spam
-      if (rejectionToastTimeout) {
-        clearTimeout(rejectionToastTimeout);
-      }
-      
-      rejectionToastTimeout = setTimeout(() => {
-        toast({
-          title: "Something went wrong",
-          description: "An unexpected error occurred. Please try again later.",
-          variant: "destructive"
-        });
-        rejectionToastTimeout = null;
-      }, 1000); // 1 second debounce
+      toast("Something went wrong", {
+        description: "An unexpected error occurred. Please try again later."
+      });
     }
   });
   
@@ -124,6 +105,9 @@ export const setupPerformanceMonitoring = (): void => {
           const loadTime = navigationEntry.loadEventEnd - navigationEntry.startTime;
           
           console.log(`Page load completed in ${loadTime.toFixed(2)}ms`);
+          
+          // Track page load time to analytics service
+          // trackPerformanceMetric('page_load_time', loadTime);
         }
       });
     });
@@ -139,6 +123,7 @@ export const setupPerformanceMonitoring = (): void => {
       list.getEntries().forEach(entry => {
         if (entry.duration > 100) {
           console.warn(`Long task detected: ${entry.duration.toFixed(2)}ms`);
+          // trackPerformanceMetric('long_task', entry.duration);
         }
       });
     });

@@ -1,6 +1,6 @@
-
 import React, { useEffect, useState } from "react";
 
+import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
@@ -49,9 +49,6 @@ import ErrorBoundary from './components/ErrorBoundary';
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 
-// Toast components
-import { Toaster } from "@/components/ui/toaster";
-
 // Services initialization
 import { initializeApp, setupPerformanceMonitoring } from "./utils/appInitializer";
 
@@ -65,7 +62,7 @@ const queryClient = new QueryClient({
         return failureCount < 2;
       },
       staleTime: 0, // Set to 0 to force fresh data
-      gcTime: 0, // Replace cacheTime with gcTime
+      cacheTime: 0, // Disable caching
       refetchOnWindowFocus: true,
       refetchOnMount: true,
       refetchInterval: 5000 // Add polling every 5 seconds for critical data
@@ -124,6 +121,7 @@ const AppContent = () => {
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
         <Route path="/payment-details" element={<PaymentDetails />} />
       </Routes>
+      <Toaster />
     </>
   );
 };
