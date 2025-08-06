@@ -1,5 +1,5 @@
 
-import { toast } from "@/components/ui/sonner";
+import { showToast } from './toastUtils';
 
 /**
  * Initialize application services
@@ -21,7 +21,7 @@ export const initializeApp = async (): Promise<void> => {
   
   // Clear local storage cache except for auth and cart data
   const keysToKeep = Object.keys(localStorage).filter(key => key.startsWith('sb-')).concat(['groceryHub_cart']);
-  const savedData = {};
+  const savedData: Record<string, string> = {};
   
   keysToKeep.forEach(key => {
     const value = localStorage.getItem(key);
@@ -60,26 +60,50 @@ export const initializeApp = async (): Promise<void> => {
     }
   }
   
-  // Setup global error handling
+  // Setup global error handling with debounced toasts
+  let errorToastTimeout: NodeJS.Timeout | null = null;
+  
   window.addEventListener('error', (event) => {
     console.error('Global error:', event.error);
     
     // Don't show error toasts for network issues, which are already handled by React Query
     if (event.error && !event.error.toString().includes('Network Error')) {
-      toast("Something went wrong", {
-        description: "An unexpected error occurred. Please try again later."
-      });
+      // Debounce error toasts to prevent spam
+      if (errorToastTimeout) {
+        clearTimeout(errorToastTimeout);
+      }
+      
+      errorToastTimeout = setTimeout(() => {
+        showToast({
+          title: "Something went wrong",
+          description: "An unexpected error occurred. Please try again later.",
+          variant: "destructive"
+        });
+        errorToastTimeout = null;
+      }, 1000); // 1 second debounce
     }
   });
   
   // Handle promise rejections that aren't caught
+  let rejectionToastTimeout: NodeJS.Timeout | null = null;
+  
   window.addEventListener('unhandledrejection', (event) => {
     console.error('Unhandled promise rejection:', event.reason);
     
     if (event.reason && !event.reason.toString().includes('Network Error')) {
-      toast("Something went wrong", {
-        description: "An unexpected error occurred. Please try again later."
-      });
+      // Debounce rejection toasts to prevent spam
+      if (rejectionToastTimeout) {
+        clearTimeout(rejectionToastTimeout);
+      }
+      
+      rejectionToastTimeout = setTimeout(() => {
+        showToast({
+          title: "Something went wrong",
+          description: "An unexpected error occurred. Please try again later.",
+          variant: "destructive"
+        });
+        rejectionToastTimeout = null;
+      }, 1000); // 1 second debounce
     }
   });
   
