@@ -36,11 +36,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const initializeAuth = async () => {
       try {
-        console.log('Initializing auth...');
+        // console.log('Initializing auth...');
         
         // Set up auth state change listener FIRST
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
-          console.log('Auth state changed:', event, currentSession);
+          // console.log('Auth state changed:', event, currentSession);
           if (mounted) {
             setSession(currentSession);
             setUser(currentSession?.user ?? null);
@@ -49,7 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         // THEN get initial session
         const { data: { session: initialSession } } = await supabase.auth.getSession();
-        console.log('Initial session:', initialSession);
+        // console.log('Initial session:', initialSession);
         
         if (mounted) {
           setSession(initialSession);
@@ -62,7 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         };
 
       } catch (error) {
-        console.error('Error initializing auth:', error);
+        // console.error('Error initializing auth:', error);
         if (mounted) {
           setLoading(false);
         }
@@ -72,7 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     initializeAuth();
 
     return () => {
-      console.log('Cleaning up auth...');
+      // console.log('Cleaning up auth...');
       mounted = false;
     };
   }, []);

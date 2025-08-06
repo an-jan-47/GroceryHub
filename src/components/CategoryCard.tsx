@@ -21,13 +21,13 @@ const CategoryCard = ({ category }: CategoryCardProps) => (
         <img
           src={category.image || '/placeholder.svg'}
           alt={category.name}
-          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
         />
       </div>
-      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent">
+      <div className="absolute inset-0 bg-gradient-to-t from-black/90 to-transparent">
         <div className="absolute bottom-0 p-4 text-white">
-          <h3 className="text-lg font-semibold">{category.name}</h3>
-          <p className="text-sm opacity-90">{category.description}</p>
+          <h3 className="text-sm font-semibold">{category.name}</h3>
+          <p className="text-sm opacity-800">{category.description}</p>
         </div>
       </div>
     </div>

@@ -1,4 +1,4 @@
-
+import React from 'react';
 import { Link } from 'react-router-dom';
 
 interface BannerCardProps {
@@ -24,15 +24,16 @@ const BannerCard = ({ banner }: BannerCardProps) => {
       />
       
       {/* Gradient overlay for better text readability */}
-      <div className="absolute inset-0 bg-gradient-to-r from-black/50 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent " />
       
       {/* Text content positioned at bottom left side */}
-      <div className="absolute bottom-0 left-0 p-4 md:p-6 w-full md:w-2/3">
-        <h2 className="text-white font-bold text-xl md:text-2xl lg:text-3xl leading-tight mb-1">
+      <div className="absolute bottom-0 left-0 p-4 md:p-6 w-full md:w-2/3 opacity-800">
+        <h2 className="text-white font-semibold text-sm text-shadow-sm opacity-800
+md:text-2l lg:text-3xl leading-tight mb-1">
           {banner.title}
         </h2>
         {banner.subtitle && (
-          <p className="text-white/90 text-sm md:text-base leading-relaxed">
+          <p className="text-white/100 opacity-800 text-xs md:text-base leading-relaxed">
             {banner.subtitle}
           </p>
         )}

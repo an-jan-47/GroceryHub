@@ -70,6 +70,7 @@ const queryClient = new QueryClient({
   }
 });
 
+// In AppContent component, remove the Toaster
 const AppContent = () => {
   console.log('AppContent rendering');
   useNavigationGestures();
@@ -121,7 +122,7 @@ const AppContent = () => {
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
         <Route path="/payment-details" element={<PaymentDetails />} />
       </Routes>
-      <Toaster />
+      {/* Remove this Toaster */}
     </>
   );
 };
