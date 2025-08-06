@@ -18,7 +18,7 @@ import { supabase } from '@/integrations/supabase/client';
 const CartPage = () => {
   const [couponCode, setCouponCode] = useState('');
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
-  const [updatingQuantities, setUpdatingQuantities] = useState<Set<string>>(new Set());
+  const [optimisticQuantities, setOptimisticQuantities] = useState<Record<string, number>>({});
   const {
     cartItems,
     removeFromCart,
@@ -48,7 +48,9 @@ const CartPage = () => {
         return {
           ...item,
           applicable_coupons: productData?.applicable_coupons || [],
-          currentStock: productData?.stock || 0
+          currentStock: productData?.stock || 0,
+          // Use optimistic quantity if available, otherwise use cart quantity
+          quantity: optimisticQuantities[item.id] ?? item.quantity
         };
       });
     },
@@ -60,19 +62,32 @@ const CartPage = () => {
     checkCartAndClearCoupons(cartItems.length);
   }, [cartItems.length, checkCartAndClearCoupons]);
 
+  // Clear optimistic quantities when cart items change significantly
+  useEffect(() => {
+    const currentIds = new Set(cartItems.map(item => item.id));
+    setOptimisticQuantities(prev => {
+      const filtered = Object.fromEntries(
+        Object.entries(prev).filter(([id]) => currentIds.has(id))
+      );
+      return filtered;
+    });
+  }, [cartItems.map(item => item.id).join(',')]);
+
   // Pricing configuration 
   const platformFees = 5.00;
   const deliveryFees = 0.00;
   
-  // Calculate item-wise pricing without tax
+  // Calculate item-wise pricing without tax using optimistic quantities
   const itemCalculations = cartItemsWithCoupons.map((item: any) => {
     const itemPrice = item.salePrice !== undefined ? Number(item.salePrice) : Number(item.price);
-    const itemTotal = itemPrice * Number(item.quantity);
+    const currentQuantity = optimisticQuantities[item.id] ?? Number(item.quantity);
+    const itemTotal = itemPrice * currentQuantity;
     
     return {
       ...item,
       itemPrice,
-      itemTotal
+      itemTotal,
+      quantity: currentQuantity
     };
   });
   
@@ -94,19 +109,26 @@ const CartPage = () => {
   const clearCart = () => {
     setCartItems([]);
     clearCoupons(); // Clear all applied coupons
+    setOptimisticQuantities({}); // Clear optimistic state
   };
   
   // Add coupon clearing when removing last item
   const handleRemoveFromCart = (productId: string) => {
     removeFromCart(productId);
+    // Remove from optimistic state
+    setOptimisticQuantities(prev => {
+      const newState = { ...prev };
+      delete newState[productId];
+      return newState;
+    });
     // Check if this was the last item and clear coupons if needed
     if (cartItems.length === 1) {
       clearCoupons();
     }
   };
 
-  // Optimized quantity update with debouncing and stock validation
-  const handleQuantityUpdate = async (itemId: string, newQuantity: number) => {
+  // Optimized quantity update with immediate optimistic updates
+  const handleQuantityUpdate = (itemId: string, newQuantity: number) => {
     if (newQuantity <= 0) {
       handleRemoveFromCart(itemId);
       return;
@@ -119,31 +141,50 @@ const CartPage = () => {
     // Check stock availability
     if (newQuantity > item.currentStock) {
       toast.error(`Only ${item.currentStock} items available in stock`);
-      // Update to maximum available stock
+      // Update optimistic state to maximum available stock
+      setOptimisticQuantities(prev => ({
+        ...prev,
+        [itemId]: item.currentStock
+      }));
+      // Update cart with maximum stock
       updateQuantity(itemId, item.currentStock);
       return;
     }
 
-    // Optimistic update with immediate feedback
-    updateQuantity(itemId, newQuantity);
+    // Immediate optimistic update for instant visual feedback
+    setOptimisticQuantities(prev => ({
+      ...prev,
+      [itemId]: newQuantity
+    }));
     
-    // Set loading state briefly for visual feedback
-    setUpdatingQuantities(prev => new Set(prev).add(itemId));
-    setTimeout(() => {
-      setUpdatingQuantities(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(itemId);
-        return newSet;
-      });
-    }, 200);
+    // Update cart in the background
+    updateQuantity(itemId, newQuantity);
   };
 
-  // Handle direct quantity input with validation and debouncing
+  // Handle direct quantity input with immediate optimistic updates
   const handleQuantityInputChange = (itemId: string, value: string) => {
     const newQuantity = parseInt(value) || 1;
     if (newQuantity > 0 && newQuantity <= 999) {
-      handleQuantityUpdate(itemId, newQuantity);
+      // Immediate optimistic update
+      setOptimisticQuantities(prev => ({
+        ...prev,
+        [itemId]: newQuantity
+      }));
+      
+      // Debounced actual update
+      setTimeout(() => {
+        handleQuantityUpdate(itemId, newQuantity);
+      }, 300);
     }
+  };
+
+  // Clear optimistic state when input loses focus to sync with actual state
+  const handleInputBlur = (itemId: string) => {
+    setOptimisticQuantities(prev => {
+      const newState = { ...prev };
+      delete newState[itemId];
+      return newState;
+    });
   };
 
   const handleCouponApply = async () => {
@@ -261,10 +302,10 @@ const CartPage = () => {
             <div key={cartItems.length} className="divide-y">
               {cartItemsWithCoupons.map((item: any) => {
                 const itemPrice = item.salePrice !== undefined ? Number(item.salePrice) : Number(item.price);
-                const totalItemPrice = itemPrice * Number(item.quantity);
-                const { totalDiscount, discountPercentage } = getItemDiscount(item, appliedCouponsForDiscount);
+                const currentQuantity = optimisticQuantities[item.id] ?? Number(item.quantity);
+                const totalItemPrice = itemPrice * currentQuantity;
+                const { totalDiscount, discountPercentage } = getItemDiscount({ ...item, quantity: currentQuantity }, appliedCouponsForDiscount);
                 const finalItemPrice = totalItemPrice - totalDiscount;
-                const isUpdating = updatingQuantities.has(item.id);
                 
                 // Check if item has applicable coupons
                 const hasApplicableCoupons = appliedCoupons.some(ac => 
@@ -304,9 +345,8 @@ const CartPage = () => {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => handleQuantityUpdate(item.id, Math.max(1, Number(item.quantity) - 1))}
+                              onClick={() => handleQuantityUpdate(item.id, Math.max(1, currentQuantity - 1))}
                               className="h-7 w-7 p-0 text-xs"
-                              disabled={isUpdating}
                             >
                               <Minus className="h-3 w-3" />
                             </Button>
@@ -314,17 +354,17 @@ const CartPage = () => {
                               type="number"
                               min="1"
                               max={item.currentStock}
-                              value={item.quantity}
+                              value={currentQuantity}
                               onChange={(e) => handleQuantityInputChange(item.id, e.target.value)}
+                              onBlur={() => handleInputBlur(item.id)}
                               className="w-12 h-7 text-center text-sm p-1"
-                              disabled={isUpdating}
                             />
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => handleQuantityUpdate(item.id, Number(item.quantity) + 1)}
+                              onClick={() => handleQuantityUpdate(item.id, currentQuantity + 1)}
                               className="h-7 w-7 p-0 text-xs"
-                              disabled={isUpdating || Number(item.quantity) >= item.currentStock}
+                              disabled={currentQuantity >= item.currentStock}
                             >
                               <Plus className="h-3 w-3" />
                             </Button>
@@ -366,7 +406,7 @@ const CartPage = () => {
                             <div className="flex items-center justify-between">
                               <span className="text-gray-800 font-semibold text-sm">₹{totalItemPrice.toFixed(2)}</span>
                               {item.salePrice && (
-                                <span className="text-gray-500 line-through text-xs">₹{(item.price * item.quantity).toFixed(2)}</span>
+                                <span className="text-gray-500 line-through text-xs">₹{(item.price * currentQuantity).toFixed(2)}</span>
                               )}
                             </div>
                           )}
