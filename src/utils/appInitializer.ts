@@ -7,7 +7,7 @@ import { toast } from "@/components/ui/sonner";
 export const initializeApp = async (): Promise<void> => {
   console.info('Initializing application services...');
   
-  // Clear any existing service workers
+  // Clear any existing service workers that might interfere
   if ('serviceWorker' in navigator) {
     const registrations = await navigator.serviceWorker.getRegistrations();
     for (const registration of registrations) {
@@ -21,7 +21,7 @@ export const initializeApp = async (): Promise<void> => {
   
   // Clear local storage cache except for auth and cart data
   const keysToKeep = Object.keys(localStorage).filter(key => key.startsWith('sb-')).concat(['groceryHub_cart']);
-  const savedData = {};
+  const savedData: Record<string, string> = {};
   
   keysToKeep.forEach(key => {
     const value = localStorage.getItem(key);
@@ -31,32 +31,23 @@ export const initializeApp = async (): Promise<void> => {
   localStorage.clear();
   
   Object.entries(savedData).forEach(([key, value]) => {
-    localStorage.setItem(key, value as string);
+    localStorage.setItem(key, value);
   });
   
-  // Only register service worker in production
+  // Register custom service worker only in production for better offline handling
   if ('serviceWorker' in navigator && import.meta.env.PROD) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/service-worker.js').catch(error => {
-        console.error('Service worker registration failed:', error);
-      });
-    });
-  } else if ('serviceWorker' in navigator) {
-    // In development, ensure service workers are unregistered
-    // Update the service worker section in initializeApp function
-    
-    // Always unregister service workers
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then(registrations => {
-        for (const registration of registrations) {
-          registration.unregister();
-        }
+    try {
+      const registration = await navigator.serviceWorker.register('/service-worker.js', {
+        scope: '/'
       });
       
-      // Clear all caches
-      caches.keys().then(cacheNames => {
-        Promise.all(cacheNames.map(cacheName => caches.delete(cacheName)));
+      registration.addEventListener('updatefound', () => {
+        console.log('Service worker update found');
       });
+      
+      console.log('Service worker registered successfully');
+    } catch (error) {
+      console.error('Service worker registration failed:', error);
     }
   }
   
@@ -64,8 +55,8 @@ export const initializeApp = async (): Promise<void> => {
   window.addEventListener('error', (event) => {
     console.error('Global error:', event.error);
     
-    // Don't show error toasts for network issues, which are already handled by React Query
-    if (event.error && !event.error.toString().includes('Network Error')) {
+    // Don't show error toasts for network issues
+    if (event.error && !event.error.toString().includes('Network Error') && !event.error.toString().includes('ERR_INTERNET_DISCONNECTED')) {
       toast("Something went wrong", {
         description: "An unexpected error occurred. Please try again later."
       });
@@ -76,7 +67,7 @@ export const initializeApp = async (): Promise<void> => {
   window.addEventListener('unhandledrejection', (event) => {
     console.error('Unhandled promise rejection:', event.reason);
     
-    if (event.reason && !event.reason.toString().includes('Network Error')) {
+    if (event.reason && !event.reason.toString().includes('Network Error') && !event.reason.toString().includes('ERR_INTERNET_DISCONNECTED')) {
       toast("Something went wrong", {
         description: "An unexpected error occurred. Please try again later."
       });
@@ -105,9 +96,6 @@ export const setupPerformanceMonitoring = (): void => {
           const loadTime = navigationEntry.loadEventEnd - navigationEntry.startTime;
           
           console.log(`Page load completed in ${loadTime.toFixed(2)}ms`);
-          
-          // Track page load time to analytics service
-          // trackPerformanceMetric('page_load_time', loadTime);
         }
       });
     });
@@ -123,7 +111,6 @@ export const setupPerformanceMonitoring = (): void => {
       list.getEntries().forEach(entry => {
         if (entry.duration > 100) {
           console.warn(`Long task detected: ${entry.duration.toFixed(2)}ms`);
-          // trackPerformanceMetric('long_task', entry.duration);
         }
       });
     });

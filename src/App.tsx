@@ -72,13 +72,12 @@ const queryClient = new QueryClient({
   }
 });
 
-// In AppContent component, remove the Toaster
 const AppContent = () => {
   console.log('AppContent rendering');
   useNavigationGestures();
 
   return (
-    <>
+    <BrowserRouter>
       <ScrollToTop />
       <Routes>
         <Route path="/" element={<Index />} />
@@ -124,7 +123,7 @@ const AppContent = () => {
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
         <Route path="/payment-details" element={<PaymentDetails />} />
       </Routes>
-    </>
+    </BrowserRouter>
   );
 };
 
@@ -162,6 +161,7 @@ const App = () => {
     );
   }
 
+  // Internet connection check should be the very first thing
   return (
     <InternetConnectionChecker>
       <QueryClientProvider client={queryClient}>
