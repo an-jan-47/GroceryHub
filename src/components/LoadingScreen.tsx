@@ -1,89 +1,32 @@
-import React, { useState, useEffect } from "react";
 
+import React from "react";
 import { useAuth } from '@/contexts/AuthContext';
-import { RefreshCw, WifiOff } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
 
 const LoadingScreen = () => {
   const { loading: authLoading } = useAuth();
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const [connectionChecked, setConnectionChecked] = useState(false);
   const navigate = useNavigate();
   
   useEffect(() => {
-    const handleOnline = () => {
-      setIsOnline(true);
-      setConnectionChecked(true);
-    };
-
-    const handleOffline = () => {
-      setIsOnline(false);
-      setConnectionChecked(true);
-    };
-
-    // Check connection status immediately
-    const checkConnection = async () => {
-      try {
-        const response = await fetch('https://www.google.com/favicon.ico', {
-          mode: 'no-cors',
-          cache: 'no-store',
-        });
-        setIsOnline(true);
-      } catch (error) {
-        setIsOnline(false);
-      } finally {
-        setConnectionChecked(true);
-      }
-    };
-
-    checkConnection();
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-
-    // Set up periodic connection check
-    const connectionCheckInterval = setInterval(checkConnection, 10000);
-
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-      clearInterval(connectionCheckInterval);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!authLoading && isOnline && connectionChecked) {
+    if (!authLoading) {
       // Delay navigation slightly to ensure smooth transition
       const timer = setTimeout(() => {
         navigate('/', { replace: true });
       }, 1000);
       return () => clearTimeout(timer);
     }
-  }, [authLoading, isOnline, connectionChecked, navigate]);
+  }, [authLoading, navigate]);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-white">
-      <h1 className="text-3xl font-bold text-blue-900 mb-2">GroceryHub</h1>
+      <h1 className="text-3xl font-bold text-blue-900 mb-8">GroceryHub</h1>
       
-      {!isOnline && connectionChecked ? (
-        <div className="flex flex-col items-center justify-center p-6 rounded-lg">
-          <WifiOff className="w-16 h-16 text-gray-400 mb-4" />
-          <h2 className="text-xl font-semibold text-gray-800 mb-2">No Internet Connection</h2>
-          <p className="text-gray-600 text-center mb-4">
-            Please check your internet connection and try again
-          </p>
-          <button
-            onClick={() => window.location.reload()}
-            className="px-6 py-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors"
-          >
-            Retry Connection
-          </button>
-        </div>
-      ) : (
-        <>
-          <RefreshCw className="animate-spin w-8 h-8 text-gray-600" />
-          <p className="mt-4 text-gray-500">Loading...</p>
-        </>
-      )}
+      <div className="flex flex-col items-center">
+        <RefreshCw className="animate-spin w-8 h-8 text-gray-600 mb-4" />
+        <p className="text-gray-500">Loading...</p>
+      </div>
     </div>
   );
 };

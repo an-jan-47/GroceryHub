@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 
 import { Toaster } from "@/components/ui/sonner";
@@ -6,6 +7,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import LoadingScreen from "./components/LoadingScreen";
+import InternetConnectionChecker from "./components/InternetConnectionChecker";
 import { useNavigationGestures } from './hooks/useNavigationGestures';
 import { history } from './history';
 import PaymentDetails from '@/pages/PaymentDetails';
@@ -61,11 +63,11 @@ const queryClient = new QueryClient({
         }
         return failureCount < 2;
       },
-      staleTime: 0, // Set to 0 to force fresh data
-      cacheTime: 0, // Disable caching
+      staleTime: 0,
+      gcTime: 0,
       refetchOnWindowFocus: true,
       refetchOnMount: true,
-      refetchInterval: 5000 // Add polling every 5 seconds for critical data
+      refetchInterval: 5000
     }
   }
 });
@@ -106,13 +108,13 @@ const AppContent = () => {
         <Route path="/order/:id" element={<ProtectedRoute><OrderDetails /></ProtectedRoute>} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<SignUp />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} /> {/* Add this line */}
+        <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/orders" element={<Navigate to="/order-history" replace />} />
         <Route path="/change-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
         <Route path="/privacy-settings" element={<ProtectedRoute><PrivacySettings /></ProtectedRoute>} />
         <Route path="/about-us" element={<AboutUs />} />
         <Route path="/help-support" element={<HelpSupport />} />
-        <Route path="/delete-account" element={<ProtectedRoute><DeleteAccount /></ProtectedRoute>} /> {/* Add this line */}
+        <Route path="/delete-account" element={<ProtectedRoute><DeleteAccount /></ProtectedRoute>} />
         <Route path="/coupons" element={<Coupons />} />
         <Route path="/wishlist" element={<Wishlist />} />
         <Route path="*" element={<NotFound />} />
@@ -122,7 +124,6 @@ const AppContent = () => {
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
         <Route path="/payment-details" element={<PaymentDetails />} />
       </Routes>
-      {/* Remove this Toaster */}
     </>
   );
 };
@@ -140,7 +141,7 @@ const App = () => {
       } catch (error) {
         console.error('Failed to initialize app:', error);
         setInitError(error instanceof Error ? error : new Error('Unknown initialization error'));
-        setIsInitialized(true); // Still mark as initialized so we can show error UI
+        setIsInitialized(true);
       }
     };
     initialize();
@@ -162,28 +163,30 @@ const App = () => {
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider defaultTheme="light" attribute="class">
-        <ErrorBoundary>
-          <AuthProvider>
-            {!isInitialized ? (
-              <LoadingScreen />
-            ) : (
-              <CartProvider>
-                <CouponStateProvider>
-                  <TooltipProvider>
-                    <ErrorBoundary>
-                      <AppContent />
-                      <Toaster />
-                    </ErrorBoundary>
-                  </TooltipProvider>
-                </CouponStateProvider>
-              </CartProvider>
-            )}
-          </AuthProvider>
-        </ErrorBoundary>
-      </ThemeProvider>
-    </QueryClientProvider>
+    <InternetConnectionChecker>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider defaultTheme="light" attribute="class">
+          <ErrorBoundary>
+            <AuthProvider>
+              {!isInitialized ? (
+                <LoadingScreen />
+              ) : (
+                <CartProvider>
+                  <CouponStateProvider>
+                    <TooltipProvider>
+                      <ErrorBoundary>
+                        <AppContent />
+                        <Toaster />
+                      </ErrorBoundary>
+                    </TooltipProvider>
+                  </CouponStateProvider>
+                </CartProvider>
+              )}
+            </AuthProvider>
+          </ErrorBoundary>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </InternetConnectionChecker>
   );  
 };
 
