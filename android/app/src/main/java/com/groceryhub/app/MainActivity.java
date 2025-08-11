@@ -20,26 +20,17 @@ import android.os.Environment;
 import android.widget.Toast;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import android.util.Log;
-// Remove permission imports
-// import android.Manifest;
-// import android.content.pm.PackageManager;
-// import androidx.core.app.ActivityCompat;
-// import androidx.core.content.ContextCompat;
+import android.content.BroadcastReceiver;
+import android.content.IntentFilter;
+import android.database.Cursor;
+import java.io.File;
+import androidx.core.content.FileProvider;
 
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
     private static final String TAG = "MainActivity";
-    // Remove permission constants
-    // private static final int STORAGE_PERMISSION_CODE = 1001;
-    
-    // Remove pending download variables
-    // private String pendingDownloadUrl = null;
-    // private String pendingUserAgent = null;
-    // private String pendingContentDisposition = null;
-    // private String pendingMimeType = null;
-    // private long pendingContentLength = 0;
+    private BroadcastReceiver downloadCompleteReceiver;
     
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -157,12 +148,6 @@ public class MainActivity extends BridgeActivity {
         });
     }
     
-    // Remove permission checking methods
-    // private boolean checkStoragePermission() {...}
-    // private void requestStoragePermission() {...}
-    // @Override
-    // public void onRequestPermissionsResult(...) {...}
-    
     // Keep the download functionality method
     private void downloadFile(String url, String userAgent, String contentDisposition, 
                             String mimetype, long contentLength) {
@@ -200,10 +185,45 @@ public class MainActivity extends BridgeActivity {
             
             // Get the download service and enqueue the request
             DownloadManager downloadManager = (DownloadManager) getSystemService(Context.DOWNLOAD_SERVICE);
-            long downloadId = downloadManager.enqueue(request);
+            final long downloadId = downloadManager.enqueue(request);
+            final String finalMimetype = mimetype;
             
             // Show a toast message
             Toast.makeText(getApplicationContext(), "Downloading Invoice...", Toast.LENGTH_SHORT).show();
+            
+            // Unregister previous receiver if exists
+            if (downloadCompleteReceiver != null) {
+                try {
+                    unregisterReceiver(downloadCompleteReceiver);
+                } catch (IllegalArgumentException e) {
+                    // Receiver was not registered, ignore
+                }
+            }
+            
+            // Create a new broadcast receiver for download completion
+            downloadCompleteReceiver = new BroadcastReceiver() {
+                @Override
+                public void onReceive(Context context, Intent intent) {
+                    // Get the download ID that has completed
+                    long id = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1);
+                    
+                    // Check if this is our download
+                    if (downloadId == id) {
+                        handleDownloadCompletion(downloadManager, downloadId, finalMimetype);
+                        
+                        // Unregister the broadcast receiver
+                        try {
+                            context.unregisterReceiver(this);
+                            downloadCompleteReceiver = null;
+                        } catch (IllegalArgumentException e) {
+                            // Receiver was already unregistered, ignore
+                        }
+                    }
+                }
+            };
+            
+            // Register the broadcast receiver
+            registerReceiver(downloadCompleteReceiver, new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE));
             
             // Log success for debugging
             Log.d(TAG, "Download started with ID: " + downloadId);
@@ -222,6 +242,64 @@ public class MainActivity extends BridgeActivity {
         }
     }
     
+    private void handleDownloadCompletion(DownloadManager downloadManager, long downloadId, String mimetype) {
+        // Get the URI of the downloaded file
+        DownloadManager.Query query = new DownloadManager.Query();
+        query.setFilterById(downloadId);
+        Cursor cursor = downloadManager.query(query);
+        
+        if (cursor != null && cursor.moveToFirst()) {
+            try {
+                int statusIndex = cursor.getColumnIndex(DownloadManager.COLUMN_STATUS);
+                int uriIndex = cursor.getColumnIndex(DownloadManager.COLUMN_LOCAL_URI);
+                
+                if (statusIndex != -1 && uriIndex != -1) {
+                    int status = cursor.getInt(statusIndex);
+                    String downloadedUri = cursor.getString(uriIndex);
+                    
+                    if (status == DownloadManager.STATUS_SUCCESSFUL && downloadedUri != null) {
+                        openDownloadedFile(downloadedUri, mimetype);
+                    } else {
+                        Toast.makeText(getApplicationContext(), "Download failed", Toast.LENGTH_SHORT).show();
+                    }
+                }
+            } finally {
+                cursor.close();
+            }
+        }
+    }
+    
+    private void openDownloadedFile(String downloadedUri, String mimetype) {
+        try {
+            // Convert the URI to a file path
+            String filePath = Uri.parse(downloadedUri).getPath();
+            
+            if (filePath != null) {
+                // Use FileProvider to get a content URI
+                File file = new File(filePath);
+                Uri contentUri = FileProvider.getUriForFile(
+                        this,
+                        getApplicationContext().getPackageName() + ".fileprovider",
+                        file);
+                
+                // Open the file with an intent
+                Intent openFileIntent = new Intent(Intent.ACTION_VIEW);
+                openFileIntent.setDataAndType(contentUri, mimetype != null ? mimetype : "application/pdf");
+                openFileIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                openFileIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                
+                try {
+                    startActivity(openFileIntent);
+                } catch (ActivityNotFoundException e) {
+                    Toast.makeText(getApplicationContext(), "No application available to view PDF", Toast.LENGTH_SHORT).show();
+                }
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error opening downloaded file: " + e.getMessage());
+            Toast.makeText(getApplicationContext(), "Error opening downloaded file", Toast.LENGTH_SHORT).show();
+        }
+    }
+    
     @Override
     public void onBackPressed() {
         // Let the WebView handle back navigation first
@@ -232,5 +310,19 @@ public class MainActivity extends BridgeActivity {
             // Let Capacitor handle back button presses
             super.onBackPressed();
         }
+    }
+    
+    @Override
+    public void onDestroy() {
+        // Clean up broadcast receiver
+        if (downloadCompleteReceiver != null) {
+            try {
+                unregisterReceiver(downloadCompleteReceiver);
+            } catch (IllegalArgumentException e) {
+                // Receiver was not registered, ignore
+            }
+            downloadCompleteReceiver = null;
+        }
+        super.onDestroy();
     }
 }
