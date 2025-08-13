@@ -16,6 +16,7 @@ import StarRating from '@/components/StarRating';
 import ProductDetailImage from '@/components/ProductDetailImage';
 import ProductDetailInfo from '@/components/ProductDetailInfo';
 import ProductDetailActions from '@/components/ProductDetailActions';
+import { useDeepLinking } from '@/hooks/useDeepLinking';
 
 const ProductDetailPage = () => {
   const { productId } = useParams();
@@ -24,6 +25,9 @@ const ProductDetailPage = () => {
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
   const [quantity, setQuantity] = useState(1);
   const [isFavorite, setIsFavorite] = useState(false);
+
+  // Add deep linking support
+  useDeepLinking();
 
   // Fetch product details
   const { data: product, isLoading, error, isError } = useQuery({
