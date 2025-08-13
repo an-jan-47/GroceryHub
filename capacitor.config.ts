@@ -1,4 +1,3 @@
-
 import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
@@ -8,11 +7,6 @@ const config: CapacitorConfig = {
   server: {
     url: 'https://modern-cart-nexus-app.vercel.app',
     cleartext: false
-  },
-  plugins: {
-    App: {
-      launchUrl: 'groceryhub://'
-    }
   }
 };
 

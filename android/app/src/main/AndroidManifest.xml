@@ -1,4 +1,3 @@
-
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
@@ -28,31 +27,16 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- Deep linking for web URLs -->
-            <intent-filter android:autoVerify="true">
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="https" 
-                      android:host="modern-cart-nexus-app.vercel.app" />
-            </intent-filter>
-
-            <!-- Deep linking for custom scheme -->
+            <!-- Add deep linking intent filter -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="groceryhub" />
-            </intent-filter>
-
-            <!-- Deep linking for product pages -->
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="https"
-                      android:host="modern-cart-nexus-app.vercel.app"
-                      android:pathPrefix="/product" />
+                <!-- Add your domain for deep linking -->
+                <data android:scheme="https" />
+                <data android:host="modern-cart-nexus-app.vercel.app" />
+                <!-- Optional: Add specific paths if needed -->
+                <data android:pathPattern="/product.*" />
             </intent-filter>
 
         </activity>
