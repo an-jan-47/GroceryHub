@@ -27,8 +27,7 @@ import { useCouponState } from '@/components/CouponStateManager';
 // Constants
 const PRICING_CONFIG = {
   platformFees: 5.00,
-  freeDeliveryThreshold: 2000,
-  deliveryFee: 50.00,
+  deliveryFees: 0.00,
   transactionFeeRate: 0.02, // 2% transaction fee
   razorpayTestKey: 'rzp_test_NhYbBXqUSxpojf'
 } as const;
@@ -92,9 +91,6 @@ const PaymentMethodsPage = () => {
       return total + (itemPrice * Number(item.quantity)); // Ensure quantity is a number
     }, 0);
     
-    // Calculate delivery fee based on subtotal (before discount)
-    const deliveryFees = subtotal >= PRICING_CONFIG.freeDeliveryThreshold ? 0 : PRICING_CONFIG.deliveryFee;
-    
     // Calculate total discount from all applied coupons
     const totalDiscountAmount = appliedCoupons.reduce((total, couponData) => {
       const discount = Number(couponData.discountAmount) || 0;
@@ -102,7 +98,7 @@ const PaymentMethodsPage = () => {
     }, 0);
     
     // Calculate total before transaction fee
-    const totalBeforeTransactionFee = subtotal + PRICING_CONFIG.platformFees + deliveryFees - totalDiscountAmount;
+    const totalBeforeTransactionFee = subtotal + PRICING_CONFIG.platformFees + PRICING_CONFIG.deliveryFees - totalDiscountAmount;
     
     // Only add transaction fee for Razorpay payment method
     const transactionFee = paymentMethod === 'razorpay' ? Math.round(totalBeforeTransactionFee * PRICING_CONFIG.transactionFeeRate * 100) / 100 : 0;
@@ -112,7 +108,6 @@ const PaymentMethodsPage = () => {
     
     return {
       subtotal,
-      deliveryFees,
       totalDiscountAmount,
       totalBeforeTransactionFee,
       transactionFee,
@@ -214,7 +209,6 @@ const PaymentMethodsPage = () => {
         paymentMethod: paymentData.paymentMethod,
         totalAmount: pricing.totalAmount, // This is the final amount with discounts applied
         platformFees: PRICING_CONFIG.platformFees,
-        deliveryFees: pricing.deliveryFees, // Include delivery fees in order
         discountAmount: pricing.totalDiscountAmount,
         products: processedProducts
       });
@@ -385,19 +379,8 @@ const PaymentMethodsPage = () => {
       
       <div className="flex justify-between">
         <span className="text-gray-600">Delivery Fees</span>
-        {pricing.deliveryFees === 0 ? (
-          <span className="text-green-600">FREE</span>
-        ) : (
-          <span>{formatCurrency(pricing.deliveryFees)}</span>
-        )}
+        <span>{PRICING_CONFIG.deliveryFees === 0 ? 'FREE' : formatCurrency(PRICING_CONFIG.deliveryFees)}</span>
       </div>
-      
-      {/* Free delivery threshold message */}
-      {pricing.subtotal < PRICING_CONFIG.freeDeliveryThreshold && pricing.deliveryFees > 0 && (
-        <div className="text-sm text-blue-600 bg-blue-50 p-2 rounded">
-          Add ₹{(PRICING_CONFIG.freeDeliveryThreshold - pricing.subtotal).toFixed(2)} more to get FREE delivery
-        </div>
-      )}
       
       {pricing.transactionFee > 0 && (
         <div className="flex justify-between">

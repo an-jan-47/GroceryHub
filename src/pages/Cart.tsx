@@ -75,8 +75,7 @@ const CartPage = () => {
 
   // Pricing configuration 
   const platformFees = 5.00;
-  const FREE_DELIVERY_THRESHOLD = 2000;
-  const DELIVERY_FEE = 50.00;
+  const deliveryFees = 0.00;
   
   // Calculate item-wise pricing without tax using optimistic quantities
   const itemCalculations = cartItemsWithCoupons.map((item: any) => {
@@ -94,20 +93,16 @@ const CartPage = () => {
   
   // Calculate totals without tax
   const subtotal = itemCalculations.reduce((total: number, item: any) => total + Number(item.itemTotal), 0);
+  const totalBeforeDiscount = subtotal + platformFees + deliveryFees;
   
   // Calculate total discount from all applied coupons
   const totalDiscountAmount = appliedCoupons.reduce((total, applied) => {
     const discount = Number(applied.discountAmount) || 0;
     return total + discount;
   }, 0);
-  
-  // Calculate delivery fee based on subtotal (before discount)
-  const deliveryFees = subtotal >= FREE_DELIVERY_THRESHOLD ? 0 : DELIVERY_FEE;
-  
-  const totalBeforeDiscount = subtotal + platformFees + deliveryFees;
   const totalAfterDiscount = Math.max(0, totalBeforeDiscount - totalDiscountAmount);
   
-  // Final total
+  // Final total without transaction fee
   const finalTotal = totalAfterDiscount;
   
   // Fixed clearCart function
@@ -513,19 +508,8 @@ const CartPage = () => {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Delivery Fees</span>
-                  {deliveryFees === 0 ? (
-                    <span className="text-green-600">FREE</span>
-                  ) : (
-                    <span>₹{deliveryFees.toFixed(2)}</span>
-                  )}
+                  <span className="text-green-600">FREE</span>
                 </div>
-                
-                {/* Free delivery threshold message */}
-                {subtotal < FREE_DELIVERY_THRESHOLD && (
-                  <div className="text-sm text-blue-600 bg-blue-50 p-2 rounded">
-                    Add ₹{(FREE_DELIVERY_THRESHOLD - subtotal).toFixed(2)} more to get FREE delivery
-                  </div>
-                )}
                 
                 {/* Individual coupon discounts - only show if discount > 0 */}
                 {appliedCoupons.map((applied) => {
@@ -558,10 +542,21 @@ const CartPage = () => {
                     You saved ₹{totalDiscountAmount.toFixed(2)} on this order!
                   </div>
                 )}
+                {finalTotal < 2000 && (
+                  <div className="text-sm text-red-600 text-center mt-2">
+                    Minimum order amount is ₹2000. Please add more items to proceed.
+                  </div>
+                )}
               </div>
               
               <div className="mt-4">
-                <OptimizedCheckoutButton cartItems={cartItems} />
+                {finalTotal >= 2000 ? (
+                  <OptimizedCheckoutButton cartItems={cartItems} />
+                ) : (
+                  <Button disabled className="w-full py-6 text-lg bg-gray-400">
+                    Checkout (Minimum ₹2000)
+                  </Button>
+                )}
               </div>
             </div>
           </>
