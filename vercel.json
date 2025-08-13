@@ -1,17 +1,11 @@
 {
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/((?!.*\\.(?:js|css|png|jpg|jpeg|gif|svg|ico|json|txt|woff|woff2|ttf|map)$).*)",
+      "destination": "/index.html"
+    }
   ],
   "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "s-maxage=1, stale-while-revalidate"
-        }
-      ]
-    },
     {
       "source": "/(.+\\.js)",
       "headers": [
