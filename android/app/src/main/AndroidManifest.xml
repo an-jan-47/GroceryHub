@@ -22,25 +22,28 @@
             android:exported="true"
             android:windowSoftInputMode="adjustResize">
 
+            <!-- Launcher -->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- Add deep linking intent filter -->
-            <intent-filter>
+            <!-- Deep linking for product pages -->
+            <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <!-- Add your domain for deep linking -->
-                <data android:scheme="https" />
-                <data android:host="modern-cart-nexus-app.vercel.app" />
-                <!-- Optional: Add specific paths if needed -->
-                <data android:pathPattern="/product.*" />
+
+                <!-- Match https://modern-cart-nexus-app.vercel.app/product/... -->
+                <data
+                    android:scheme="https"
+                    android:host="modern-cart-nexus-app.vercel.app"
+                    android:pathPrefix="/product" />
             </intent-filter>
 
         </activity>
 
+        <!-- FileProvider -->
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
@@ -48,7 +51,7 @@
             android:grantUriPermissions="true">
             <meta-data
                 android:name="android.support.FILE_PROVIDER_PATHS"
-                android:resource="@xml/file_paths"></meta-data>
+                android:resource="@xml/file_paths" />
         </provider>
     </application>
 
@@ -56,20 +59,24 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
-    
-    <!-- Storage permissions with conditional requirements -->
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" 
+
+    <!-- Storage permissions (legacy + modern) -->
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="29" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" 
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
-    
-    <!-- For Android 13+ (API 33+) granular media permissions -->
+
+    <!-- Android 13+ media permissions -->
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
     <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
-    
-    <!-- Query all packages permission for PDF viewer detection -->
-    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" 
+
+    <!-- Query all packages for PDF viewer detection -->
+    <uses-permission
+        android:name="android.permission.QUERY_ALL_PACKAGES"
         tools:ignore="QueryAllPackagesPermission" />
 
 </manifest>
+

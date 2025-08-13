@@ -2,10 +2,27 @@
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
   ],
-  "routes": [
-    { 
-      "src": "/product/(.*)", 
-      "dest": "/index.html" 
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "s-maxage=1, stale-while-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/.well-known/assetlinks.json",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/json"
+        }
+      ]
     }
+  ],
+  "routes": [
+    { "src": "^/.well-known/assetlinks.json", "dest": "/.well-known/assetlinks.json" }
   ]
 }

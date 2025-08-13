@@ -1,0 +1,8 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.groceryhub.app",
+    "sha256_cert_fingerprints": ["97:76:A0:5F:13:30:83:1D:78:47:D5:5C:DF:CC:A4:D8:9A:CD:63:64:18:97:69:F3:A7:49:DD:82:60:EB:E2:E9"]
+  }
+}]
