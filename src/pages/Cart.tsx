@@ -29,7 +29,6 @@ const CartPage = () => {
   const { appliedCoupons, addCoupon, removeCoupon, clearCoupons, checkCartAndClearCoupons } = useCouponState();
   const navigate = useNavigate();
 
-  // Fetch cart items with their applicable coupons and current stock
   const { data: cartItemsWithCoupons = [] } = useQuery({
     queryKey: ['cart-items-coupons', cartItems.map((item: any) => item.id)],
     queryFn: async () => {
@@ -49,7 +48,6 @@ const CartPage = () => {
           ...item,
           applicable_coupons: productData?.applicable_coupons || [],
           currentStock: productData?.stock || 0,
-          // Use optimistic quantity if available, otherwise use cart quantity
           quantity: optimisticQuantities[item.id] ?? item.quantity
         };
       });
@@ -57,12 +55,10 @@ const CartPage = () => {
     enabled: cartItems.length > 0,
   });
 
-  // Check if cart is empty and clear coupons accordingly
   useEffect(() => {
     checkCartAndClearCoupons(cartItems.length);
   }, [cartItems.length, checkCartAndClearCoupons]);
 
-  // Clear optimistic quantities when cart items change significantly
   useEffect(() => {
     const currentIds = new Set(cartItems.map(item => item.id));
     setOptimisticQuantities(prev => {
@@ -73,11 +69,8 @@ const CartPage = () => {
     });
   }, [cartItems.map(item => item.id).join(',')]);
 
-  // Pricing configuration 
   const platformFees = 5.00;
-  const deliveryFees = 0.00;
   
-  // Calculate item-wise pricing without tax using optimistic quantities
   const itemCalculations = cartItemsWithCoupons.map((item: any) => {
     const itemPrice = item.salePrice !== undefined ? Number(item.salePrice) : Number(item.price);
     const currentQuantity = optimisticQuantities[item.id] ?? Number(item.quantity);
@@ -91,94 +84,79 @@ const CartPage = () => {
     };
   });
   
-  // Calculate totals without tax
   const subtotal = itemCalculations.reduce((total: number, item: any) => total + Number(item.itemTotal), 0);
+  
+  const deliveryFees = subtotal >= 2000 ? 0.00 : 50.00;
+  
   const totalBeforeDiscount = subtotal + platformFees + deliveryFees;
   
-  // Calculate total discount from all applied coupons
   const totalDiscountAmount = appliedCoupons.reduce((total, applied) => {
     const discount = Number(applied.discountAmount) || 0;
     return total + discount;
   }, 0);
   const totalAfterDiscount = Math.max(0, totalBeforeDiscount - totalDiscountAmount);
   
-  // Final total without transaction fee
   const finalTotal = totalAfterDiscount;
   
-  // Fixed clearCart function
   const clearCart = () => {
     setCartItems([]);
-    clearCoupons(); // Clear all applied coupons
-    setOptimisticQuantities({}); // Clear optimistic state
+    clearCoupons();
+    setOptimisticQuantities({});
   };
   
-  // Add coupon clearing when removing last item
   const handleRemoveFromCart = (productId: string) => {
     removeFromCart(productId);
-    // Remove from optimistic state
     setOptimisticQuantities(prev => {
       const newState = { ...prev };
       delete newState[productId];
       return newState;
     });
-    // Check if this was the last item and clear coupons if needed
     if (cartItems.length === 1) {
       clearCoupons();
     }
   };
 
-  // Optimized quantity update with immediate optimistic updates
   const handleQuantityUpdate = (itemId: string, newQuantity: number) => {
     if (newQuantity <= 0) {
       handleRemoveFromCart(itemId);
       return;
     }
 
-    // Find the item to check stock
     const item = cartItemsWithCoupons.find((item: any) => item.id === itemId);
     if (!item) return;
 
-    // Check stock availability
     if (newQuantity > item.currentStock) {
       toast.error(`Only ${item.currentStock} items available in stock`);
-      // Update optimistic state to maximum available stock
       setOptimisticQuantities(prev => ({
         ...prev,
         [itemId]: item.currentStock
       }));
-      // Update cart with maximum stock
       updateQuantity(itemId, item.currentStock);
       return;
     }
 
-    // Immediate optimistic update for instant visual feedback
     setOptimisticQuantities(prev => ({
       ...prev,
       [itemId]: newQuantity
     }));
     
-    // Update cart in the background
     updateQuantity(itemId, newQuantity);
   };
 
-  // Handle direct quantity input with immediate optimistic updates
   const handleQuantityInputChange = (itemId: string, value: string) => {
     const newQuantity = parseInt(value) || 1;
     if (newQuantity > 0 && newQuantity <= 999) {
-      // Immediate optimistic update
       setOptimisticQuantities(prev => ({
         ...prev,
         [itemId]: newQuantity
       }));
       
-      // Debounced actual update
       setTimeout(() => {
         handleQuantityUpdate(itemId, newQuantity);
       }, 300);
     }
   };
 
-  // Clear optimistic state when input loses focus to sync with actual state
   const handleInputBlur = (itemId: string) => {
     setOptimisticQuantities(prev => {
       const newState = { ...prev };
@@ -193,7 +171,6 @@ const CartPage = () => {
       return;
     }
 
-    // Check if coupon is already applied
     const isAlreadyApplied = appliedCoupons.some(c => c.coupon.code === couponCode.toUpperCase());
     if (isAlreadyApplied) {
       toast.error("This coupon has already been applied");
@@ -202,17 +179,14 @@ const CartPage = () => {
 
     setIsApplyingCoupon(true);
     try {
-      // Convert AppliedCouponState to AppliedCoupon format for validation
       const appliedCouponsForValidation: AppliedCoupon[] = appliedCoupons.map(c => ({
         ...c,
         appliedToTotal: c.appliedToTotal || totalBeforeDiscount,
         applicableProducts: c.applicableProducts || []
       }));
       
-      // First validate the coupon to get its details
       const coupon = await validateCoupon(couponCode, totalBeforeDiscount, appliedCouponsForValidation, cartItemsWithCoupons);
       
-      // Calculate eligible products total first
       const eligibleProductsTotal = cartItemsWithCoupons
         .filter(item => coupon.applicable_products?.includes(item.id))
         .reduce((total, item) => {
@@ -221,15 +195,12 @@ const CartPage = () => {
           return total + (itemPrice * quantity);
         }, 0);
 
-      // Check minimum purchase amount before proceeding with discount calculation
       if (eligibleProductsTotal < coupon.min_purchase_amount) {
         throw new Error(`Minimum purchase amount of ₹${coupon.min_purchase_amount} required for eligible products. Current eligible products total: ₹${eligibleProductsTotal.toFixed(2)}`);
       }
 
-      // Only calculate discount if minimum purchase requirement is met
       const discountResult = calculateDiscount(coupon, totalBeforeDiscount, cartItemsWithCoupons);
 
-      // Verify the discount is applicable
       if (discountResult.applicableProducts.length === 0) {
         throw new Error("This coupon is not applicable to any products in your cart");
       }
@@ -238,7 +209,6 @@ const CartPage = () => {
         throw new Error("This coupon cannot be applied to your current cart");
       }
 
-      // Apply the coupon if all validations pass
       addCoupon(coupon, discountResult.discountAmount, discountResult.applicableProducts);
       setCouponCode('');
       
@@ -265,7 +235,6 @@ const CartPage = () => {
     toast.success('Coupon removed');
   };
 
-  // Convert AppliedCouponState to AppliedCoupon for getItemDiscount
   const appliedCouponsForDiscount: AppliedCoupon[] = appliedCoupons.map(c => ({
     ...c,
     appliedToTotal: c.appliedToTotal || totalBeforeDiscount,
@@ -307,14 +276,12 @@ const CartPage = () => {
                 const { totalDiscount, discountPercentage } = getItemDiscount({ ...item, quantity: currentQuantity }, appliedCouponsForDiscount);
                 const finalItemPrice = totalItemPrice - totalDiscount;
                 
-                // Check if item has applicable coupons
                 const hasApplicableCoupons = appliedCoupons.some(ac => 
                   ac.applicableProducts?.includes(item.id)
                 );
                 
                 return (
                   <div key={item.id} className="flex py-4 border-b gap-3">
-                    {/* Mobile-optimized image */}
                     <Link to={`/product/${item.id}`} className="flex-shrink-0">
                       <img 
                         src={item.images && item.images.length > 0 ? item.images[0] : '/placeholder.svg'} 
@@ -328,7 +295,6 @@ const CartPage = () => {
                         {item.name}
                       </Link>
                       
-                      {/* Coupon applied badge */}
                       {hasApplicableCoupons && (
                         <div className="mt-1">
                           <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300 text-xs">
@@ -337,9 +303,7 @@ const CartPage = () => {
                         </div>
                       )}
                       
-                      {/* Mobile-first layout with optimized positioning */}
                       <div className="flex flex-col gap-2 mt-2">
-                        {/* Quantity controls and delete button row */}
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-2">
                             <Button
@@ -370,7 +334,6 @@ const CartPage = () => {
                             </Button>
                           </div>
                           
-                          {/* Delete button positioned at quantity level */}
                           <Button
                             variant="ghost"
                             size="sm"
@@ -381,12 +344,10 @@ const CartPage = () => {
                           </Button>
                         </div>
                         
-                        {/* Stock warning */}
                         {item.currentStock <= 5 && (
                           <span className="text-xs text-orange-600">Only {item.currentStock} left in stock</span>
                         )}
                         
-                        {/* Price section - optimized for mobile */}
                         <div className="flex flex-col">
                           {totalDiscount > 0 ? (
                             <div className="space-y-1">
@@ -394,7 +355,6 @@ const CartPage = () => {
                                 <span className="text-gray-800 font-semibold text-sm">₹{finalItemPrice.toFixed(2)}</span>
                                 <span className="text-gray-500 line-through text-xs">₹{totalItemPrice.toFixed(2)}</span>
                               </div>
-                              {/* Discount percentage and save text on same line for mobile */}
                               <div className="flex items-center justify-between">
                                 <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300 text-xs">
                                   -{discountPercentage}% OFF
@@ -419,14 +379,12 @@ const CartPage = () => {
             </div>
             
             <div className="mt-6">
-              {/* Applied Coupons Display */}
               {appliedCoupons.length > 0 && (
                 <div className="space-y-3 mb-4">
                   {appliedCoupons.map(({ coupon, discountAmount, applicableProducts }) => {
                     const discount = Number(discountAmount) || 0;
                     const eligibleCount = applicableProducts?.length || 0;
                     
-                    // Only show coupon if it has eligible products and provides discount
                     if (eligibleCount === 0 || discount === 0) {
                       return null;
                     }
@@ -455,7 +413,6 @@ const CartPage = () => {
                 </div>
               )}
               
-              {/* Coupon Entry and Coupons Link */}
               <div className="space-y-3 mb-6">
                 <div className="flex items-center space-x-2">
                   <Input 
@@ -463,11 +420,9 @@ const CartPage = () => {
                     value={couponCode} 
                     onChange={e => setCouponCode(e.target.value.toUpperCase())}
                     onPaste={e => {
-                      // Get pasted text and set it directly
                       const pastedText = e.clipboardData.getData('text');
                       if (pastedText) {
                         setCouponCode(pastedText.trim().toUpperCase());
-                        // Prevent default to avoid double paste
                         e.preventDefault();
                       }
                     }}
@@ -496,7 +451,6 @@ const CartPage = () => {
                 </Button>
               </div>
               
-              {/* Order Summary */}
               <div className="bg-gray-50 rounded-lg p-4 space-y-3">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Subtotal</span>
@@ -508,10 +462,16 @@ const CartPage = () => {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Delivery Fees</span>
-                  <span className="text-green-600">FREE</span>
+                  <span className={deliveryFees === 0 ? "text-green-600" : ""}>
+                    {deliveryFees === 0 ? 'FREE' : `₹${deliveryFees.toFixed(2)}`}
+                  </span>
                 </div>
+                {subtotal < 2000 && (
+                  <div className="text-xs text-orange-600">
+                    Add ₹{(2000 - subtotal).toFixed(2)} more for free delivery
+                  </div>
+                )}
                 
-                {/* Individual coupon discounts - only show if discount > 0 */}
                 {appliedCoupons.map((applied) => {
                   const discount = Number(applied.discountAmount) || 0;
                   if (discount === 0) return null;
@@ -524,7 +484,6 @@ const CartPage = () => {
                   );
                 })}
                 
-                {/* Total discount summary */}
                 {totalDiscountAmount > 0 && (
                   <div className="flex justify-between font-medium text-green-600 border-t border-green-200 pt-2">
                     <span>Total Coupon Savings</span>
@@ -542,21 +501,10 @@ const CartPage = () => {
                     You saved ₹{totalDiscountAmount.toFixed(2)} on this order!
                   </div>
                 )}
-                {finalTotal < 2000 && (
-                  <div className="text-sm text-red-600 text-center mt-2">
-                    Minimum order amount is ₹2000. Please add more items to proceed.
-                  </div>
-                )}
               </div>
               
               <div className="mt-4">
-                {finalTotal >= 2000 ? (
-                  <OptimizedCheckoutButton cartItems={cartItems} />
-                ) : (
-                  <Button disabled className="w-full py-6 text-lg bg-gray-400">
-                    Checkout (Minimum ₹2000)
-                  </Button>
-                )}
+                <OptimizedCheckoutButton cartItems={cartItems} />
               </div>
             </div>
           </>

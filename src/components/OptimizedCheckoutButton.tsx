@@ -29,10 +29,9 @@ const OptimizedCheckoutButton: React.FC<OptimizedCheckoutButtonProps> = ({
       return;
     }
 
-    // Check if user is authenticated before proceeding
+    // No minimum order restriction - allow checkout for any amount
     if (checkAuthForCheckout()) {
       console.log('User authenticated, navigating to address page');
-      // Use navigate with replace to avoid adding to history stack
       navigate('/address', { replace: true });
     } else {
       console.log('User not authenticated');

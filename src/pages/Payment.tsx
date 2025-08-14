@@ -24,11 +24,10 @@ import {
 import { validateCoupon, calculateDiscount, type Coupon } from '@/services/couponService';
 import { useCouponState } from '@/components/CouponStateManager';
 
-// Constants
+// Updated constants with dynamic delivery fees
 const PRICING_CONFIG = {
   platformFees: 5.00,
-  deliveryFees: 0.00,
-  transactionFeeRate: 0.02, // 2% transaction fee
+  transactionFeeRate: 0.02,
   razorpayTestKey: 'rzp_test_NhYbBXqUSxpojf'
 } as const;
 
@@ -62,13 +61,11 @@ const PaymentMethodsPage = () => {
   const addressId = searchParams.get('address');
   const navigate = useNavigate();
   
-  // Hooks
   const { cartItems = [], cartTotal, clearCart } = useCart();
   const { checkAuthForCheckout } = useAuthCheck();
   const { user } = useAuth();
   const { appliedCoupons, setCoupons } = useCouponState();
   
-  // Add navigation gestures
   useNavigationGestures();
 
   useEffect(() => {
@@ -83,31 +80,30 @@ const PaymentMethodsPage = () => {
     }
   }, [cartItems, navigate]);
 
-  // Calculation functions 
+  // Updated calculation functions with dynamic delivery fees
   const calculatePricing = () => {
-    // Calculate subtotal using sale price when available
     const subtotal = cartItems.reduce((total, item) => {
       const itemPrice = Number(item.salePrice || item.price);
-      return total + (itemPrice * Number(item.quantity)); // Ensure quantity is a number
+      return total + (itemPrice * Number(item.quantity));
     }, 0);
     
-    // Calculate total discount from all applied coupons
+    // Dynamic delivery fee calculation
+    const deliveryFees = subtotal >= 2000 ? 0.00 : 50.00;
+    
     const totalDiscountAmount = appliedCoupons.reduce((total, couponData) => {
       const discount = Number(couponData.discountAmount) || 0;
       return total + discount;
     }, 0);
     
-    // Calculate total before transaction fee
-    const totalBeforeTransactionFee = subtotal + PRICING_CONFIG.platformFees + PRICING_CONFIG.deliveryFees - totalDiscountAmount;
+    const totalBeforeTransactionFee = subtotal + PRICING_CONFIG.platformFees + deliveryFees - totalDiscountAmount;
     
-    // Only add transaction fee for Razorpay payment method
     const transactionFee = paymentMethod === 'razorpay' ? Math.round(totalBeforeTransactionFee * PRICING_CONFIG.transactionFeeRate * 100) / 100 : 0;
     
-    // Final total calculation
     const totalAmount = totalBeforeTransactionFee + transactionFee;
     
     return {
       subtotal,
+      deliveryFees,
       totalDiscountAmount,
       totalBeforeTransactionFee,
       transactionFee,
@@ -117,7 +113,6 @@ const PaymentMethodsPage = () => {
   
   const pricing = calculatePricing();
   
-  // Optimized loadAndValidateCoupons function for better performance
   const loadAndValidateCoupons = async () => {
     const storedCouponData = localStorage.getItem('appliedCoupon');
     if (!storedCouponData) return;
@@ -126,7 +121,6 @@ const PaymentMethodsPage = () => {
       const parsedData = JSON.parse(storedCouponData);
       const couponsToLoad = Array.isArray(parsedData) ? parsedData : [parsedData];
       
-      // Only set coupons if they're valid and different from current state
       if (couponsToLoad.length > 0 && appliedCoupons.length === 0) {
         setCoupons(couponsToLoad);
       }
@@ -137,7 +131,6 @@ const PaymentMethodsPage = () => {
     }
   };
   
-  // Load Razorpay script
   const loadRazorpayScript = (): Promise<boolean> => {
     return new Promise((resolve) => {
       const script = document.createElement('script');
@@ -153,7 +146,6 @@ const PaymentMethodsPage = () => {
     });
   };
   
-  // Effects
   useEffect(() => {
     if (cartItems.length > 0) {
       loadAndValidateCoupons();
@@ -172,14 +164,12 @@ const PaymentMethodsPage = () => {
     loadRazorpayScript();
   }, [checkAuthForCheckout, addressId, navigate]);
   
-  // Fetch the selected address
   const { data: address, isLoading: isLoadingAddress } = useQuery({
     queryKey: ['address', addressId],
     queryFn: () => addressId ? getAddressById(addressId) : Promise.reject('No address ID'),
     enabled: !!addressId
   });
   
-  // Optimized create order mutation with better error handling
   const createOrderMutation = useMutation({
     mutationFn: async (paymentData: PaymentData) => {
       if (!addressId || !user) throw new Error('No address or user found');
@@ -187,8 +177,7 @@ const PaymentMethodsPage = () => {
       
       console.log('Creating order with items:', cartItems.length);
       
-      // Batch process items to avoid performance issues with large quantities
-      const batchSize = 50; // Process items in batches
+      const batchSize = 50;
       const processedProducts = [];
       
       for (let i = 0; i < cartItems.length; i += batchSize) {
@@ -202,23 +191,22 @@ const PaymentMethodsPage = () => {
         processedProducts.push(...batchProducts);
       }
       
-      // Create order with the final calculated amount (including all discounts, no tax)
       const orderResult = await createOrder({
         addressId: addressId,
         userId: user.id,
         paymentMethod: paymentData.paymentMethod,
-        totalAmount: pricing.totalAmount, // This is the final amount with discounts applied
+        totalAmount: pricing.totalAmount,
         platformFees: PRICING_CONFIG.platformFees,
+        deliveryFees: pricing.deliveryFees,
         discountAmount: pricing.totalDiscountAmount,
         products: processedProducts
       });
 
-      // If Razorpay payment, save payment details
       if (paymentData.razorpayPaymentId && orderResult.orderId) {
         await savePaymentDetails(
           orderResult.orderId,
           paymentData.razorpayPaymentId,
-          pricing.totalAmount, // Use the final calculated amount
+          pricing.totalAmount,
           'completed',
           'razorpay'
         );
@@ -228,18 +216,14 @@ const PaymentMethodsPage = () => {
     },
     onSuccess: ({ orderId }) => {
       console.log('Order created successfully');
-      // Store order ID for confirmation page
       localStorage.setItem('lastOrderId', orderId!);
       
-      // Clear the cart and applied coupon
       clearCart();
       localStorage.removeItem('appliedCoupon');
       localStorage.removeItem('groceryHub_cart');
       
-      // Add a small delay before navigation to ensure state updates are processed
       setTimeout(() => {
         console.log('Navigating to order confirmation page');
-        // Navigate to confirmation - use replace: true to prevent back navigation to payment
         navigate('/order-confirmation', { replace: true });
       }, 200);
     },
@@ -262,7 +246,6 @@ const PaymentMethodsPage = () => {
     }
     
     try {
-      // Create Razorpay order
       const razorpayOrder = await createRazorpayOrder(pricing.totalAmount, `order_${Date.now()}`);
       
       if (!razorpayOrder || !razorpayOrder.id) {
@@ -292,7 +275,6 @@ const PaymentMethodsPage = () => {
       processRazorpayPayment(
         options,
         async (response) => {
-          // Verify payment
           try {
             await verifyRazorpayPayment(
               response.razorpay_payment_id,
@@ -301,7 +283,6 @@ const PaymentMethodsPage = () => {
               response.razorpay_order_id
             );
             
-            // Create order with payment details
             const paymentData: PaymentData = {
               paymentMethod: 'razorpay',
               razorpayPaymentId: response.razorpay_payment_id,
@@ -350,7 +331,6 @@ const PaymentMethodsPage = () => {
       return;
     }
     
-    // Add throttling for large orders to prevent freezing
     const totalItems = cartItems.reduce((sum, item) => sum + Number(item.quantity), 0);
     if (totalItems > 100) {
       toast('Processing large order...', {
@@ -379,8 +359,15 @@ const PaymentMethodsPage = () => {
       
       <div className="flex justify-between">
         <span className="text-gray-600">Delivery Fees</span>
-        <span>{PRICING_CONFIG.deliveryFees === 0 ? 'FREE' : formatCurrency(PRICING_CONFIG.deliveryFees)}</span>
+        <span className={pricing.deliveryFees === 0 ? "text-green-600" : ""}>
+          {pricing.deliveryFees === 0 ? 'FREE' : formatCurrency(pricing.deliveryFees)}
+        </span>
       </div>
+      {pricing.subtotal < 2000 && (
+        <div className="text-xs text-orange-600">
+          Add ₹{(2000 - pricing.subtotal).toFixed(2)} more for free delivery
+        </div>
+      )}
       
       {pricing.transactionFee > 0 && (
         <div className="flex justify-between">
