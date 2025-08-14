@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from 'react-router-dom';
 import { ChevronLeft, Trash2, Plus, Minus, ShoppingCart } from 'lucide-react';
@@ -59,6 +58,26 @@ const CartPage = () => {
   useEffect(() => {
     checkCartAndClearCoupons(cartItems.length);
   }, [cartItems.length, checkCartAndClearCoupons]);
+
+  // New effect to remove coupons when their eligible products are removed
+  useEffect(() => {
+    if (appliedCoupons.length > 0 && cartItems.length > 0) {
+      const currentProductIds = new Set(cartItems.map(item => item.id));
+      
+      appliedCoupons.forEach(({ coupon, applicableProducts }) => {
+        // Check if any of the coupon's applicable products are still in the cart
+        const hasEligibleProducts = applicableProducts?.some(productId => 
+          currentProductIds.has(productId)
+        );
+        
+        // If no eligible products remain, remove the coupon
+        if (!hasEligibleProducts) {
+          console.log(`Removing coupon ${coupon.code} - no eligible products remain`);
+          removeCoupon(coupon.id);
+        }
+      });
+    }
+  }, [cartItems, appliedCoupons, removeCoupon]);
 
   useEffect(() => {
     const currentIds = new Set(cartItems.map(item => item.id));

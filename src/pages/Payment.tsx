@@ -383,25 +383,10 @@ const PaymentMethodsPage = () => {
         </div>
       )}
       
-      {appliedCoupons.length > 0 && (
-        <div className="space-y-1">
-          {appliedCoupons.map((couponData, index) => {
-            const discount = Number(couponData.discountAmount) || 0;
-            if (discount === 0) return null;
-            
-            return (
-              <div key={index} className="flex justify-between text-green-600">
-                <span>Coupon Discount ({couponData.coupon.code})</span>
-                <span>-{formatCurrency(discount)}</span>
-              </div>
-            );
-          })}
-          {pricing.totalDiscountAmount > 0 && (
-            <div className="flex justify-between text-green-700 font-medium">
-              <span>Total Coupon Savings</span>
-              <span>-{formatCurrency(pricing.totalDiscountAmount)}</span>
-            </div>
-          )}
+      {pricing.totalDiscountAmount > 0 && (
+        <div className="flex justify-between text-green-600">
+          <span>Total Coupon Savings</span>
+          <span>-{formatCurrency(pricing.totalDiscountAmount)}</span>
         </div>
       )}
       

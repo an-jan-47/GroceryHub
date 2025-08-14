@@ -1,5 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { useCouponState } from '@/components/CouponStateManager';
 
 export interface CartItem {
   id: string;
