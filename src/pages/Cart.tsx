@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from 'react-router-dom';
 import { ChevronLeft, Trash2, Plus, Minus, ShoppingCart } from 'lucide-react';
@@ -86,16 +87,28 @@ const CartPage = () => {
   
   const subtotal = itemCalculations.reduce((total: number, item: any) => total + Number(item.itemTotal), 0);
   
+  // Dynamic delivery fee calculation
   const deliveryFees = subtotal >= 2000 ? 0.00 : 50.00;
   
   const totalBeforeDiscount = subtotal + platformFees + deliveryFees;
   
-  const totalDiscountAmount = appliedCoupons.reduce((total, applied) => {
-    const discount = Number(applied.discountAmount) || 0;
-    return total + discount;
+  // Fixed discount calculation - calculate actual discount per item and sum up
+  const appliedCouponsForDiscount: AppliedCoupon[] = appliedCoupons.map(c => ({
+    ...c,
+    appliedToTotal: c.appliedToTotal || totalBeforeDiscount,
+    applicableProducts: c.applicableProducts || []
+  }));
+
+  // Calculate total discount by summing up individual item discounts
+  const totalDiscountAmount = itemCalculations.reduce((totalDiscount: number, item: any) => {
+    const { totalDiscount: itemDiscount } = getItemDiscount(
+      { ...item, quantity: item.quantity }, 
+      appliedCouponsForDiscount
+    );
+    return totalDiscount + itemDiscount;
   }, 0);
+
   const totalAfterDiscount = Math.max(0, totalBeforeDiscount - totalDiscountAmount);
-  
   const finalTotal = totalAfterDiscount;
   
   const clearCart = () => {
@@ -234,12 +247,6 @@ const CartPage = () => {
     }, 50);
     toast.success('Coupon removed');
   };
-
-  const appliedCouponsForDiscount: AppliedCoupon[] = appliedCoupons.map(c => ({
-    ...c,
-    appliedToTotal: c.appliedToTotal || totalBeforeDiscount,
-    applicableProducts: c.applicableProducts || []
-  }));
 
   return (
     <div className="pb-20">
@@ -395,7 +402,7 @@ const CartPage = () => {
                           <div>
                             <span className="font-semibold text-green-800">Coupon Applied: {coupon.code}</span>
                             <p className="text-sm text-green-600">
-                              You saved ₹{discount.toFixed(2)} on {eligibleCount} eligible products
+                              You saved ₹{totalDiscountAmount.toFixed(2)} on {eligibleCount} eligible products
                             </p>
                           </div>
                           <Button 
@@ -472,20 +479,8 @@ const CartPage = () => {
                   </div>
                 )}
                 
-                {appliedCoupons.map((applied) => {
-                  const discount = Number(applied.discountAmount) || 0;
-                  if (discount === 0) return null;
-                  
-                  return (
-                    <div key={applied.coupon.id} className="flex justify-between text-green-600">
-                      <span className="text-sm">{applied.coupon.code} Discount</span>
-                      <span className="text-sm">-₹{discount.toFixed(2)}</span>
-                    </div>
-                  );
-                })}
-                
                 {totalDiscountAmount > 0 && (
-                  <div className="flex justify-between font-medium text-green-600 border-t border-green-200 pt-2">
+                  <div className="flex justify-between text-green-600">
                     <span>Total Coupon Savings</span>
                     <span>-₹{totalDiscountAmount.toFixed(2)}</span>
                   </div>

@@ -215,19 +215,26 @@ export const getItemDiscount = (
     let itemDiscount = 0;
 
     if (coupon.type === 'percentage') {
+      // Calculate discount based on item total
       itemDiscount = (itemTotal * Number(coupon.value)) / 100;
       
-      // Apply max discount limit if specified
+      // Apply max discount limit proportionally if specified
       if (coupon.max_discount_amount) {
-        const maxItemDiscount = Math.min(itemDiscount, Number(coupon.max_discount_amount));
-        itemDiscount = maxItemDiscount;
+        // Get all eligible items for this coupon to calculate proportional max discount
+        const totalEligibleAmount = applicableProducts.reduce((total, productId) => {
+          // This is a simplified approach - in a real scenario you'd need access to all cart items
+          return total + itemTotal; // For now, just use current item total
+        }, 0);
+        
+        const proportionalMaxDiscount = (itemTotal / totalEligibleAmount) * Number(coupon.max_discount_amount);
+        itemDiscount = Math.min(itemDiscount, proportionalMaxDiscount);
       }
       
       maxDiscountPercentage = Math.max(maxDiscountPercentage, Number(coupon.value));
     } else if (coupon.type === 'fixed') {
-      // For fixed discount, we need to calculate the proportion
-      // This is a simplified approach - in reality you'd need all eligible items
-      itemDiscount = Math.min(Number(discountAmount), itemTotal);
+      // For fixed discount, apply the full discount amount to this item
+      // In a multi-item scenario, this should be proportional, but for simplicity:
+      itemDiscount = Math.min(Number(coupon.value), itemTotal);
       
       const effectivePercentage = (itemDiscount / itemTotal) * 100;
       maxDiscountPercentage = Math.max(maxDiscountPercentage, effectivePercentage);

@@ -21,7 +21,7 @@ import {
   verifyRazorpayPayment,
   savePaymentDetails 
 } from '@/services/paymentService';
-import { validateCoupon, calculateDiscount, type Coupon } from '@/services/couponService';
+import { validateCoupon, calculateDiscount, getItemDiscount, type Coupon, type AppliedCoupon } from '@/services/couponService';
 import { useCouponState } from '@/components/CouponStateManager';
 
 // Updated constants with dynamic delivery fees
@@ -80,7 +80,7 @@ const PaymentMethodsPage = () => {
     }
   }, [cartItems, navigate]);
 
-  // Updated calculation functions with dynamic delivery fees
+  // Updated calculation functions with fixed discount calculation
   const calculatePricing = () => {
     const subtotal = cartItems.reduce((total, item) => {
       const itemPrice = Number(item.salePrice || item.price);
@@ -90,9 +90,16 @@ const PaymentMethodsPage = () => {
     // Dynamic delivery fee calculation
     const deliveryFees = subtotal >= 2000 ? 0.00 : 50.00;
     
-    const totalDiscountAmount = appliedCoupons.reduce((total, couponData) => {
-      const discount = Number(couponData.discountAmount) || 0;
-      return total + discount;
+    // Calculate total discount using the same method as cart
+    const appliedCouponsForDiscount: AppliedCoupon[] = appliedCoupons.map(c => ({
+      ...c,
+      appliedToTotal: c.appliedToTotal || subtotal,
+      applicableProducts: c.applicableProducts || []
+    }));
+
+    const totalDiscountAmount = cartItems.reduce((totalDiscount, item) => {
+      const { totalDiscount: itemDiscount } = getItemDiscount(item, appliedCouponsForDiscount);
+      return totalDiscount + itemDiscount;
     }, 0);
     
     const totalBeforeTransactionFee = subtotal + PRICING_CONFIG.platformFees + deliveryFees - totalDiscountAmount;
@@ -389,7 +396,7 @@ const PaymentMethodsPage = () => {
               </div>
             );
           })}
-          {appliedCoupons.length > 1 && (
+          {pricing.totalDiscountAmount > 0 && (
             <div className="flex justify-between text-green-700 font-medium">
               <span>Total Coupon Savings</span>
               <span>-{formatCurrency(pricing.totalDiscountAmount)}</span>
