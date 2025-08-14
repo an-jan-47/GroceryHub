@@ -83,6 +83,31 @@ public class MainActivity extends BridgeActivity {
         mainHandler = new Handler(Looper.getMainLooper());
         
         configureWebView();
+        
+        // Handle deep link intent
+        handleIntent(getIntent());
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        handleIntent(intent);
+    }
+
+    private void handleIntent(Intent intent) {
+        String action = intent.getAction();
+        Uri data = intent.getData();
+
+        if (Intent.ACTION_VIEW.equals(action) && data != null) {
+            String path = data.getPath();
+            if (path != null && path.startsWith("/product/")) {
+                // Extract product ID from the path
+                String productId = path.substring("/product/".length());
+                // Load the specific product page
+                String productUrl = "https://modern-cart-nexus-app.vercel.app/product/" + productId;
+                this.bridge.getWebView().loadUrl(productUrl);
+            }
+        }
     }
     
     private void configureWebView() {
