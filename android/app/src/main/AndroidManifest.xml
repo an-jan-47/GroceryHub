@@ -33,8 +33,6 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-
-                <!-- Match https://modern-cart-nexus-app.vercel.app/product/... -->
                 <data
                     android:scheme="https"
                     android:host="modern-cart-nexus-app.vercel.app"

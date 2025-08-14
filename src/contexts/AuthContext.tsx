@@ -172,7 +172,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `https://modern-cart-nexus-app.vercel.app/auth/callback`
+          redirectTo: `https://modern-cart-nexus-app.vercel.app/`
         }
       });
 
