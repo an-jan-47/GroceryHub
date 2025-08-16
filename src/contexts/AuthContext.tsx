@@ -66,7 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               toast('Welcome back!', {
                 description: `Signed in as ${currentSession.user.email}`
               });
-            }, 500);
+            }, 300);
             
           } else if (event === 'SIGNED_OUT') {
             console.log('User signed out');
@@ -203,48 +203,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInWithGoogle = async () => {
     try {
-      setLoading(true);
-      console.log('Starting Google sign-in...');
-      
-      // Clear any existing session first
-      await supabase.auth.signOut();
-      
-      // Wait a moment for cleanup
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      // Use the current origin for redirect
-      const redirectUrl = `${window.location.origin}/`;
-      console.log('Using Google redirect URL:', redirectUrl);
-      
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: redirectUrl,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          },
-          skipBrowserRedirect: false
-        }
-      });
-
-      if (error) {
-        console.error('Google sign-in error:', error);
-        toast('Google sign-in failed', {
-          description: 'Unable to sign in with Google. Please try again.'
+        setLoading(true);
+        console.log('Starting Google sign-in...');
+        
+        // Use the current origin for redirect
+        const redirectUrl = `${window.location.origin}/`;
+        console.log('Using Google redirect URL:', redirectUrl);
+        
+        const { data, error } = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+                redirectTo: redirectUrl,
+                queryParams: {
+                    access_type: 'offline',
+                    prompt: 'consent',
+                },
+                skipBrowserRedirect: false
+            }
         });
-        throw error;
-      }
-      
-      console.log('Google sign-in initiated:', data);
-      // Don't set loading to false here as the redirect will happen
-      
+
+        if (error) {
+            console.error('Google sign-in error:', error);
+            toast('Google sign-in failed', {
+                description: 'Unable to sign in with Google. Please try again.'
+            });
+            throw error;
+        }
+        
+        console.log('Google sign-in initiated:', data);
+        // Don't set loading to false here as the redirect will happen
+        
     } catch (error: any) {
-      console.error('Google sign-in error:', error);
-      setLoading(false);
-      throw error;
+        console.error('Google sign-in error:', error);
+        setLoading(false);
+        throw error;
     }
-  };
+};
 
   const signOut = async () => {
     try {

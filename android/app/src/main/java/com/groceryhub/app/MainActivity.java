@@ -97,19 +97,41 @@ public class MainActivity extends BridgeActivity {
     private void handleIntent(Intent intent) {
         String action = intent.getAction();
         Uri data = intent.getData();
-
+    
         if (Intent.ACTION_VIEW.equals(action) && data != null) {
+            // Store the intent data for processing after WebView is ready
+            pendingAuthIntent = intent;
+            
+            // If WebView is already initialized, process immediately
+            if (bridge != null && bridge.getWebView() != null) {
+                processAuthIntent(intent);
+            }
+            // Otherwise, it will be processed when WebView is ready in configureWebView()
+        }
+    }
+
+    private void processAuthIntent(Intent intent) {
+        Uri data = intent.getData();
+        if (data != null) {
             String path = data.getPath();
-            if (path != null && path.startsWith("/product/")) {
-                // Extract product ID from the path
+            String fragment = data.getFragment(); // Get the URL fragment which may contain the auth token
+            
+            // If this is an auth redirect
+            if (fragment != null && (fragment.contains("access_token") || fragment.contains("error"))) {
+                // Load the full URL to let Supabase handle the auth response
+                this.bridge.getWebView().loadUrl(data.toString());
+            } else if (path != null && path.startsWith("/product/")) {
+                // Handle product deep links
                 String productId = path.substring("/product/".length());
-                // Load the specific product page
                 String productUrl = "https://modern-cart-nexus-app.vercel.app/product/" + productId;
                 this.bridge.getWebView().loadUrl(productUrl);
             }
         }
     }
-    
+
+    // Add this at the class level
+    private Intent pendingAuthIntent;
+
     private void configureWebView() {
         WebView webView = this.bridge.getWebView();
         
