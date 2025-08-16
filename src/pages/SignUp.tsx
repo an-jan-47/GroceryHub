@@ -19,13 +19,15 @@ const SignUp = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const navigate = useNavigate();
-  const { signUp, signInWithGoogle, user } = useAuth();
+  const { signUp, signInWithGoogle, user, loading: authLoading } = useAuth();
   
   useEffect(() => {
-    if (user) {
+    // Redirect authenticated users
+    if (!authLoading && user) {
+      console.log('User authenticated, redirecting to home');
       navigate('/');
     }
-  }, [user, navigate]);
+  }, [user, authLoading, navigate]);
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -101,18 +103,30 @@ const SignUp = () => {
   };
 
   const handleGoogleSignUp = async () => {
+    if (isSubmitting) return;
+    
     setIsSubmitting(true);
     setFormError(null);
     
     try {
+      console.log('Google sign-up button clicked');
       await signInWithGoogle();
+      // Don't navigate here - let the auth state change handle it
     } catch (error: any) {
       console.error('Google sign-up error:', error);
       setFormError("Google sign-up failed. Please try again.");
-    } finally {
       setIsSubmitting(false);
     }
   };
+
+  // Show loading spinner while auth is initializing
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
   
   return (
     <div className="min-h-screen flex flex-col justify-start px-4 py-6 bg-gray-50 overflow-y-auto md:py-12 md:justify-center">

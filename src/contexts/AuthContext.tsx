@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -36,20 +37,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const initializeAuth = async () => {
       try {
-        // console.log('Initializing auth...');
+        console.log('Initializing auth...');
         
         // Set up auth state change listener FIRST
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
-          // console.log('Auth state changed:', event, currentSession);
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: any, currentSession: any) => {
+          console.log('Auth state changed:', event, currentSession);
           if (mounted) {
             setSession(currentSession);
             setUser(currentSession?.user ?? null);
+            
+            // Handle successful sign in
+            if (event === 'SIGNED_IN' && currentSession?.user) {
+              toast('Welcome back!', {
+                description: 'You have been signed in successfully.'
+              });
+            }
           }
         });
 
         // THEN get initial session
         const { data: { session: initialSession } } = await supabase.auth.getSession();
-        // console.log('Initial session:', initialSession);
+        console.log('Initial session:', initialSession);
         
         if (mounted) {
           setSession(initialSession);
@@ -62,7 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         };
 
       } catch (error) {
-        // console.error('Error initializing auth:', error);
+        console.error('Error initializing auth:', error);
         if (mounted) {
           setLoading(false);
         }
@@ -72,7 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     initializeAuth();
 
     return () => {
-      // console.log('Cleaning up auth...');
+      console.log('Cleaning up auth...');
       mounted = false;
     };
   }, []);
@@ -80,8 +88,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signUp = async (email: string, password: string, userData: { name: string; phone: string }) => {
     try {
       setLoading(true);
-      // Set up redirect URL for email confirmation
-      const redirectUrl = `https://email-verification-woad.vercel.app/`;
+      // Use dynamic redirect URL
+      const redirectUrl = `${window.location.origin}/`;
       
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -169,19 +177,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signInWithGoogle = async () => {
     try {
       setLoading(true);
-      const { error } = await supabase.auth.signInWithOAuth({
+      console.log('Starting Google sign-in...');
+      
+      // Use dynamic redirect URL
+      const redirectUrl = `${window.location.origin}/`;
+      console.log('Using redirect URL:', redirectUrl);
+      
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `https://modern-cart-nexus-app.vercel.app/`
+          redirectTo: redirectUrl,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          }
         }
       });
 
       if (error) {
+        console.error('Google sign-in error:', error);
         toast('Google sign-in failed', {
           description: 'Unable to sign in with Google. Please try again.'
         });
         throw error;
       }
+      
+      console.log('Google sign-in initiated successfully:', data);
+      
     } catch (error: any) {
       console.error('Google sign-in error:', error);
       throw error;

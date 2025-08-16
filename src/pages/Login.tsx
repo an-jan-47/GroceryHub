@@ -14,7 +14,7 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
-  const { signIn, signInWithGoogle, user } = useAuth();
+  const { signIn, signInWithGoogle, user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -43,29 +43,42 @@ const Login = () => {
   };
 
   const handleGoogleSignIn = async () => {
+    if (isLoading) return;
+    
     setIsLoading(true);
     setFormError(null);
     
     try {
+      console.log('Google sign-in button clicked');
       await signInWithGoogle();
-      // Navigation will be handled by auth state change
+      // Don't navigate here - let the auth state change handle it
     } catch (error: any) {
       console.error('Google sign-in error:', error);
       setFormError("Google sign-in failed. Please try again.");
-    } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    if (user) {
+    // Redirect authenticated users
+    if (!authLoading && user) {
+      console.log('User authenticated, redirecting to:', from);
       navigate(from, { replace: true });
     }
-  }, [user, navigate, from]);
+  }, [user, authLoading, navigate, from]);
 
   const handleInputChange = () => {
     if (formError) setFormError(null);
   };
+
+  // Show loading spinner while auth is initializing
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col justify-start px-4 py-6 bg-gray-50 overflow-y-auto md:py-12 md:justify-center">
