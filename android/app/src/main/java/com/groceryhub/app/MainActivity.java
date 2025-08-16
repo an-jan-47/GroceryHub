@@ -324,8 +324,24 @@ public class MainActivity extends BridgeActivity {
         public boolean shouldOverrideUrlLoading(WebView view, String url) {
             return handleExternalUrls(url);
         }
-        
+    
         private boolean handleExternalUrls(String url) {
+            // Handle Google OAuth URLs
+            if (url.contains("accounts.google.com") || 
+                url.contains("oauth") || 
+                url.contains("auth")) {
+                Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+                try {
+                    startActivity(intent);
+                    return true;
+                } catch (ActivityNotFoundException e) {
+                    Log.e(TAG, "No browser available to handle OAuth URL: " + url, e);
+                    showToast("No browser available to handle authentication");
+                    return true;
+                }
+            }
+            
+            // Handle other external URLs as before
             if (url.startsWith("tel:") || url.startsWith("mailto:") || 
                 url.startsWith("https://wa.me/") || url.startsWith("whatsapp:")) {
                 Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));

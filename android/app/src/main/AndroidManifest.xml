@@ -35,8 +35,7 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data
                     android:scheme="https"
-                    android:host="modern-cart-nexus-app.vercel.app"
-                    android:pathPrefix="/product" />
+                    android:host="modern-cart-nexus-app.vercel.app" />
             </intent-filter>
 
         </activity>
