@@ -39,29 +39,53 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         console.log('Initializing auth...');
         
-        // Set up auth state change listener FIRST
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: any, currentSession: any) => {
-          console.log('Auth state changed:', event, currentSession);
-          if (mounted) {
+        // Get initial session first
+        const { data: { session: initialSession }, error: sessionError } = await supabase.auth.getSession();
+        console.log('Initial session:', initialSession, 'Error:', sessionError);
+        
+        if (mounted && initialSession) {
+          setSession(initialSession);
+          setUser(initialSession.user);
+          console.log('User authenticated on init:', initialSession.user.email);
+        }
+
+        // Set up auth state change listener
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
+          console.log('Auth state changed:', event, 'Session:', currentSession?.user?.email || 'No user');
+          
+          if (!mounted) return;
+
+          // Handle different auth events
+          if (event === 'SIGNED_IN' && currentSession?.user) {
+            console.log('User signed in:', currentSession.user.email);
             setSession(currentSession);
-            setUser(currentSession?.user ?? null);
+            setUser(currentSession.user);
             
-            // Handle successful sign in
-            if (event === 'SIGNED_IN' && currentSession?.user) {
+            // Delay the success toast to ensure UI is ready
+            setTimeout(() => {
               toast('Welcome back!', {
-                description: 'You have been signed in successfully.'
+                description: `Signed in as ${currentSession.user.email}`
               });
-            }
+            }, 500);
+            
+          } else if (event === 'SIGNED_OUT') {
+            console.log('User signed out');
+            setSession(null);
+            setUser(null);
+            
+          } else if (event === 'TOKEN_REFRESHED' && currentSession) {
+            console.log('Token refreshed for:', currentSession.user?.email);
+            setSession(currentSession);
+            setUser(currentSession.user);
+            
+          } else if (event === 'USER_UPDATED' && currentSession) {
+            console.log('User updated:', currentSession.user?.email);
+            setSession(currentSession);
+            setUser(currentSession.user);
           }
         });
 
-        // THEN get initial session
-        const { data: { session: initialSession } } = await supabase.auth.getSession();
-        console.log('Initial session:', initialSession);
-        
         if (mounted) {
-          setSession(initialSession);
-          setUser(initialSession?.user ?? null);
           setLoading(false);
         }
 
@@ -88,8 +112,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signUp = async (email: string, password: string, userData: { name: string; phone: string }) => {
     try {
       setLoading(true);
-      // Use dynamic redirect URL
+      console.log('Starting signup for:', email);
+      
+      // Use the current origin for redirect
       const redirectUrl = `${window.location.origin}/`;
+      console.log('Using redirect URL:', redirectUrl);
       
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -104,17 +131,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       if (error) {
-        // Handle specific error types
+        console.error('Signup error:', error);
         if (error.message.includes('User already registered')) {
           toast('Account already exists', {
             description: 'This email is already registered. Please try signing in instead.'
           });
           throw new Error('Account already exists');
-        } else if (error.message.includes('confirmation email')) {
-          toast('Email service temporarily unavailable', {
-            description: 'Please try again in a few minutes or contact support.'
-          });
-          throw new Error('Email service error');
         } else {
           toast('Account creation failed', {
             description: error.message || 'Please try again.'
@@ -123,16 +145,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
 
+      console.log('Signup response:', data);
+      
       // Success - user created but needs email verification
       if (data.user && !data.session) {
         toast('Account created successfully', {
-          description: 'Please check your inbox and spam folder to confirm your account before signing in.'
+          description: 'Please check your email to confirm your account before signing in.'
         });
       }
       
     } catch (error: any) {
       console.error('Signup error:', error);
-      // Don't show duplicate toast - already handled above
       throw error;
     } finally {
       setLoading(false);
@@ -142,12 +165,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signIn = async (email: string, password: string) => {
     try {
       setLoading(true);
-      const { error } = await supabase.auth.signInWithPassword({
+      console.log('Starting signin for:', email);
+      
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
       });
 
       if (error) {
+        console.error('Signin error:', error);
         if (error.message.includes('Invalid login credentials')) {
           toast('Login failed', {
             description: 'Invalid email or password. Please try again.'
@@ -164,7 +190,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw error;
       }
       
-      // Success toast will be handled by auth state change
+      console.log('Signin successful:', data.user?.email);
+      // Success handling will be done by onAuthStateChange
       
     } catch (error: any) {
       console.error('Login error:', error);
@@ -179,9 +206,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(true);
       console.log('Starting Google sign-in...');
       
-      // Use dynamic redirect URL
+      // Clear any existing session first
+      await supabase.auth.signOut();
+      
+      // Wait a moment for cleanup
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Use the current origin for redirect
       const redirectUrl = `${window.location.origin}/`;
-      console.log('Using redirect URL:', redirectUrl);
+      console.log('Using Google redirect URL:', redirectUrl);
       
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -190,7 +223,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
-          }
+          },
+          skipBrowserRedirect: false
         }
       });
 
@@ -202,21 +236,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw error;
       }
       
-      console.log('Google sign-in initiated successfully:', data);
+      console.log('Google sign-in initiated:', data);
+      // Don't set loading to false here as the redirect will happen
       
     } catch (error: any) {
       console.error('Google sign-in error:', error);
-      throw error;
-    } finally {
       setLoading(false);
+      throw error;
     }
   };
 
   const signOut = async () => {
     try {
       setLoading(true);
-      await supabase.auth.signOut();
-      toast('Signed out successfully');
+      console.log('Starting signout...');
+      
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        console.error('Signout error:', error);
+        toast('Sign out failed', {
+          description: 'Unable to sign out. Please try again.'
+        });
+      } else {
+        console.log('Signout successful');
+        toast('Signed out successfully');
+      }
+      
     } catch (error: any) {
       console.error('Sign out error:', error);
       toast('Sign out failed', {
