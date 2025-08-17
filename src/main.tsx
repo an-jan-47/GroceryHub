@@ -56,54 +56,14 @@ class ErrorBoundary extends React.Component<
   }
 }
 
-// Initialize the app
-const initializeApp = async () => {
-  try {
-    console.log('Initializing GroceryHub app...');
-    
-    // Wait for DOM to be ready
-    if (document.readyState === 'loading') {
-      await new Promise(resolve => {
-        document.addEventListener('DOMContentLoaded', resolve, { once: true });
-      });
-    }
+const rootElement = document.getElementById('root');
+if (!rootElement) {
+  throw new Error('Root element not found');
+}
 
-    // Get the root element
-    const rootElement = document.getElementById('root');
-    if (!rootElement) {
-      throw new Error('Root element not found');
-    }
-
-    console.log('Creating React root...');
-    const root = createRoot(rootElement);
-    
-    console.log('Rendering app...');
-    root.render(
-      <ErrorBoundary>
-        <App />
-      </ErrorBoundary>
-    );
-    
-    console.log('App initialized successfully');
-    
-  } catch (error) {
-    console.error('Failed to initialize app:', error);
-    
-    // Fallback error display
-    const rootElement = document.getElementById('root');
-    if (rootElement) {
-      rootElement.innerHTML = `
-        <div style="display: flex; justify-content: center; align-items: center; height: 100vh; text-align: center; font-family: Arial, sans-serif; flex-direction: column;">
-          <h1>Error Loading GroceryHub</h1>
-          <p>Failed to initialize the application.</p>
-          <button onclick="window.location.reload()" style="padding: 10px 20px; margin-top: 10px; cursor: pointer; border: 1px solid #ccc; border-radius: 4px;">
-            Refresh Page
-          </button>
-        </div>
-      `;
-    }
-  }
-};
-
-// Start the app
-initializeApp();
+const root = createRoot(rootElement);
+root.render(
+  <ErrorBoundary>
+    <App />
+  </ErrorBoundary>
+);

@@ -52,21 +52,19 @@ function AppRoutes() {
 
 function App() {
   return (
-    <React.StrictMode>
-      <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          <TooltipProvider>
-            <AuthProvider>
-              <CartProvider>
-                <AppRoutes />
-                <Toaster />
-                <Sonner />
-              </CartProvider>
-            </AuthProvider>
-          </TooltipProvider>
-        </BrowserRouter>
-      </QueryClientProvider>
-    </React.StrictMode>
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <TooltipProvider>
+          <AuthProvider>
+            <CartProvider>
+              <AppRoutes />
+              <Toaster />
+              <Sonner />
+            </CartProvider>
+          </AuthProvider>
+        </TooltipProvider>
+      </BrowserRouter>
+    </QueryClientProvider>
   );
 }
 
