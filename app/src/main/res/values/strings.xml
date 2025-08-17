@@ -40,5 +40,5 @@
 
 
   <!-- Add this line for deep linking -->
-  <string name="hostName">https://modern-cart-nexus-app.vercel.app/</string>
+  <string name="hostName">modern-cart-nexus-app.vercel.app</string>
 </resources>
