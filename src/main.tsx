@@ -44,12 +44,20 @@ const initialize = async () => {
     
     // Standard React initialization
     const rootElement = document.getElementById('root');
-    if (rootElement) {
-      const root = createRoot(rootElement);
-      root.render(<App />);
-    } else {
+    if (!rootElement) {
       console.error('Root element not found');
+      return;
     }
+
+    // Ensure React is properly loaded before creating root
+    if (!React || !createRoot) {
+      console.error('React modules not properly loaded');
+      return;
+    }
+    
+    const root = createRoot(rootElement);
+    root.render(React.createElement(App));
+    
   } catch (error) {
     console.error('Error initializing app:', error);
   }

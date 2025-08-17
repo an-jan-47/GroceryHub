@@ -1,5 +1,6 @@
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import * as React from "react";
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/sonner';
@@ -27,11 +28,11 @@ export const useAuth = () => {
 };
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [session, setSession] = React.useState<Session | null>(null);
+  const [user, setUser] = React.useState<User | null>(null);
+  const [loading, setLoading] = React.useState(true);
 
-  useEffect(() => {
+  React.useEffect(() => {
     let mounted = true;
 
     const initializeAuth = async () => {
