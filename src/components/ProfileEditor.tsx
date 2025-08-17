@@ -1,6 +1,5 @@
 
-import * as React from 'react';
-import { sanitizeInput } from '@/utils/sanitizeInput';
+import React, { useState, useEffect } from "react";
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -22,14 +21,14 @@ interface Profile {
 const ProfileEditor = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [profile, setProfile] = React.useState<Profile | null>(null);
-  const [isLoading, setIsLoading] = React.useState(true);
-  const [name, setName] = React.useState('');
-  const [phone, setPhone] = React.useState('');
-  const [isSaving, setIsSaving] = React.useState(false);
-  const [saveSuccess, setSaveSuccess] = React.useState(false);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const fetchProfile = async () => {
       if (!user) return;
 

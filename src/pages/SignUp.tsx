@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
@@ -110,8 +111,7 @@ const SignUp = () => {
     try {
       console.log('Google sign-up button clicked');
       await signInWithGoogle();
-      // For mobile apps, don't set loading to false as the flow continues externally
-      // The auth state change will handle navigation
+      // Don't navigate here - let the auth state change handle it
     } catch (error: any) {
       console.error('Google sign-up error:', error);
       setFormError("Google sign-up failed. Please try again.");

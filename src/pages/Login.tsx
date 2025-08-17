@@ -51,8 +51,7 @@ const Login = () => {
     try {
       console.log('Google sign-in button clicked');
       await signInWithGoogle();
-      // For mobile apps, don't set loading to false as the flow continues externally
-      // The auth state change will handle navigation
+      // Don't navigate here - let the auth state change handle it
     } catch (error: any) {
       console.error('Google sign-in error:', error);
       setFormError("Google sign-in failed. Please try again.");

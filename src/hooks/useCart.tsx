@@ -1,5 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { useCouponState } from '@/components/CouponStateManager';
 
 export interface CartItem {
   id: string;
@@ -35,7 +36,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       try {
         const parsedCart = JSON.parse(savedCart);
         // Force refresh of cart items with current prices
-        const refreshedCart = parsedCart.map((item: any) => ({
+        const refreshedCart = parsedCart.map(item => ({
           ...item,
           price: Number(item.price),
           salePrice: item.salePrice ? Number(item.salePrice) : undefined,
@@ -50,6 +51,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   // Save cart to localStorage whenever it changes
+  // Update the useEffect that saves to localStorage
   useEffect(() => {
     try {
       console.log('Saving cart to localStorage:', cartItems);
@@ -86,7 +88,8 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           quantity: Number(quantity), 
           images: product.images || [],
           category: product.category || '',
-          brand: product.brand || ''
+          brand: product.brand || '',
+          stock: product.stock || 999
         };
         console.log('Added new item to cart:', newItem);
         return [...prevItems, newItem];
@@ -122,7 +125,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const clearCart = () => {
     setCartItems([]);
-    localStorage.removeItem('groceryHub_cart');
+    localStorage.removeItem('groceryHub_cart'); // Fix: use the correct key
     // Clear coupons when cart is cleared
     if (typeof window !== 'undefined') {
       localStorage.removeItem('appliedCoupon');

@@ -36,8 +36,8 @@ const safeStorage = {
 // Create Supabase client with proper configuration
 const createSupabaseClient = () => {
   try {
-    const supabaseUrl = 'https://wvhtcmtmxazcetbwgyyz.supabase.co';
-    const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind2aHRjbXRteGF6Y2V0YndneXl6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU5MTA1MTgsImV4cCI6MjA2MTQ4NjUxOH0.0J2pLUZjOvdH3T4R_zUB7gqOazoMviMQ2nSBiYERQvI';
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
     
     if (!supabaseUrl || !supabaseAnonKey) {
       console.error('Missing Supabase environment variables');

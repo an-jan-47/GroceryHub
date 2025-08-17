@@ -1,49 +1,49 @@
-
-import * as React from 'react';
-import { Home, Search, ShoppingCart, User, Heart } from 'lucide-react';
+import React from "react";
+import { Home, Search, ShoppingCart, User } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
+import { Badge } from '@/components/ui/badge';
 import { useCart } from '@/hooks/useCart';
+import { useAuth } from '@/contexts/AuthContext';
 
 const BottomNavigation = () => {
   const location = useLocation();
-  const { totalItems } = useCart();
-
-  const navItems = [
-    { icon: Home, path: '/', label: 'Home' },
-    { icon: Search, path: '/search', label: 'Search' },
-    { icon: ShoppingCart, path: '/cart', label: 'Cart', badge: totalItems },
-    { icon: Heart, path: '/coupons', label: 'Offers' },
-    { icon: User, path: '/profile', label: 'Profile' },
-  ];
+  const { cartItems, totalItems } = useCart();
+  const { user } = useAuth();
+  const cartItemsCount = totalItems;
+  
+  const isActive = (path: string) => location.pathname === path;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
-      <div className="grid grid-cols-5">
-        {navItems.map(({ icon: Icon, path, label, badge }) => {
-          const isActive = location.pathname === path;
-          
-          return (
-            <Link
-              key={path}
-              to={path}
-              className={`flex flex-col items-center py-2 px-1 relative ${
-                isActive 
-                  ? 'text-green-600' 
-                  : 'text-gray-600 hover:text-green-600'
-              }`}
-            >
-              <Icon className="w-5 h-5" />
-              <span className="text-xs mt-1">{label}</span>
-              {badge && badge > 0 && (
-                <span className="absolute -top-1 right-1/4 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                  {badge}
-                </span>
-              )}
-            </Link>
-          );
-        })}
+    <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-100 shadow-md pb-safe">
+      <div className="grid grid-cols-4 h-16">
+        <Link to="/" className={`bottom-nav-item ${location.pathname === '/' ? 'bottom-nav-active' : 'text-gray-500'}`}>
+          <Home className="w-6 h-6 mb-1" />
+          <span>Home</span>
+        </Link>
+        <Link to="/explore" className={`bottom-nav-item ${location.pathname.includes('/explore') ? 'bottom-nav-active' : 'text-gray-500'}`}>
+          <Search className="w-6 h-6 mb-1" />
+          <span>Explore</span>
+        </Link>
+        <Link to="/cart" className={`bottom-nav-item ${isActive('/cart') ? 'bottom-nav-active' : 'text-gray-500'}`}>
+          <div className="relative">
+            <ShoppingCart className="w-6 h-6 mb-1" />
+            {cartItemsCount > 0 && (
+              <Badge variant="destructive" className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0">
+                {cartItemsCount}
+              </Badge>
+            )}
+          </div>
+          <span>Cart</span>
+        </Link>
+        <Link 
+          to={user ? "/profile" : "/login"} 
+          className={`bottom-nav-item ${isActive('/profile') || isActive('/login') ? 'bottom-nav-active' : 'text-gray-500'}`}
+        >
+          <User className="w-6 h-6 mb-1" />
+          <span>{user ? "Profile" : "Login"}</span>
+        </Link>
       </div>
-    </nav>
+    </div>
   );
 };
 

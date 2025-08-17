@@ -1,6 +1,8 @@
-import * as React from "react";
+
+import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 import { toast } from '@/components/ui/sonner';
 
 interface AuthContextType {
@@ -14,39 +16,52 @@ interface AuthContextType {
   loading: boolean;
 }
 
-const AuthContext = React.createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Export the useAuth hook at the top level instead of at the bottom
 export const useAuth = () => {
-  const context = React.useContext(AuthContext);
+  const context = useContext(AuthContext);
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
 };
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [session, setSession] = React.useState<Session | null>(null);
-  const [user, setUser] = React.useState<User | null>(null);
-  const [loading, setLoading] = React.useState(true);
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  React.useEffect(() => {
+  useEffect(() => {
     let mounted = true;
 
     const initializeAuth = async () => {
       try {
         console.log('Initializing auth...');
         
+        // Get initial session first
+        const { data: { session: initialSession }, error: sessionError } = await supabase.auth.getSession();
+        console.log('Initial session:', initialSession, 'Error:', sessionError);
+        
+        if (mounted && initialSession) {
+          setSession(initialSession);
+          setUser(initialSession.user);
+          console.log('User authenticated on init:', initialSession.user.email);
+        }
+
         // Set up auth state change listener
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: any, currentSession: any) => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
           console.log('Auth state changed:', event, 'Session:', currentSession?.user?.email || 'No user');
           
           if (!mounted) return;
 
+          // Handle different auth events
           if (event === 'SIGNED_IN' && currentSession?.user) {
             console.log('User signed in:', currentSession.user.email);
             setSession(currentSession);
             setUser(currentSession.user);
             
+            // Delay the success toast to ensure UI is ready
             setTimeout(() => {
               toast('Welcome back!', {
                 description: `Signed in as ${currentSession.user.email}`
@@ -69,16 +84,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUser(currentSession.user);
           }
         });
-
-        // Get initial session
-        const { data: { session: initialSession }, error: sessionError } = await supabase.auth.getSession();
-        console.log('Initial session:', initialSession, 'Error:', sessionError);
-        
-        if (mounted && initialSession) {
-          setSession(initialSession);
-          setUser(initialSession.user);
-          console.log('User authenticated on init:', initialSession.user.email);
-        }
 
         if (mounted) {
           setLoading(false);
@@ -109,6 +114,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(true);
       console.log('Starting signup for:', email);
       
+      // Use the current origin for redirect
       const redirectUrl = `${window.location.origin}/`;
       console.log('Using redirect URL:', redirectUrl);
       
@@ -141,6 +147,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       console.log('Signup response:', data);
       
+      // Success - user created but needs email verification
       if (data.user && !data.session) {
         toast('Account created successfully', {
           description: 'Please check your email to confirm your account before signing in.'
@@ -184,6 +191,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       
       console.log('Signin successful:', data.user?.email);
+      // Success handling will be done by onAuthStateChange
       
     } catch (error: any) {
       console.error('Login error:', error);
@@ -195,61 +203,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signInWithGoogle = async () => {
     try {
-      setLoading(true);
-      console.log('Starting Google sign-in...');
-      
-      const isCapacitor = !!(window as any).Capacitor;
-      
-      if (isCapacitor) {
-        const { data, error } = await supabase.auth.signInWithOAuth({
-          provider: 'google',
-          options: {
-            redirectTo: 'groceryhub://auth',
-            queryParams: {
-              access_type: 'offline',
-              prompt: 'consent',
-            },
-            skipBrowserRedirect: false
-          }
-        });
-
-        if (error) {
-          console.error('Google sign-in error:', error);
-          throw error;
-        }
+        setLoading(true);
+        console.log('Starting Google sign-in...');
         
-        console.log('Google sign-in initiated for mobile:', data);
-        
-      } else {
         const { data, error } = await supabase.auth.signInWithOAuth({
-          provider: 'google',
-          options: {
-            redirectTo: `${window.location.origin}/`,
-            queryParams: {
-              access_type: 'offline',
-              prompt: 'consent',
+            provider: 'google',
+            options: {
+                redirectTo: 'groceryhub://auth', // Use custom scheme
+                queryParams: {
+                    access_type: 'offline',
+                    prompt: 'consent',
+                },
+                skipBrowserRedirect: false // Set to false for mobile apps
             }
-          }
         });
 
         if (error) {
-          console.error('Google sign-in error:', error);
-          setLoading(false);
-          throw error;
+            console.error('Google sign-in error:', error);
+            throw error;
         }
         
-        console.log('Google sign-in initiated for web:', data);
-      }
-      
+        console.log('Google sign-in initiated:', data);
+        
     } catch (error: any) {
-      console.error('Google sign-in error:', error);
-      setLoading(false);
-      toast('Google sign-in failed', {
-        description: 'Unable to sign in with Google. Please try again.'
-      });
-      throw error;
+        console.error('Google sign-in error:', error);
+        setLoading(false);
+        throw error;
     }
-  };
+};
 
   const signOut = async () => {
     try {
@@ -288,6 +269,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       console.log('Starting account deletion process for user:', user.id);
       
+      // Call our edge function to delete the account
       const { data, error } = await supabase.functions.invoke('delete-user-account', {
         headers: {
           Authorization: `Bearer ${session.access_token}`,
@@ -301,11 +283,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       console.log('Account deletion response:', data);
       
+      // Clear local storage and session
       localStorage.clear();
       sessionStorage.clear();
       
+      // Sign out locally (the user is already deleted on the server)
       await supabase.auth.signOut();
       
+      // Reset local state
       setUser(null);
       setSession(null);
       
@@ -313,6 +298,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         description: 'Your account has been permanently deleted.'
       });
       
+      // Force redirect to login page
       window.location.href = '/login';
       
     } catch (error: any) {

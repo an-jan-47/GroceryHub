@@ -1,71 +1,59 @@
-
-import * as React from 'react';
+import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 import './index.css';
 
-// Simple error boundary component
-class ErrorBoundary extends React.Component<
-  { children: React.ReactNode },
-  { hasError: boolean; error?: Error }
-> {
-  constructor(props: { children: React.ReactNode }) {
-    super(props);
-    this.state = { hasError: false };
-  }
+import { BrowserRouter } from 'react-router-dom';
 
-  static getDerivedStateFromError(error: Error) {
-    return { hasError: true, error };
-  }
-
-  componentDidCatch(error: Error, errorInfo: any) {
-    console.error('App Error:', error, errorInfo);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'center', 
-          alignItems: 'center', 
-          height: '100vh', 
-          textAlign: 'center',
-          fontFamily: 'Arial, sans-serif',
-          flexDirection: 'column'
-        }}>
-          <h1>Something went wrong</h1>
-          <p>Please refresh the page and try again.</p>
-          <button 
-            onClick={() => window.location.reload()} 
-            style={{ 
-              padding: '10px 20px', 
-              marginTop: '10px', 
-              cursor: 'pointer',
-              border: '1px solid #ccc',
-              borderRadius: '4px'
-            }}
-          >
-            Refresh Page
-          </button>
-        </div>
-      );
+// Register service worker for PWA functionality
+const registerServiceWorker = async () => {
+  if ('serviceWorker' in navigator) {
+    try {
+      const registration = await navigator.serviceWorker.register('/service-worker.js', {
+        scope: '/',
+      });
+      
+      console.log('Service Worker registered with scope:', registration.scope);
+      
+      // Check for updates on page load
+      registration.update();
+      
+      // Handle service worker updates
+      registration.addEventListener('updatefound', () => {
+        const newWorker = registration.installing;
+        console.log('Service Worker update found!');
+        
+        newWorker?.addEventListener('statechange', () => {
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            console.log('New content is available; please refresh.');
+            // You could show a notification to the user here
+          }
+        });
+      });
+      
+    } catch (error) {
+      console.error('Service Worker registration failed:', error);
     }
-
-    return this.props.children;
   }
-}
+};
 
-const rootElement = document.getElementById('root');
-if (!rootElement) {
-  throw new Error('Root element not found');
-}
+// Wait for the device to be ready when using Capacitor
+const initialize = async () => {
+  // Register service worker
+  await registerServiceWorker();
+  
+  // Standard React initialization
+  const rootElement = document.getElementById('root');
+  if (rootElement) {
+    createRoot(rootElement).render(
+      <BrowserRouter>
+        <App />
+      </BrowserRouter>
+    );
+  } else {
+    console.error('Root element not found');
+  }
+};
 
-const root = createRoot(rootElement);
-root.render(
-  <React.StrictMode>
-    <ErrorBoundary>
-      <App />
-    </ErrorBoundary>
-  </React.StrictMode>
-);
+// Start the app
+initialize();
