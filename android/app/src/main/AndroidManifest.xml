@@ -55,7 +55,7 @@
                 <data
                     android:scheme="https"
                     android:host="modern-cart-nexus-app.vercel.app" />
-                <data android:pathPattern="/product/.*" />
+                <data android:pathPattern="/.*" />
             </intent-filter>
 
         </activity>
