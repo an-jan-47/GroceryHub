@@ -2,7 +2,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
 import { toast } from '@/components/ui/sonner';
 
 interface AuthContextType {
@@ -209,7 +208,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const isCapacitor = !!(window as any).Capacitor;
       
       if (isCapacitor) {
-        // For Capacitor/mobile app
+        // For Capacitor/mobile app - open in external browser
         const { data, error } = await supabase.auth.signInWithOAuth({
           provider: 'google',
           options: {

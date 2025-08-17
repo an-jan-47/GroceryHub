@@ -38,15 +38,20 @@ const registerServiceWorker = async () => {
 
 // Wait for the device to be ready when using Capacitor
 const initialize = async () => {
-  // Register service worker
-  await registerServiceWorker();
-  
-  // Standard React initialization
-  const rootElement = document.getElementById('root');
-  if (rootElement) {
-    createRoot(rootElement).render(<App />);
-  } else {
-    console.error('Root element not found');
+  try {
+    // Register service worker
+    await registerServiceWorker();
+    
+    // Standard React initialization
+    const rootElement = document.getElementById('root');
+    if (rootElement) {
+      const root = createRoot(rootElement);
+      root.render(<App />);
+    } else {
+      console.error('Root element not found');
+    }
+  } catch (error) {
+    console.error('Error initializing app:', error);
   }
 };
 
