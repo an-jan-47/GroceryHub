@@ -1,9 +1,8 @@
+
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 import './index.css';
-
-import { BrowserRouter } from 'react-router-dom';
 
 // Register service worker for PWA functionality
 const registerServiceWorker = async () => {
@@ -45,11 +44,7 @@ const initialize = async () => {
   // Standard React initialization
   const rootElement = document.getElementById('root');
   if (rootElement) {
-    createRoot(rootElement).render(
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
-    );
+    createRoot(rootElement).render(<App />);
   } else {
     console.error('Root element not found');
   }
