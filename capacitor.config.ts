@@ -6,7 +6,8 @@ const config: CapacitorConfig = {
   webDir: 'dist',
   server: {
     url: 'https://modern-cart-nexus-app.vercel.app',
-    cleartext: false
+    cleartext: false,
+    androidScheme: 'https'
   }
 };
 

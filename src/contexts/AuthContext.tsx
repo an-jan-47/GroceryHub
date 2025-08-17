@@ -207,7 +207,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.log('Starting Google sign-in...');
         
         // Use the current origin for redirect
-        const redirectUrl = `${window.location.origin}/auth/callback`;
+        const redirectUrl = `${window.location.origin}`;
         console.log('Using Google redirect URL:', redirectUrl);
         
         const { data, error } = await supabase.auth.signInWithOAuth({
