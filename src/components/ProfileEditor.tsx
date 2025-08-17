@@ -1,5 +1,5 @@
-
-import React, { useState, useEffect } from "react";
+import * as React from 'react';
+import { sanitizeInput } from '@/utils/sanitizeInput';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
