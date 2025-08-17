@@ -111,24 +111,52 @@ public class MainActivity extends BridgeActivity {
     }
 
     private void processAuthIntent(Intent intent) {
-    Uri data = intent.getData();
-    if (data != null) {
-        String path = data.getPath();
-        String fragment = data.getFragment();
-        String query = data.getQuery();
-        
-        // Check for auth-related URLs
-        if (isAuthRedirect(data)) {
-            // Load the full URL in WebView to let Supabase handle the auth response
-            this.bridge.getWebView().loadUrl(data.toString());
-            return;
-        }
-        
-        // Handle product deep links
-        if (path != null && path.startsWith("/product/")) {
-            String productId = path.substring("/product/".length());
-            String productUrl = "https://modern-cart-nexus-app.vercel.app/product/" + productId;
-            this.bridge.getWebView().loadUrl(productUrl);
+        Uri data = intent.getData();
+        if (data != null) {
+            String path = data.getPath();
+            String fragment = data.getFragment();
+            String query = data.getQuery();
+            String scheme = data.getScheme();
+            String host = data.getHost();
+            
+            Log.d(TAG, "Processing deep link: " + data.toString());
+            Log.d(TAG, "Scheme: " + scheme + ", Host: " + host + ", Path: " + path);
+            
+            // Handle custom scheme for auth
+            if ("groceryhub".equals(scheme) && "auth".equals(host)) {
+                Log.d(TAG, "Processing auth callback from custom scheme");
+                // Load the app's auth page to handle the token
+                this.bridge.getWebView().loadUrl("https://modern-cart-nexus-app.vercel.app/auth/callback" + 
+                    (query != null ? "?" + query : "") + 
+                    (fragment != null ? "#" + fragment : ""));
+                return;
+            }
+            
+            // Check for auth-related URLs
+            if (isAuthRedirect(data)) {
+                Log.d(TAG, "Processing auth redirect");
+                // Load the full URL in WebView to let Supabase handle the auth response
+                this.bridge.getWebView().loadUrl(data.toString());
+                return;
+            }
+            
+            // Handle product deep links
+            if (path != null && path.startsWith("/product/")) {
+                String productId = path.substring("/product/".length());
+                String productUrl = "https://modern-cart-nexus-app.vercel.app/product/" + productId;
+                Log.d(TAG, "Loading product page: " + productUrl);
+                this.bridge.getWebView().loadUrl(productUrl);
+                return;
+            }
+            
+            // Handle any other deep links by loading the appropriate URL
+            if (path != null) {
+                String fullUrl = "https://modern-cart-nexus-app.vercel.app" + path + 
+                    (query != null ? "?" + query : "") + 
+                    (fragment != null ? "#" + fragment : "");
+                Log.d(TAG, "Loading deep link URL: " + fullUrl);
+                this.bridge.getWebView().loadUrl(fullUrl);
+            }
         }
     }
 }
@@ -374,11 +402,12 @@ private boolean isAuthRedirect(Uri uri) {
         }
     
         private boolean handleExternalUrls(String url) {
-            // Handle Google OAuth URLs
+            // Handle Google OAuth URLs - always open in external browser
             if (url.contains("accounts.google.com") || 
-                url.contains("oauth") || 
-                url.contains("auth")) {
+                (url.contains("oauth") && url.contains("google"))) {
+                Log.d(TAG, "Opening Google auth in external browser: " + url);
                 Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 try {
                     startActivity(intent);
                     return true;

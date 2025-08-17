@@ -206,15 +206,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setLoading(true);
         console.log('Starting Google sign-in...');
         
+        // Determine if we're on mobile or web
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        const redirectUrl = isMobile ? 'groceryhub://auth' : `${window.location.origin}/`;
+        
+        console.log('Using redirect URL:', redirectUrl);
+        
         const { data, error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {
-                redirectTo: 'groceryhub://auth', // Use custom scheme
+                redirectTo: redirectUrl,
                 queryParams: {
                     access_type: 'offline',
                     prompt: 'consent',
                 },
-                skipBrowserRedirect: false // Set to false for mobile apps
+                skipBrowserRedirect: false // Always false to ensure redirect happens
             }
         });
 
