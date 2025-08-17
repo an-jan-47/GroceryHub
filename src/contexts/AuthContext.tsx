@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import * as React from "react";
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/sonner';
@@ -14,42 +14,39 @@ interface AuthContextType {
   loading: boolean;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = React.createContext<AuthContextType | undefined>(undefined);
 
-// Export the useAuth hook at the top level instead of at the bottom
 export const useAuth = () => {
-  const context = useContext(AuthContext);
+  const context = React.useContext(AuthContext);
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
 };
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [session, setSession] = React.useState<Session | null>(null);
+  const [user, setUser] = React.useState<User | null>(null);
+  const [loading, setLoading] = React.useState(true);
 
-  useEffect(() => {
+  React.useEffect(() => {
     let mounted = true;
 
     const initializeAuth = async () => {
       try {
         console.log('Initializing auth...');
         
-        // Set up auth state change listener FIRST
+        // Set up auth state change listener
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: any, currentSession: any) => {
           console.log('Auth state changed:', event, 'Session:', currentSession?.user?.email || 'No user');
           
           if (!mounted) return;
 
-          // Handle different auth events
           if (event === 'SIGNED_IN' && currentSession?.user) {
             console.log('User signed in:', currentSession.user.email);
             setSession(currentSession);
             setUser(currentSession.user);
             
-            // Delay the success toast to ensure UI is ready
             setTimeout(() => {
               toast('Welcome back!', {
                 description: `Signed in as ${currentSession.user.email}`
@@ -73,7 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         });
 
-        // THEN get initial session
+        // Get initial session
         const { data: { session: initialSession }, error: sessionError } = await supabase.auth.getSession();
         console.log('Initial session:', initialSession, 'Error:', sessionError);
         
@@ -112,7 +109,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(true);
       console.log('Starting signup for:', email);
       
-      // Use the current origin for redirect
       const redirectUrl = `${window.location.origin}/`;
       console.log('Using redirect URL:', redirectUrl);
       
@@ -145,7 +141,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       console.log('Signup response:', data);
       
-      // Success - user created but needs email verification
       if (data.user && !data.session) {
         toast('Account created successfully', {
           description: 'Please check your email to confirm your account before signing in.'
@@ -189,7 +184,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       
       console.log('Signin successful:', data.user?.email);
-      // Success handling will be done by onAuthStateChange
       
     } catch (error: any) {
       console.error('Login error:', error);
@@ -207,7 +201,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const isCapacitor = !!(window as any).Capacitor;
       
       if (isCapacitor) {
-        // For Capacitor/mobile app - open in external browser
         const { data, error } = await supabase.auth.signInWithOAuth({
           provider: 'google',
           options: {
@@ -227,11 +220,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         console.log('Google sign-in initiated for mobile:', data);
         
-        // For mobile, we don't setLoading(false) here as the auth flow continues externally
-        // The loading will be cleared by the auth state change listener
-        
       } else {
-        // For web
         const { data, error } = await supabase.auth.signInWithOAuth({
           provider: 'google',
           options: {
@@ -250,7 +239,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         
         console.log('Google sign-in initiated for web:', data);
-        // For web, the redirect happens automatically
       }
       
     } catch (error: any) {
@@ -300,7 +288,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       console.log('Starting account deletion process for user:', user.id);
       
-      // Call our edge function to delete the account
       const { data, error } = await supabase.functions.invoke('delete-user-account', {
         headers: {
           Authorization: `Bearer ${session.access_token}`,
@@ -314,14 +301,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       console.log('Account deletion response:', data);
       
-      // Clear local storage and session
       localStorage.clear();
       sessionStorage.clear();
       
-      // Sign out locally (the user is already deleted on the server)
       await supabase.auth.signOut();
       
-      // Reset local state
       setUser(null);
       setSession(null);
       
@@ -329,7 +313,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         description: 'Your account has been permanently deleted.'
       });
       
-      // Force redirect to login page
       window.location.href = '/login';
       
     } catch (error: any) {

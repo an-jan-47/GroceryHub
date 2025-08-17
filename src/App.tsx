@@ -1,13 +1,12 @@
 
-import React from "react";
+import * as React from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
-import { useDeepLinkHandler } from "@/hooks/useDeepLinkHandler";
-import { useNavigationGestures } from "@/hooks/useNavigationGestures";
+import { CartProvider } from "@/hooks/useCart";
 import Index from "./pages/Index";
 import ProductDetail from "./pages/ProductDetail";
 import Cart from "./pages/Cart";
@@ -22,13 +21,16 @@ import Search from "./pages/Search";
 import Coupons from "./pages/Coupons";
 import ForgotPassword from "./pages/ForgotPassword";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
-// Component to handle deep links and navigation
-function AppWithHandlers() {
-  useDeepLinkHandler();
-  useNavigationGestures();
-  
+function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<Index />} />
@@ -50,17 +52,21 @@ function AppWithHandlers() {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <AuthProvider>
-          <BrowserRouter>
-            <AppWithHandlers />
-          </BrowserRouter>
-          <Toaster />
-          <Sonner />
-        </AuthProvider>
-      </TooltipProvider>
-    </QueryClientProvider>
+    <React.StrictMode>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <TooltipProvider>
+            <AuthProvider>
+              <CartProvider>
+                <AppRoutes />
+                <Toaster />
+                <Sonner />
+              </CartProvider>
+            </AuthProvider>
+          </TooltipProvider>
+        </BrowserRouter>
+      </QueryClientProvider>
+    </React.StrictMode>
   );
 }
 
