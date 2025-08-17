@@ -39,18 +39,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         console.log('Initializing auth...');
         
-        // Get initial session first
-        const { data: { session: initialSession }, error: sessionError } = await supabase.auth.getSession();
-        console.log('Initial session:', initialSession, 'Error:', sessionError);
-        
-        if (mounted && initialSession) {
-          setSession(initialSession);
-          setUser(initialSession.user);
-          console.log('User authenticated on init:', initialSession.user.email);
-        }
-
-        // Set up auth state change listener
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
+        // Set up auth state change listener FIRST
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: any, currentSession: any) => {
           console.log('Auth state changed:', event, 'Session:', currentSession?.user?.email || 'No user');
           
           if (!mounted) return;
@@ -84,6 +74,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setUser(currentSession.user);
           }
         });
+
+        // THEN get initial session
+        const { data: { session: initialSession }, error: sessionError } = await supabase.auth.getSession();
+        console.log('Initial session:', initialSession, 'Error:', sessionError);
+        
+        if (mounted && initialSession) {
+          setSession(initialSession);
+          setUser(initialSession.user);
+          console.log('User authenticated on init:', initialSession.user.email);
+        }
 
         if (mounted) {
           setLoading(false);
@@ -203,34 +203,67 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInWithGoogle = async () => {
     try {
-        setLoading(true);
-        console.log('Starting Google sign-in...');
-        
+      setLoading(true);
+      console.log('Starting Google sign-in...');
+      
+      const isCapacitor = !!(window as any).Capacitor;
+      
+      if (isCapacitor) {
+        // For Capacitor/mobile app
         const { data, error } = await supabase.auth.signInWithOAuth({
-            provider: 'google',
-            options: {
-                redirectTo: 'groceryhub://auth', // Use custom scheme
-                queryParams: {
-                    access_type: 'offline',
-                    prompt: 'consent',
-                },
-                skipBrowserRedirect: false // Set to false for mobile apps
-            }
+          provider: 'google',
+          options: {
+            redirectTo: 'groceryhub://auth',
+            queryParams: {
+              access_type: 'offline',
+              prompt: 'consent',
+            },
+            skipBrowserRedirect: false
+          }
         });
 
         if (error) {
-            console.error('Google sign-in error:', error);
-            throw error;
+          console.error('Google sign-in error:', error);
+          throw error;
         }
         
-        console.log('Google sign-in initiated:', data);
+        console.log('Google sign-in initiated for mobile:', data);
         
+        // For mobile, we don't setLoading(false) here as the auth flow continues externally
+        // The loading will be cleared by the auth state change listener
+        
+      } else {
+        // For web
+        const { data, error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: `${window.location.origin}/`,
+            queryParams: {
+              access_type: 'offline',
+              prompt: 'consent',
+            }
+          }
+        });
+
+        if (error) {
+          console.error('Google sign-in error:', error);
+          setLoading(false);
+          throw error;
+        }
+        
+        console.log('Google sign-in initiated for web:', data);
+        // For web, the redirect happens automatically
+      }
+      
     } catch (error: any) {
-        console.error('Google sign-in error:', error);
-        setLoading(false);
-        throw error;
+      console.error('Google sign-in error:', error);
+      setLoading(false);
+      toast('Google sign-in failed', {
+        description: 'Unable to sign in with Google. Please try again.'
+      });
+      throw error;
     }
-};
+  };
 
   const signOut = async () => {
     try {
