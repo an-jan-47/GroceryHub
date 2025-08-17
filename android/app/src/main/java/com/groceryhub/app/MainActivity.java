@@ -111,23 +111,49 @@ public class MainActivity extends BridgeActivity {
     }
 
     private void processAuthIntent(Intent intent) {
-        Uri data = intent.getData();
-        if (data != null) {
-            String path = data.getPath();
-            String fragment = data.getFragment(); // Get the URL fragment which may contain the auth token
-            
-            // If this is an auth redirect
-            if (fragment != null && (fragment.contains("access_token") || fragment.contains("error"))) {
-                // Load the full URL to let Supabase handle the auth response
-                this.bridge.getWebView().loadUrl(data.toString());
-            } else if (path != null && path.startsWith("/product/")) {
-                // Handle product deep links
-                String productId = path.substring("/product/".length());
-                String productUrl = "https://modern-cart-nexus-app.vercel.app/product/" + productId;
-                this.bridge.getWebView().loadUrl(productUrl);
-            }
+    Uri data = intent.getData();
+    if (data != null) {
+        String path = data.getPath();
+        String fragment = data.getFragment();
+        String query = data.getQuery();
+        
+        // Check for auth-related URLs
+        if (isAuthRedirect(data)) {
+            // Load the full URL in WebView to let Supabase handle the auth response
+            this.bridge.getWebView().loadUrl(data.toString());
+            return;
+        }
+        
+        // Handle product deep links
+        if (path != null && path.startsWith("/product/")) {
+            String productId = path.substring("/product/".length());
+            String productUrl = "https://modern-cart-nexus-app.vercel.app/product/" + productId;
+            this.bridge.getWebView().loadUrl(productUrl);
         }
     }
+}
+private boolean isAuthRedirect(Uri uri) {
+    if (uri == null) return false;
+    
+    // Check fragment and query parameters for auth tokens
+    String fragment = uri.getFragment();
+    String query = uri.getQuery();
+    if ((fragment != null && (fragment.contains("access_token") || fragment.contains("error") || 
+        fragment.contains("token") || fragment.contains("code"))) ||
+        (query != null && (query.contains("access_token") || query.contains("error") || 
+        query.contains("token") || query.contains("code")))) {
+        return true;
+    }
+    
+    // Check path for auth-related endpoints
+    String path = uri.getPath();
+    return path != null && (
+        path.contains("/auth/callback") ||
+        path.contains("/auth/confirm") ||
+        path.contains("/oauth") ||
+        path.contains("/callback")
+    );
+}
 
     // Add this at the class level
     private Intent pendingAuthIntent;

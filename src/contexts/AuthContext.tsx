@@ -207,7 +207,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.log('Starting Google sign-in...');
         
         // Use the current origin for redirect
-        const redirectUrl = `${window.location.origin}/`;
+        const redirectUrl = `${window.location.origin}/auth/callback`;
         console.log('Using Google redirect URL:', redirectUrl);
         
         const { data, error } = await supabase.auth.signInWithOAuth({
@@ -218,7 +218,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     access_type: 'offline',
                     prompt: 'consent',
                 },
-                skipBrowserRedirect: false
+                skipBrowserRedirect: true // Set to true for mobile apps
             }
         });
 
@@ -231,7 +231,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         
         console.log('Google sign-in initiated:', data);
-        // Don't set loading to false here as the redirect will happen
         
     } catch (error: any) {
         console.error('Google sign-in error:', error);
