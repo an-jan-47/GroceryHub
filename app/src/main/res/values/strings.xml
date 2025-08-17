@@ -27,12 +27,16 @@
   [{
     "relation": ["delegate_permission/common.handle_all_urls"],
     "target": {
-      "namespace": "com.groceryhub.app",
+      "namespace": "android_app",
       "package_name": "com.groceryhub.app",
-      "sha256_cert_fingerprints": ["97:76:A0:5F:13:30:83:1D:78:47:D5:5C:DF:CC:A4:D8:9A:CD:63:64:18:97:69:F3:A7:49:DD:82:60:EB:E2:E9","28:16:38:8C:21:BC:90:03:31:91:1F:AA:FA:96:E8:89:64:D8:BB:A0:D5:17:E9:B4:F6:67:D2:9B:28:13:C6:04"]
+      "sha256_cert_fingerprints": [
+        "97:76:A0:5F:13:30:83:1D:78:47:D5:5C:DF:CC:A4:D8:9A:CD:63:64:18:97:69:F3:A7:49:DD:82:60:EB:E2:E9",
+        "28:16:38:8C:21:BC:90:03:31:91:1F:AA:FA:96:E8:89:64:D8:BB:A0:D5:17:E9:B4:F6:67:D2:9B:28:13:C6:04"
+      ]
     }
   }]
 </string>
+
 
 
   <!-- Add this line for deep linking -->
