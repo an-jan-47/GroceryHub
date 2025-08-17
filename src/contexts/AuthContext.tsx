@@ -206,27 +206,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setLoading(true);
         console.log('Starting Google sign-in...');
         
-        // Use the current origin for redirect
-        const redirectUrl = `${window.location.origin}`;
-        console.log('Using Google redirect URL:', redirectUrl);
-        
         const { data, error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {
-                redirectTo: redirectUrl,
+                redirectTo: 'groceryhub://auth', // Use custom scheme
                 queryParams: {
                     access_type: 'offline',
                     prompt: 'consent',
                 },
-                skipBrowserRedirect: true // Set to true for mobile apps
+                skipBrowserRedirect: false // Set to false for mobile apps
             }
         });
 
         if (error) {
             console.error('Google sign-in error:', error);
-            toast('Google sign-in failed', {
-                description: 'Unable to sign in with Google. Please try again.'
-            });
             throw error;
         }
         

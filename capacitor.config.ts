@@ -8,6 +8,13 @@ const config: CapacitorConfig = {
     url: 'https://modern-cart-nexus-app.vercel.app',
     cleartext: false,
     androidScheme: 'https'
+  },
+  plugins: {
+    App: {
+      url: 'https://modern-cart-nexus-app.vercel.app',
+      launchUrl: 'https://modern-cart-nexus-app.vercel.app',
+      webDir: 'dist'
+    }
   }
 };
 
