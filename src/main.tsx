@@ -36,30 +36,53 @@ const registerServiceWorker = async () => {
   }
 };
 
-// Wait for the device to be ready when using Capacitor
+// Wait for the DOM to be ready
 const initialize = async () => {
   try {
+    console.log('Starting app initialization...');
+    
+    // Wait for DOM to be ready
+    if (document.readyState === 'loading') {
+      await new Promise(resolve => {
+        document.addEventListener('DOMContentLoaded', resolve);
+      });
+    }
+    
     // Register service worker
     await registerServiceWorker();
     
-    // Standard React initialization
+    // Get root element
     const rootElement = document.getElementById('root');
     if (!rootElement) {
-      console.error('Root element not found');
-      return;
+      throw new Error('Root element not found');
     }
 
-    // Ensure React is properly loaded before creating root
-    if (!React || !createRoot) {
-      console.error('React modules not properly loaded');
-      return;
-    }
-    
+    console.log('Creating React root...');
     const root = createRoot(rootElement);
-    root.render(React.createElement(App));
+    
+    console.log('Rendering app...');
+    root.render(<App />);
+    
+    console.log('App initialized successfully');
     
   } catch (error) {
     console.error('Error initializing app:', error);
+    
+    // Show error message to user
+    const rootElement = document.getElementById('root');
+    if (rootElement) {
+      rootElement.innerHTML = `
+        <div style="display: flex; justify-content: center; align-items: center; height: 100vh; text-align: center; font-family: Arial, sans-serif;">
+          <div>
+            <h1>Error Loading App</h1>
+            <p>Please refresh the page and try again.</p>
+            <button onclick="window.location.reload()" style="padding: 10px 20px; margin-top: 10px; cursor: pointer;">
+              Refresh Page
+            </button>
+          </div>
+        </div>
+      `;
+    }
   }
 };
 
