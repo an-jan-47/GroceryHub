@@ -112,11 +112,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signUp = async (email: string, password: string, userData: { name: string; phone: string }) => {
     try {
       setLoading(true);
-      console.log('Starting signup for:', email);
+      // console.log('Starting signup for:', email);
       
       // Use the current origin for redirect
-      const redirectUrl = `${window.location.origin}/`;
-      console.log('Using redirect URL:', redirectUrl);
+      const redirectUrl = `https://email-verification-woad.vercel.app/`;
+      // console.log('Using redirect URL:', redirectUrl);
       
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -150,7 +150,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Success - user created but needs email verification
       if (data.user && !data.session) {
         toast('Account created successfully', {
-          description: 'Please check your email to confirm your account before signing in.'
+          description: 'Please check your email and spam inbox to confirm your account before signing in.'
         });
       }
       
@@ -165,7 +165,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signIn = async (email: string, password: string) => {
     try {
       setLoading(true);
-      console.log('Starting signin for:', email);
+      // console.log('Starting signin for:', email);
       
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -273,7 +273,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error("No user is logged in");
       }
       
-      console.log('Starting account deletion process for user:', user.id);
+      // console.log('Starting account deletion process for user:', user.id);
       
       // Call our edge function to delete the account
       const { data, error } = await supabase.functions.invoke('delete-user-account', {
