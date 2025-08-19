@@ -74,6 +74,9 @@ public class MainActivity extends BridgeActivity {
     // Error tracking
     private int reloadAttempts = 0;
     
+    // Add this at the class level
+    private Intent pendingAuthIntent;
+    
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -159,32 +162,29 @@ public class MainActivity extends BridgeActivity {
             }
         }
     }
-}
-private boolean isAuthRedirect(Uri uri) {
-    if (uri == null) return false;
     
-    // Check fragment and query parameters for auth tokens
-    String fragment = uri.getFragment();
-    String query = uri.getQuery();
-    if ((fragment != null && (fragment.contains("access_token") || fragment.contains("error") || 
-        fragment.contains("token") || fragment.contains("code"))) ||
-        (query != null && (query.contains("access_token") || query.contains("error") || 
-        query.contains("token") || query.contains("code")))) {
-        return true;
+    private boolean isAuthRedirect(Uri uri) {
+        if (uri == null) return false;
+        
+        // Check fragment and query parameters for auth tokens
+        String fragment = uri.getFragment();
+        String query = uri.getQuery();
+        if ((fragment != null && (fragment.contains("access_token") || fragment.contains("error") || 
+            fragment.contains("token") || fragment.contains("code"))) ||
+            (query != null && (query.contains("access_token") || query.contains("error") || 
+            query.contains("token") || query.contains("code")))) {
+            return true;
+        }
+        
+        // Check path for auth-related endpoints
+        String path = uri.getPath();
+        return path != null && (
+            path.contains("/auth/callback") ||
+            path.contains("/auth/confirm") ||
+            path.contains("/oauth") ||
+            path.contains("/callback")
+        );
     }
-    
-    // Check path for auth-related endpoints
-    String path = uri.getPath();
-    return path != null && (
-        path.contains("/auth/callback") ||
-        path.contains("/auth/confirm") ||
-        path.contains("/oauth") ||
-        path.contains("/callback")
-    );
-}
-
-    // Add this at the class level
-    private Intent pendingAuthIntent;
 
     private void configureWebView() {
         WebView webView = this.bridge.getWebView();
