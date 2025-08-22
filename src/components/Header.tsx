@@ -1,4 +1,3 @@
-
 import React from "react";
 
 import { Link, useLocation } from 'react-router-dom';
@@ -25,9 +24,9 @@ const Header = () => {
           <Link to="/cart" className="relative">
             <ShoppingCart className="w-6 h-6" />
             {cartItemsCount > 0 && (
-              <div className="absolute -top-2 -right-2 bg-red-500/90 text-white text-xs font-medium rounded-full h-5 w-5 flex items-center justify-center backdrop-blur-sm border border-white/20 shadow-lg">
-                {cartItemsCount > 99 ? '99+' : cartItemsCount}
-              </div>
+              <Badge variant="destructive" className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0">
+                {cartItemsCount}
+              </Badge>
             )}
           </Link>
           <Link to={user ? "/profile" : "/login"} className="block">
