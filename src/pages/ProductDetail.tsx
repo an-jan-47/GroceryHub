@@ -100,14 +100,9 @@ const ProductDetailPage = () => {
     }
   };
   
-  // Buy now function
+  // Buy now function - removed minimum order restriction
   const handleBuyNow = (qty: number = quantity) => {
     if (product) {
-      const total = (product.sale_price ?? product.price) * qty;
-      if (total < 2000) {
-        toast('Minimum order value is ₹2000 to proceed ', { position: 'bottom-center' });
-        return;
-      }
       addToCart({
         id: product.id,
         name: product.name,

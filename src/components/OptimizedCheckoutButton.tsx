@@ -29,7 +29,7 @@ const OptimizedCheckoutButton: React.FC<OptimizedCheckoutButtonProps> = ({
       return;
     }
 
-    // No minimum order restriction - allow checkout for any amount
+    // Allow checkout for any amount - no minimum order restriction
     if (checkAuthForCheckout()) {
       console.log('User authenticated, navigating to address page');
       navigate('/address', { replace: true });

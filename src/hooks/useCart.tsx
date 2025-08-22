@@ -17,6 +17,8 @@ interface CartContextType {
   cartItems: CartItem[];
   cartTotal: number;
   totalItems: number;
+  deliveryFee: number;
+  finalTotal: number;
   addToCart: (product: any, quantity?: number) => void;
   removeFromCart: (productId: string) => void;
   updateQuantity: (productId: string, quantity: number) => void;
@@ -67,13 +69,13 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const existingItem = prevItems.find(item => item.id === product.id);
       
       if (existingItem) {
-        // If item already exists, replace with the new quantity (don't add to existing)
+        // If item already exists, add the new quantity to existing quantity
         const updatedItems = prevItems.map(item =>
           item.id === product.id
             ? { 
                 ...item,
-                salePrice: product.salePrice || product.sale_price, // Handle both property names
-                quantity: Number(quantity) // Use the passed quantity directly
+                salePrice: product.salePrice || product.sale_price,
+                quantity: existingItem.quantity + Number(quantity) // Add to existing quantity
               }
             : item
         );
@@ -125,7 +127,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const clearCart = () => {
     setCartItems([]);
-    localStorage.removeItem('groceryHub_cart'); // Fix: use the correct key
+    localStorage.removeItem('groceryHub_cart');
     // Clear coupons when cart is cleared
     if (typeof window !== 'undefined') {
       localStorage.removeItem('appliedCoupon');
@@ -139,10 +141,16 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const totalItems = cartItems.reduce((total, item) => total + item.quantity, 0);
 
+  // Calculate delivery fee: ₹50 if cart total is less than ₹2000
+  const deliveryFee = cartTotal < 2000 && cartTotal > 0 ? 50 : 0;
+  const finalTotal = cartTotal + deliveryFee;
+
   const value = {
     cartItems,
     cartTotal,
     totalItems,
+    deliveryFee,
+    finalTotal,
     addToCart,
     removeFromCart,
     updateQuantity,

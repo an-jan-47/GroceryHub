@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Home, Search, ShoppingCart, User } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
@@ -14,8 +15,8 @@ const BottomNavigation = () => {
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-100 shadow-md pb-safe">
-      <div className="grid grid-cols-4 h-16">
+    <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-100 shadow-md pb-2">
+      <div className="grid grid-cols-4 h-14">
         <Link to="/" className={`bottom-nav-item ${location.pathname === '/' ? 'bottom-nav-active' : 'text-gray-500'}`}>
           <Home className="w-6 h-6 mb-1" />
           <span>Home</span>
