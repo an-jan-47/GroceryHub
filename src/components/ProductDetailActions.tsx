@@ -2,6 +2,7 @@
 import { Button } from '@/components/ui/button';
 import { ShoppingCart } from 'lucide-react';
 import React from "react";
+import { toast } from '@/components/ui/sonner';
 
 interface ProductDetailActionsProps {
   product: {
@@ -23,24 +24,65 @@ const ProductDetailActions = ({
   onAddToCart, 
   onBuyNow 
 }: ProductDetailActionsProps) => {
+  
+  const handleAddToCart = () => {
+    if (product.stock <= 0) {
+      toast("Out of stock", {
+        description: `${product.name} is currently unavailable`,
+        position: "bottom-center"
+      });
+      return;
+    }
+    
+    if (quantity > product.stock) {
+      toast("Insufficient stock", {
+        description: `Only ${product.stock} units available`,
+        position: "bottom-center"
+      });
+      return;
+    }
+    
+    onAddToCart(quantity);
+  };
+  
+  const handleBuyNow = () => {
+    if (product.stock <= 0) {
+      toast("Out of stock", {
+        description: `${product.name} is currently unavailable`,
+        position: "bottom-center"
+      });
+      return;
+    }
+    
+    if (quantity > product.stock) {
+      toast("Insufficient stock", {
+        description: `Only ${product.stock} units available`,
+        position: "bottom-center"
+      });
+      return;
+    }
+    
+    onBuyNow(quantity);
+  };
+  
   return (
     <div className="grid grid-cols-2 gap-3 mb-6">
       <Button 
         variant="outline" 
-        onClick={() => onAddToCart(quantity)}
+        onClick={handleAddToCart}
         disabled={product.stock <= 0}
         className="border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white"
       >
         <ShoppingCart className="w-4 h-4 mr-2" />
-        Add to Cart
+        {product.stock <= 0 ? 'Out of Stock' : 'Add to Cart'}
       </Button>
       
       <Button 
-        onClick={() => onBuyNow(quantity)}
+        onClick={handleBuyNow}
         disabled={product.stock <= 0}
         className="bg-blue-600 hover:bg-blue-700"
       >
-        Buy Now
+        {product.stock <= 0 ? 'Out of Stock' : 'Buy Now'}
       </Button>
     </div>
   );

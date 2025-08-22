@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { useCouponState } from '@/components/CouponStateManager';
 
@@ -65,23 +64,44 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const addToCart = (product: any, quantity = 1) => {
     console.log('Adding to cart:', product, 'quantity:', quantity);
+    
+    // Check stock availability before adding
+    if (product.stock <= 0) {
+      console.log('Product out of stock:', product.name);
+      return;
+    }
+    
     setCartItems(prevItems => {
       const existingItem = prevItems.find(item => item.id === product.id);
       
       if (existingItem) {
+        const newQuantity = existingItem.quantity + Number(quantity);
+        
+        // Check if new quantity exceeds stock
+        if (newQuantity > product.stock) {
+          console.log(`Cannot add more items. Stock limit: ${product.stock}, Requested: ${newQuantity}`);
+          return prevItems; // Don't add if exceeds stock
+        }
+        
         // If item already exists, add the new quantity to existing quantity
         const updatedItems = prevItems.map(item =>
           item.id === product.id
             ? { 
                 ...item,
                 salePrice: product.salePrice || product.sale_price,
-                quantity: existingItem.quantity + Number(quantity) // Add to existing quantity
+                quantity: newQuantity
               }
             : item
         );
         console.log('Updated existing item in cart:', updatedItems);
         return updatedItems;
       } else {
+        // Check stock for new item
+        if (Number(quantity) > product.stock) {
+          console.log(`Cannot add item. Stock limit: ${product.stock}, Requested: ${quantity}`);
+          return prevItems; // Don't add if exceeds stock
+        }
+        
         const newItem: CartItem = {
           id: product.id,
           name: product.name,
@@ -91,7 +111,6 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           images: product.images || [],
           category: product.category || '',
           brand: product.brand || '',
-          stock: product.stock || 999
         };
         console.log('Added new item to cart:', newItem);
         return [...prevItems, newItem];

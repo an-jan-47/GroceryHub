@@ -139,24 +139,27 @@ const OrderDetails = () => {
   
   const { order, items } = orderData;
   
-  // Calculate costs without GST/tax
+  // Calculate costs with proper delivery fee logic
   const platformFees = order.platform_fees || 5.00;
-  const deliveryFees = 0.00; // Set to 0 as requested
   
   // Get applied coupon information
   const appliedCoupons = getAppliedCoupons();
   
   // Create itemCalculations array from items
-  const itemCalculations = items.map(item => ({
+  const itemCalculations = items.map((item: any) => ({
     itemTotal: item.price * item.quantity
   }));
 
   // Calculate subtotal without tax
-  const subtotal = itemCalculations.reduce((total, item) => total + Number(item.itemTotal), 0);
+  const subtotal = itemCalculations.reduce((total: number, item: any) => total + Number(item.itemTotal), 0);
+  
+  // Calculate delivery fee: ₹50 if subtotal is less than ₹2000, otherwise free
+  const deliveryFees = subtotal < 2000 && subtotal > 0 ? 50 : 0;
+  
   const totalBeforeDiscount = subtotal + platformFees + deliveryFees;
 
   // Calculate total discount from all applied coupons
-  const totalDiscountAmount = appliedCoupons.reduce((total, { discountAmount }) => total + (discountAmount || 0), 0);
+  const totalDiscountAmount = appliedCoupons.reduce((total: number, { discountAmount }: any) => total + (discountAmount || 0), 0);
   const totalAfterDiscount = Math.max(0, totalBeforeDiscount - totalDiscountAmount);
 
   // Calculate Razorpay fees AFTER discount (2% of the total after discount)
@@ -242,7 +245,7 @@ const OrderDetails = () => {
           
           {items && items.length > 0 ? (
             <div className="space-y-4">
-              {items.map((item) => (
+              {items.map((item: any) => (
                 <div key={item.id} className="flex items-center">
                   <div className="h-16 w-16 bg-gray-100 rounded flex items-center justify-center mr-3">
                     {item.product && item.product.images && item.product.images[0] ? (
@@ -287,9 +290,11 @@ const OrderDetails = () => {
               <span>{formatCurrency(platformFees)}</span>
             </div>
             
-            <div className="flex justify-between text-sm text-green-500">
-              <span className="text-green-500">Delivery Fee</span>
-              <span>{"FREE"}</span>
+            <div className="flex justify-between text-sm">
+              <span className={deliveryFees === 0 ? "text-green-500" : "text-gray-500"}>Delivery Fee</span>
+              <span className={deliveryFees === 0 ? "text-green-500" : ""}>
+                {deliveryFees === 0 ? "FREE" : formatCurrency(deliveryFees)}
+              </span>
             </div>
             
             {razorpayFees > 0 && (
@@ -310,7 +315,7 @@ const OrderDetails = () => {
                 </div>
                 
                 {appliedCoupons.length > 0 ? (
-                  appliedCoupons.map((couponData, index) => (
+                  appliedCoupons.map((couponData: any, index: number) => (
                     <div key={index} className="flex justify-between items-center text-sm bg-green-50 p-2 rounded">
                       <div>
                         <span className="font-medium text-green-800">{couponData.coupon.code}</span>
@@ -343,7 +348,7 @@ const OrderDetails = () => {
             
             <div className="flex justify-between font-bold text-lg">
               <span>Total Amount</span>
-              <span>{formatCurrency(subtotal + platformFees + razorpayFees - discountAmount)}</span>
+              <span>{formatCurrency(subtotal + platformFees + deliveryFees + razorpayFees - discountAmount)}</span>
             </div>
           </div>
         </div>
@@ -364,7 +369,8 @@ const OrderDetails = () => {
                     subtotal={subtotal} 
                     platformFees={platformFees} 
                     razorpayFees={razorpayFees} 
-                    discountAmount={discountAmount} 
+                    discountAmount={discountAmount}
+                    deliveryFees={deliveryFees}
                   />
                 } 
                 fileName={`invoice-${order.id.substring(0, 8)}.pdf`}
