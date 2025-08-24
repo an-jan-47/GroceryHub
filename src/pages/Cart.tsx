@@ -176,25 +176,44 @@ const CartPage = () => {
   };
 
   const handleQuantityInputChange = (itemId: string, value: string) => {
-    const newQuantity = parseInt(value) || 1;
-    if (newQuantity > 0 && newQuantity <= 999) {
-      setOptimisticQuantities(prev => ({
-        ...prev,
-        [itemId]: newQuantity
-      }));
-      
+    // Allow empty string and numbers from 0 to 999
+    const numValue = value === '' ? 0 : parseInt(value);
+    
+    if (isNaN(numValue) || numValue < 0 || numValue > 999) {
+      return; // Don't update if invalid
+    }
+
+    setOptimisticQuantities(prev => ({
+      ...prev,
+      [itemId]: numValue
+    }));
+    
+    // Only update the cart if quantity is greater than 0
+    if (numValue > 0) {
       setTimeout(() => {
-        handleQuantityUpdate(itemId, newQuantity);
+        handleQuantityUpdate(itemId, numValue);
       }, 300);
     }
   };
 
   const handleInputBlur = (itemId: string) => {
-    setOptimisticQuantities(prev => {
-      const newState = { ...prev };
-      delete newState[itemId];
-      return newState;
-    });
+    const currentOptimisticQuantity = optimisticQuantities[itemId];
+    
+    // If user left input at 0 or empty, set it back to 1
+    if (currentOptimisticQuantity === undefined || currentOptimisticQuantity <= 0) {
+      setOptimisticQuantities(prev => ({
+        ...prev,
+        [itemId]: 1
+      }));
+      updateQuantity(itemId, 1);
+    } else {
+      // Remove from optimistic state to use actual cart quantity
+      setOptimisticQuantities(prev => {
+        const newState = { ...prev };
+        delete newState[itemId];
+        return newState;
+      });
+    }
   };
 
   const handleCouponApply = async () => {
@@ -298,8 +317,8 @@ const CartPage = () => {
               {cartItemsWithCoupons.map((item: any) => {
                 const itemPrice = item.salePrice !== undefined ? Number(item.salePrice) : Number(item.price);
                 const currentQuantity = optimisticQuantities[item.id] ?? Number(item.quantity);
-                const totalItemPrice = itemPrice * currentQuantity;
-                const { totalDiscount, discountPercentage } = getItemDiscount({ ...item, quantity: currentQuantity }, appliedCouponsForDiscount);
+                const totalItemPrice = itemPrice * Math.max(1, currentQuantity); // Ensure minimum 1 for calculations
+                const { totalDiscount, discountPercentage } = getItemDiscount({ ...item, quantity: Math.max(1, currentQuantity) }, appliedCouponsForDiscount);
                 const finalItemPrice = totalItemPrice - totalDiscount;
                 
                 const hasApplicableCoupons = appliedCoupons.some(ac => 
@@ -342,7 +361,7 @@ const CartPage = () => {
                             </Button>
                             <Input
                               type="number"
-                              min="1"
+                              min="0"
                               max={item.currentStock}
                               value={currentQuantity}
                               onChange={(e) => handleQuantityInputChange(item.id, e.target.value)}
@@ -392,7 +411,7 @@ const CartPage = () => {
                             <div className="flex items-center justify-between">
                               <span className="text-gray-800 font-semibold text-sm">₹{totalItemPrice.toFixed(2)}</span>
                               {item.salePrice && (
-                                <span className="text-gray-500 line-through text-xs">₹{(item.price * currentQuantity).toFixed(2)}</span>
+                                <span className="text-gray-500 line-through text-xs">₹{(item.price * Math.max(1, currentQuantity)).toFixed(2)}</span>
                               )}
                             </div>
                           )}

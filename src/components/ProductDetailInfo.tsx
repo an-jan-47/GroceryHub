@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 
 import { Badge } from '@/components/ui/badge';
@@ -20,19 +21,27 @@ interface ProductDetailInfoProps {
     category: string;
     description: string;
     applicable_coupons?: string[];
+    stock: number;
   };
   quantity: number;
   onIncrementQuantity: () => void;
   onDecrementQuantity: () => void;
+  onQuantityChange: (quantity: number) => void;
 }
 
 const ProductDetailInfo = ({ 
   product, 
   quantity, 
   onIncrementQuantity, 
-  onDecrementQuantity 
+  onDecrementQuantity,
+  onQuantityChange
 }: ProductDetailInfoProps) => {
   const [coupons, setCoupons] = useState<any[]>([]);
+  const [inputQuantity, setInputQuantity] = useState(quantity);
+
+  useEffect(() => {
+    setInputQuantity(quantity);
+  }, [quantity]);
 
   useEffect(() => {
     const fetchCoupons = async () => {
@@ -55,6 +64,26 @@ const ProductDetailInfo = ({
     toast('Coupon code copied!', {
       description: 'You can use it at checkout.'
     });
+  };
+
+  const handleQuantityInputChange = (value: string) => {
+    const numValue = value === '' ? 0 : parseInt(value);
+    
+    if (isNaN(numValue) || numValue < 0 || numValue > product.stock) {
+      return; // Don't update if invalid or exceeds stock
+    }
+
+    setInputQuantity(numValue);
+  };
+
+  const handleQuantityBlur = () => {
+    // If user left input at 0, set it back to 1
+    if (inputQuantity <= 0) {
+      setInputQuantity(1);
+      onQuantityChange(1);
+    } else {
+      onQuantityChange(inputQuantity);
+    }
   };
 
   return (
@@ -88,15 +117,31 @@ const ProductDetailInfo = ({
           >
             -
           </button>
-          <span className="px-3 py-1">{quantity}</span>
+          <input
+            type="number"
+            min="0"
+            max={product.stock}
+            value={inputQuantity}
+            onChange={(e) => handleQuantityInputChange(e.target.value)}
+            onBlur={handleQuantityBlur}
+            className="w-12 text-center py-1 border-0 outline-none"
+          />
           <button 
             onClick={onIncrementQuantity}
             className="px-3 py-1 text-lg"
+            disabled={quantity >= product.stock}
           >
             +
           </button>
         </div>
       </div>
+      
+      {/* Stock warning */}
+      {product.stock <= 5 && product.stock > 0 && (
+        <div className="text-sm text-orange-600 mt-1">
+          Only {product.stock} left in stock
+        </div>
+      )}
       
       {/* Brand and category */}
       <div className="flex flex-wrap gap-2 mt-2">
